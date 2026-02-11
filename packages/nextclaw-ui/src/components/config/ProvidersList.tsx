@@ -1,8 +1,7 @@
 import { useConfig, useConfigMeta } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { t } from '@/lib/i18n';
-import { KeyRound, Lock, Check } from 'lucide-react';
+import { KeyRound, Lock, Check, Plus, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { ProviderForm } from './ProviderForm';
 import { useUiStore } from '@/stores/ui.store';
@@ -18,8 +17,8 @@ export function ProvidersList() {
     return (
       <div className="flex items-center justify-center p-12">
         <div className="flex gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <span className="text-muted-foreground">{t('loading')}</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
+          <span className="text-slate-400">加载中...</span>
         </div>
       </div>
     );
@@ -27,86 +26,77 @@ export function ProvidersList() {
 
   return (
     <div className="space-y-6">
-      {/* 标题 */}
-      <div className="flex items-center justify-between mb-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">AI 提供商</h2>
-          <p className="text-sm text-muted-foreground mt-1">配置 API 密钥和基础 URL</p>
+          <h2 className="text-2xl font-semibold text-slate-900">AI 提供商</h2>
+          <p className="text-sm text-slate-500 mt-1">配置和管理您的 AI 服务提供商</p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => openProviderModal('')}
+        >
+          <Plus className="h-4 w-4" />
+          添加提供商
+        </Button>
       </div>
 
-      {/* Provider 列表 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {/* Provider Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {meta.providers.map((provider) => {
           const providerConfig = config.providers[provider.name];
-          const isSet = providerConfig?.apiKeySet || false;
+          const hasConfig = providerConfig?.apiKeySet;
           const isHovered = hoveredProvider === provider.name;
 
           return (
             <Card
               key={provider.name}
               className={cn(
-                'group relative overflow-hidden transition-all duration-300',
-                isHovered ? 'shadow-xl scale-[1.02]' : 'hover:shadow-lg hover:scale-[1.01]'
+                'group cursor-pointer transition-all duration-200',
+                'hover:shadow-lg hover:-translate-y-0.5',
+                isHovered && 'ring-2 ring-slate-900'
               )}
               onMouseEnter={() => setHoveredProvider(provider.name)}
               onMouseLeave={() => setHoveredProvider(null)}
+              onClick={() => openProviderModal(provider.name)}
             >
-              <CardHeader className="pb-4 bg-gradient-to-br from-muted/50 to-muted/20">
-                <CardTitle className="text-base flex items-center justify-between">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
-                      {isSet ? (
-                        <Check className="h-5 w-5 text-primary-foreground" strokeWidth={2.5} />
+                    <div className={cn(
+                      'h-10 w-10 rounded-lg flex items-center justify-center transition-colors',
+                      hasConfig ? 'bg-slate-900' : 'bg-slate-100'
+                    )}>
+                      {hasConfig ? (
+                        <Check className="h-5 w-5 text-white" />
                       ) : (
-                        <Lock className="h-5 w-5 text-muted-foreground" strokeWidth={2} />
+                        <KeyRound className="h-5 w-5 text-slate-400" />
                       )}
                     </div>
                     <div>
-                      <div className="font-semibold text-foreground">{provider.displayName || provider.name}</div>
-                      <div className="text-xs text-muted-foreground/60">{provider.name}</div>
+                      <CardTitle className="text-base font-semibold">
+                        {provider.displayName || provider.name}
+                      </CardTitle>
+                      <p className="text-xs text-slate-400">{provider.name}</p>
                     </div>
                   </div>
-                  <KeyRound className={cn('h-4 w-4 transition-colors', isSet ? 'text-green-500' : 'text-muted-foreground/40')} />
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="pt-2">
-                <div className="space-y-4">
-                  {/* API Key 状态 */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
-                      <span className="text-sm font-medium text-muted-foreground/80">
-                        {t('apiKey')}
-                      </span>
-                    </div>
-                    <div className={cn(
-                      'px-3 py-1 rounded-full text-xs font-medium transition-colors',
-                      isSet
-                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-100'
-                        : 'bg-muted text-muted-foreground'
-                    )}>
-                      {isSet ? '已设置' : '未设置'}
-                    </div>
-                  </div>
-
-                  {/* API Base URL */}
-                  {provider.defaultApiBase && (
-                    <div className="text-xs text-muted-foreground bg-muted/40 rounded px-2 py-1 truncate">
-                      {provider.defaultApiBase}
+                  {hasConfig && (
+                    <div className="flex items-center gap-1 text-emerald-600 text-xs font-medium">
+                      <Lock className="h-3 w-3" />
+                      已配置
                     </div>
                   )}
-
-                  {/* 操作按钮 */}
-                  <Button
-                    variant={isSet ? 'secondary' : 'default'}
-                    size="sm"
-                    className="w-full group-hover:bg-primary/90"
-                    onClick={() => openProviderModal(provider.name)}
-                  >
-                    {isSet ? '编辑配置' : '添加密钥'}
-                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <p className="text-sm text-slate-500 line-clamp-2">
+                  点击配置此 AI 提供商的 API 密钥和设置
+                </p>
+                <div className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+                  <ExternalLink className="h-3 w-3" />
+                  <span>点击编辑配置</span>
                 </div>
               </CardContent>
             </Card>

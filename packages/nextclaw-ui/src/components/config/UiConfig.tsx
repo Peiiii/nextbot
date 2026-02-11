@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { RefreshCw, Globe } from 'lucide-react';
+import { RefreshCw, Globe, Save } from 'lucide-react';
 
 export function UiConfig() {
   const { data: config, isLoading } = useConfig();
@@ -37,153 +37,113 @@ export function UiConfig() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="flex gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <span className="text-muted-foreground">加载中...</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
+          <span className="text-slate-400">加载中...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl">
-        <CardHeader className="bg-gradient-to-br from-primary/10 to-primary/5">
+    <div className="max-w-2xl space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-2xl font-semibold text-slate-900">界面设置</h2>
+        <p className="text-sm text-slate-500 mt-1">配置 Web UI 服务器和访问选项</p>
+      </div>
+
+      <Card>
+        <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-primary/20">
-              <Globe className="h-6 w-6 text-primary-foreground" strokeWidth={2} />
+            <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center">
+              <Globe className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-foreground">界面设置</CardTitle>
-              <CardDescription className="text-muted-foreground/80">
-                配置 Web UI 服务器和访问选项
-              </CardDescription>
+              <CardTitle className="text-base">Web UI 服务器</CardTitle>
+              <CardDescription>配置界面服务的运行参数</CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex items-center justify-between p-4 bg-muted/40 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/80 to-primary/20 flex items-center justify-center shadow-lg">
-                  <RefreshCw className="h-6 w-6 text-primary-foreground" strokeWidth={2} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">{enabled ? 'UI 已启用' : 'UI 已禁用'}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {enabled ? 'Web UI 将在配置的端口上运行' : 'Web UI 未运行'}
-                  </p>
-                </div>
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+              <div>
+                <h3 className="font-medium text-slate-900">启用 Web UI</h3>
+                <p className="text-xs text-slate-500">
+                  {enabled ? '服务正在运行' : '服务已停止'}
+                </p>
               </div>
               <Switch
                 id="enabled"
                 checked={enabled}
                 onCheckedChange={setEnabled}
-                className="scale-125"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="host" className="text-sm font-medium text-foreground">
-                监听地址
-              </Label>
-              <Input
-                id="host"
-                type="text"
-                value={host}
-                onChange={(e) => setHost(e.target.value)}
-                placeholder="127.0.0.1"
-                className="font-mono"
-              />
-            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="host">监听地址</Label>
+                <Input
+                  id="host"
+                  type="text"
+                  value={host}
+                  onChange={(e) => setHost(e.target.value)}
+                  placeholder="127.0.0.1"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="port" className="text-sm font-medium text-foreground">
-                端口
-              </Label>
-              <Input
-                id="port"
-                type="number"
-                value={port}
-                onChange={(e) => setPort(parseInt(e.target.value) || 18791)}
-                placeholder="18791"
-                className="font-mono"
-                min="1"
-                max="65535"
-              />
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-secondary flex items-center justify-center">
-                  <Globe className="h-6 w-6 text-secondary-foreground" strokeWidth={2} />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">自动打开浏览器</h3>
-                  <p className="text-xs text-muted-foreground">
-                    启动时自动打开浏览器访问配置界面
-                  </p>
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="port">端口</Label>
+                <Input
+                  id="port"
+                  type="number"
+                  value={port}
+                  onChange={(e) => setPort(parseInt(e.target.value) || 18791)}
+                  placeholder="18791"
+                  min="1"
+                  max="65535"
+                />
               </div>
             </div>
 
-            <div className="flex items-center justify-end pt-4">
+            <div className="flex justify-end">
               <Button
                 type="submit"
                 disabled={updateUiConfig.isPending}
-                className="px-8 shadow-lg hover:shadow-xl transition-all"
+                className="gap-2"
               >
-                {updateUiConfig.isPending ? (
-                  <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
-                    保存中...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    保存配置
-                  </>
-                )}
+                <Save className="h-4 w-4" />
+                保存配置
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl">
-        <CardHeader className="bg-gradient-to-br from-secondary/10 to-secondary/20">
+      <Card>
+        <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-secondary flex items-center justify-center shadow-lg">
-              <RefreshCw className="h-6 w-6 text-secondary-foreground" strokeWidth={2} />
+            <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
+              <RefreshCw className="h-5 w-5 text-slate-600" />
             </div>
             <div>
-              <CardTitle className="text-foreground">重载配置</CardTitle>
-              <CardDescription className="text-muted-foreground/80">
-                应用配置更改并重启服务
-              </CardDescription>
+              <CardTitle className="text-base">重载配置</CardTitle>
+              <CardDescription>应用配置更改并重启服务</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
+          <p className="text-sm text-slate-500 mb-4">
             点击下方按钮将重载配置文件，使所有更改生效。
           </p>
           <Button
             variant="outline"
             onClick={handleReload}
             disabled={reloadConfig.isPending}
-            className="w-full shadow-lg hover:shadow-xl transition-all"
+            className="w-full gap-2"
           >
-            {reloadConfig.isPending ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-2" />
-                重载中...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                重载配置
-              </>
-            )}
+            <RefreshCw className="h-4 w-4" />
+            重载配置
           </Button>
         </CardContent>
       </Card>
