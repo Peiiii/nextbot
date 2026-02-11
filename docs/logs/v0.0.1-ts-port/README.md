@@ -6,13 +6,13 @@
 
 ## 决策
 
-- 采用 pnpm monorepo，但首版只落地一个包（packages/nextbot）。
+- 采用 pnpm monorepo，但首版只落地一个包（packages/nextclaw）。
 - 先完成核心闭环（CLI/Agent/Provider/Tools/Bus/Cron/Heartbeat/Session），渠道层先留接口壳，便于后续逐一实现。
 
 ## 变更内容
 
 - 新增 monorepo 基座：`package.json`、`pnpm-workspace.yaml`、`tsconfig.base.json`。
-- 新增 `packages/nextbot`，按 legacy 目录结构复刻 TS 版模块。
+- 新增 `packages/nextclaw`，按 legacy 目录结构复刻 TS 版模块。
 - CLI 支持 `onboard/agent/gateway/status/channels/cron`。
 - Provider 支持 OpenAI-compatible 调用，并适配 MiniMax base。
 - Agent Loop / Tools / Memory / Session / Cron / Heartbeat 全量迁移。
@@ -20,12 +20,12 @@
 ## 验证（怎么确认符合预期）
 
 ```bash
-pnpm -C packages/nextbot tsc
-pnpm -C packages/nextbot lint
-pnpm -C packages/nextbot build
+pnpm -C packages/nextclaw tsc
+pnpm -C packages/nextclaw lint
+pnpm -C packages/nextclaw build
 
 # smoke-test (非仓库目录运行)
-NEXTBOT_HOME="$HOME/.nextbot" node /Users/peiwang/Projects/nextbot/packages/nextbot/dist/cli/index.js agent -m "Hello from nextbot"
+NEXTCLAW_HOME="$HOME/.nextclaw" node /Users/peiwang/Projects/nextclaw/packages/nextclaw/dist/cli/index.js agent -m "Hello from nextclaw"
 ```
 
 验收点：

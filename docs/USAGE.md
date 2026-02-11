@@ -1,4 +1,4 @@
-# nextbot Usage
+# nextclaw Usage
 
 This guide covers configuration, providers, channels, cron, heartbeat, and common workflows.
 
@@ -6,11 +6,11 @@ This guide covers configuration, providers, channels, cron, heartbeat, and commo
 
 Default config path:
 
-- `~/.nextbot/config.json`
+- `~/.nextclaw/config.json`
 
 Override data directory:
 
-- `NEXTBOT_HOME=/path/to/dir`
+- `NEXTCLAW_HOME=/path/to/dir`
 
 ### Minimal config
 
@@ -61,14 +61,14 @@ Override data directory:
 
 Default workspace path:
 
-- `~/.nextbot/workspace`
+- `~/.nextclaw/workspace`
 
 You can override this in config:
 
 ```json
 {
   "agents": {
-    "defaults": { "workspace": "~/my-nextbot" }
+    "defaults": { "workspace": "~/my-nextclaw" }
   }
 }
 ```
@@ -91,31 +91,31 @@ Heartbeat:
 Initialize:
 
 ```bash
-pnpm -C packages/nextbot dev onboard
+pnpm -C packages/nextclaw dev onboard
 ```
 
 CLI (dev):
 
 ```bash
-pnpm -C packages/nextbot dev agent -m "Hello"
+pnpm -C packages/nextclaw dev agent -m "Hello"
 ```
 
 Gateway (for channels):
 
 ```bash
-pnpm -C packages/nextbot dev gateway
+pnpm -C packages/nextclaw dev gateway
 ```
 
 Status:
 
 ```bash
-pnpm -C packages/nextbot dev status
+pnpm -C packages/nextclaw dev status
 ```
 
 Background (nohup):
 
 ```bash
-nohup pnpm -C packages/nextbot dev gateway > ~/.nextbot/logs/gateway.log 2>&1 &
+nohup pnpm -C packages/nextclaw dev gateway > ~/.nextclaw/logs/gateway.log 2>&1 &
 ```
 
 ## Channels
@@ -210,13 +210,13 @@ Exec tool:
 List jobs:
 
 ```bash
-pnpm -C packages/nextbot dev cron list
+pnpm -C packages/nextclaw dev cron list
 ```
 
 Add a one-time job:
 
 ```bash
-pnpm -C packages/nextbot dev cron add \
+pnpm -C packages/nextclaw dev cron add \
   --name "reminder" \
   --message "Stand up and stretch" \
   --at "2026-02-12T09:00:00"
@@ -225,7 +225,7 @@ pnpm -C packages/nextbot dev cron add \
 Add a recurring job:
 
 ```bash
-pnpm -C packages/nextbot dev cron add \
+pnpm -C packages/nextclaw dev cron add \
   --name "daily-summary" \
   --message "Summarize yesterday" \
   --cron "0 9 * * *"

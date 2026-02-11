@@ -1,6 +1,6 @@
-# nextbot
+# nextclaw
 
-nextbot is a lightweight personal AI assistant with a simple CLI, multi-provider LLM routing,
+nextclaw is a lightweight personal AI assistant with a simple CLI, multi-provider LLM routing,
 chat app integrations, and scheduled automation. It is built with TypeScript/Node and is
 intended to be easy to deploy, read, and extend.
 
@@ -18,15 +18,15 @@ intended to be easy to deploy, read, and extend.
 Requirements: Node.js >= 18, pnpm
 
 ```bash
-git clone https://github.com/Peiiii/nextbot.git
-cd nextbot
+git clone https://github.com/Peiiii/nextclaw.git
+cd nextclaw
 pnpm install
 ```
 
 Optional build:
 
 ```bash
-pnpm -C packages/nextbot build
+pnpm -C packages/nextclaw build
 ```
 
 ## Quick Start
@@ -34,10 +34,10 @@ pnpm -C packages/nextbot build
 1) Initialize config and workspace
 
 ```bash
-pnpm -C packages/nextbot dev onboard
+pnpm -C packages/nextclaw dev onboard
 ```
 
-2) Configure `~/.nextbot/config.json`
+2) Configure `~/.nextclaw/config.json`
 
 OpenRouter example (recommended for global users):
 
@@ -71,13 +71,13 @@ MiniMax (China) example:
 3) Chat
 
 ```bash
-pnpm -C packages/nextbot dev agent -m "Hello from nextbot"
+pnpm -C packages/nextclaw dev agent -m "Hello from nextclaw"
 ```
 
 If you installed the CLI globally (or are running the built dist), you can use:
 
 ```bash
-nextbot agent -m "Hello from nextbot"
+nextclaw agent -m "Hello from nextclaw"
 ```
 
 ## Local Models (vLLM)
@@ -97,7 +97,7 @@ nextbot agent -m "Hello from nextbot"
 ```
 
 ```bash
-pnpm -C packages/nextbot dev agent -m "Hello from my local model"
+pnpm -C packages/nextclaw dev agent -m "Hello from my local model"
 ```
 
 ## Chat Apps
@@ -105,7 +105,7 @@ pnpm -C packages/nextbot dev agent -m "Hello from my local model"
 Run in gateway mode to enable channels:
 
 ```bash
-pnpm -C packages/nextbot dev gateway
+pnpm -C packages/nextclaw dev gateway
 ```
 
 See `docs/USAGE.md` for detailed channel setup and permissions.

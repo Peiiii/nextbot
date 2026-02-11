@@ -24,18 +24,18 @@
 ## 验证（怎么确认符合预期）
 
 ```bash
-pnpm -C packages/nextbot tsc
-pnpm -C packages/nextbot lint
-pnpm -C packages/nextbot build
+pnpm -C packages/nextclaw tsc
+pnpm -C packages/nextclaw lint
+pnpm -C packages/nextclaw build
 
 # smoke-check（非仓库目录）
-NEXTBOT_HOME=/tmp/nextbot-smoke node /Users/peiwang/Projects/nextbot/packages/nextbot/dist/cli/index.js onboard
+NEXTCLAW_HOME=/tmp/nextclaw-smoke node /Users/peiwang/Projects/nextclaw/packages/nextclaw/dist/cli/index.js onboard
 ```
 
 验收点：
 
 - tsc/lint/build 全部成功
-- `onboard` 在 `/tmp/nextbot-smoke` 生成 config/workspace 并提示下一步
+- `onboard` 在 `/tmp/nextclaw-smoke` 生成 config/workspace 并提示下一步
 
 ## 发布 / 部署
 

@@ -11,7 +11,7 @@ import makeWASocket, {
   makeCacheableSignalKeyStore,
 } from '@whiskeysockets/baileys';
 
-import { Boom } from '@hapi/boom';
+import type { Boom } from '@hapi/boom';
 import qrcode from 'qrcode-terminal';
 import pino from 'pino';
 import { APP_NAME } from './brand.js';

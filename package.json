@@ -1,16 +1,23 @@
 {
-  "name": "nextbot-workspace",
+  "name": "nextclaw-workspace",
   "private": true,
   "packageManager": "pnpm@9.15.1",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm -C packages/nextbot build",
-    "lint": "pnpm -C packages/nextbot lint",
-    "tsc": "pnpm -C packages/nextbot tsc",
-    "dev": "pnpm -C packages/nextbot dev",
-    "start": "pnpm -C packages/nextbot start",
-    "nextbot": "pnpm -C packages/nextbot dev"
+    "build": "pnpm -C packages/nextclaw build",
+    "lint": "pnpm -C packages/nextclaw lint",
+    "tsc": "pnpm -C packages/nextclaw tsc",
+    "dev": "pnpm -C packages/nextclaw dev",
+    "start": "pnpm -C packages/nextclaw start",
+    "nextclaw": "pnpm -C packages/nextclaw dev",
+    "changeset": "changeset",
+    "release:check": "pnpm build && pnpm lint && pnpm tsc",
+    "release:version": "pnpm changeset version",
+    "release:publish": "pnpm release:check && pnpm changeset publish && pnpm changeset tag"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.8"
   }
 }

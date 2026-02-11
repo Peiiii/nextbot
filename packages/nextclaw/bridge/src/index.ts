@@ -15,8 +15,10 @@
 
 // Polyfill crypto for Baileys in ESM
 import { webcrypto } from 'crypto';
-if (!globalThis.crypto) {
-  (globalThis as any).crypto = webcrypto;
+type CryptoLike = typeof webcrypto;
+const globalCrypto = globalThis as typeof globalThis & { crypto?: CryptoLike };
+if (!globalCrypto.crypto) {
+  globalCrypto.crypto = webcrypto;
 }
 
 import { BridgeServer } from './server.js';
