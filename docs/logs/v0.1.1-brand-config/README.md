@@ -37,7 +37,15 @@ NEXTCLAW_HOME=/tmp/nextclaw-smoke-3 pnpm -C /Users/peiwang/Projects/nextbot/pack
 
 ## 发布 / 部署
 
-- 本次未发布
+```bash
+pnpm -C /Users/peiwang/Projects/nextbot release:version
+pnpm -C /Users/peiwang/Projects/nextbot release:publish
+npm view nextclaw version
+```
+
+发布结果：
+
+- `nextclaw@0.2.0` 已发布至 npm
 
 ## 影响范围 / 风险
 
