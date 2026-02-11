@@ -110,7 +110,7 @@ export class SkillsLoader {
     const result: string[] = [];
     for (const skill of this.listSkills(true)) {
       const meta = this.getSkillMetadata(skill.name) ?? {};
-      const parsed = this.parseNanobotMetadata(meta.metadata ?? "");
+      const parsed = this.parseNextbotMetadata(meta.metadata ?? "");
       if (parsed.always || (meta as { always?: string }).always === "true") {
         result.push(skill.name);
       }
@@ -156,15 +156,15 @@ export class SkillsLoader {
     return content;
   }
 
-  private parseNanobotMetadata(raw: string): Record<string, unknown> {
+  private parseNextbotMetadata(raw: string): Record<string, unknown> {
     try {
       const data = JSON.parse(raw);
       if (typeof data !== "object" || !data) {
         return {};
       }
-      const nanobot = (data as Record<string, unknown>).nanobot;
-      if (typeof nanobot === "object" && nanobot) {
-        return nanobot as Record<string, unknown>;
+      const nextbot = (data as Record<string, unknown>).nextbot;
+      if (typeof nextbot === "object" && nextbot) {
+        return nextbot as Record<string, unknown>;
       }
       return {};
     } catch {
@@ -174,7 +174,7 @@ export class SkillsLoader {
 
   private getSkillMeta(name: string): Record<string, unknown> {
     const meta = this.getSkillMetadata(name) ?? {};
-    return this.parseNanobotMetadata(meta.metadata ?? "");
+    return this.parseNextbotMetadata(meta.metadata ?? "");
   }
 
   private checkRequirements(skillMeta: Record<string, unknown>): boolean {

@@ -2,7 +2,7 @@
 
 ## 背景 / 问题
 
-- 目标是将 nanobot 全量能力迁移为 TS 版本，保持结构与行为一致，确保后续可维护与扩展。
+- 目标是将 legacy Python 版本的能力迁移为 TS 版本，保持结构与行为一致，确保后续可维护与扩展。
 
 ## 决策
 
@@ -12,7 +12,7 @@
 ## 变更内容
 
 - 新增 monorepo 基座：`package.json`、`pnpm-workspace.yaml`、`tsconfig.base.json`。
-- 新增 `packages/nextbot`，按 nanobot 目录结构复刻 TS 版模块。
+- 新增 `packages/nextbot`，按 legacy 目录结构复刻 TS 版模块。
 - CLI 支持 `onboard/agent/gateway/status/channels/cron`。
 - Provider 支持 OpenAI-compatible 调用，并适配 MiniMax base。
 - Agent Loop / Tools / Memory / Session / Cron / Heartbeat 全量迁移。
@@ -25,7 +25,7 @@ pnpm -C packages/nextbot lint
 pnpm -C packages/nextbot build
 
 # smoke-test (非仓库目录运行)
-NEXTBOT_HOME="$HOME/.nanobot" node /Users/peiwang/Projects/nextbot/packages/nextbot/dist/cli/index.js agent -m "Hello from nextbot"
+NEXTBOT_HOME="$HOME/.nextbot" node /Users/peiwang/Projects/nextbot/packages/nextbot/dist/cli/index.js agent -m "Hello from nextbot"
 ```
 
 验收点：

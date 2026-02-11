@@ -15,13 +15,6 @@ export function getDataPath(): string {
     return ensureDir(resolve(override));
   }
   const defaultPath = resolve(homedir(), ".nextbot");
-  if (existsSync(defaultPath)) {
-    return ensureDir(defaultPath);
-  }
-  const legacyPath = resolve(homedir(), ".nanobot");
-  if (existsSync(legacyPath)) {
-    return ensureDir(legacyPath);
-  }
   return ensureDir(defaultPath);
 }
 

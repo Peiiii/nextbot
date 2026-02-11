@@ -1,6 +1,6 @@
-# nanobot Skills
+# nextbot Skills
 
-This directory contains built-in skills that extend nanobot's capabilities.
+This directory contains built-in skills that extend nextbot's capabilities.
 
 ## Skill Format
 

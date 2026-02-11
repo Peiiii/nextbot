@@ -76,7 +76,7 @@ export class EmailChannel extends BaseChannel<Config["channels"]["email"]> {
       return;
     }
 
-    const baseSubject = this.lastSubjectByChat.get(toAddr) ?? "nanobot reply";
+    const baseSubject = this.lastSubjectByChat.get(toAddr) ?? "nextbot reply";
     const subject = (msg.metadata?.subject as string | undefined)?.trim() || this.replySubject(baseSubject);
 
     const transporter = nodemailer.createTransport({

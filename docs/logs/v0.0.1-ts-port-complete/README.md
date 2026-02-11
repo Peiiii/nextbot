@@ -2,11 +2,11 @@
 
 ## 背景 / 问题
 
-- 首版 TS 迁移仍有渠道未落地、桥接命令缺失、部分 provider 逻辑与 nanobot 不一致
+- 首版 TS 迁移仍有渠道未落地、桥接命令缺失、部分 provider 逻辑与 legacy 版本不一致
 
 ## 决策
 
-- 严格按 nanobot 既有逻辑补齐渠道能力与模型前缀处理
+- 严格按 legacy 既有逻辑补齐渠道能力与模型前缀处理
 - 桥接方案继续沿用 Node bridge，CLI 负责安装/构建/启动
 
 ## 变更内容
@@ -18,7 +18,7 @@
   - 对齐 LiteLLM provider 标准/网关前缀策略
   - Feishu 支持卡片渲染（含表格）与消息 reaction
   - Mochat 增量订阅 + 轮询 fallback + 延迟合并回复
-  - 新增内置 skills 目录（迁移 nanobot 现有 skills）
+  - 新增内置 skills 目录（迁移 legacy 现有 skills）
   - bridge 源码纳入 package 目录并随 CLI 可用
 
 ## 验证（怎么确认符合预期）

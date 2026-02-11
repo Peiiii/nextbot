@@ -58,7 +58,7 @@ export class WhatsAppClient {
       version,
       logger,
       printQRInTerminal: false,
-      browser: ['nanobot', 'cli', VERSION],
+      browser: ['nextbot', 'cli', VERSION],
       syncFullHistory: false,
       markOnlineOnConnect: false,
     });

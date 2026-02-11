@@ -2,6 +2,8 @@
 
 - `docs/logs/v0.0.1-mvp/README.md`
 - `docs/logs/v0.0.1-ts-port-complete/README.md`
+- `docs/logs/v0.0.1-dev-cli-shortcut/README.md`
+- `docs/logs/v0.0.1-remove-nanobot-legacy/README.md`
 - `docs/logs/v0.1.0-headless/README.md`
 
 ## 写日志的标准

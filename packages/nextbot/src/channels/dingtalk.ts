@@ -57,7 +57,7 @@ export class DingTalkChannel extends BaseChannel<Config["channels"]["dingtalk"]>
       msgKey: "sampleMarkdown",
       msgParam: JSON.stringify({
         text: msg.content,
-        title: "Nanobot Reply"
+        title: "Nextbot Reply"
       })
     };
 

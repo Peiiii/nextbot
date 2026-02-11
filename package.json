@@ -10,6 +10,7 @@
     "lint": "pnpm -C packages/nextbot lint",
     "tsc": "pnpm -C packages/nextbot tsc",
     "dev": "pnpm -C packages/nextbot dev",
-    "start": "pnpm -C packages/nextbot start"
+    "start": "pnpm -C packages/nextbot start",
+    "nextbot": "pnpm -C packages/nextbot dev"
   }
 }

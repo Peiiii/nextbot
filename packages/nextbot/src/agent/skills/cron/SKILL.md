@@ -21,7 +21,7 @@ cron(action="add", message="Time to take a break!", every_seconds=1200)
 
 Dynamic task (agent executes each time):
 ```
-cron(action="add", message="Check HKUDS/nanobot GitHub stars and report", every_seconds=600)
+cron(action="add", message="Check HKUDS/nextbot GitHub stars and report", every_seconds=600)
 ```
 
 List/remove:
