@@ -2,7 +2,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 interface TabsProps {
-  defaultValue: string;
+  defaultValue?: string;
   value: string;
   onValueChange: (value: string) => void;
   children: React.ReactNode;
@@ -30,7 +30,7 @@ const TabsContext = React.createContext<{
   onValueChange: (value: string) => void;
 } | null>(null);
 
-export function Tabs({ defaultValue, value, onValueChange, children }: TabsProps) {
+export function Tabs({ defaultValue: _defaultValue, value, onValueChange, children }: TabsProps) {
   return (
     <TabsContext.Provider value={{ value, onValueChange }}>
       {children}

@@ -11,7 +11,6 @@ interface DialogContentProps {
   children: React.ReactNode;
   className?: string;
   title?: string;
-  onClose?: () => void;
 }
 
 const DialogContext = React.createContext<{
@@ -27,7 +26,7 @@ export function Dialog({ open = false, onOpenChange, children }: DialogProps) {
   );
 }
 
-export function DialogContent({ children, className, title, onClose }: DialogContentProps) {
+export function DialogContent({ children, className, title }: DialogContentProps) {
   const context = React.useContext(DialogContext);
   if (!context) throw new Error('DialogContent must be used within Dialog');
 

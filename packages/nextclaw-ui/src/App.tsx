@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useUiStore } from '@/stores/ui.store';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { ModelConfig } from '@/components/config/ModelConfig';

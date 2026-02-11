@@ -8,8 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { TagInput } from '@/components/common/TagInput';
 import { t } from '@/lib/i18n';
-import type { ChannelConfigUpdate } from '@/api/types';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Channel field definitions
 const CHANNEL_FIELDS: Record<string, Array<{ name: string; type: string; label: string }>> = {
