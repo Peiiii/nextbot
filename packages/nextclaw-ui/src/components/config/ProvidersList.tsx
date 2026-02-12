@@ -20,8 +20,8 @@ export function ProvidersList() {
   }
 
   const tabs = [
-    { id: 'all', label: 'All Providers' },
-    { id: 'installed', label: 'Configured', count: config.providers ? Object.keys(config.providers).filter(k => config.providers[k].apiKeySet).length : 0 }
+    { id: 'installed', label: 'Configured', count: config.providers ? Object.keys(config.providers).filter(k => config.providers[k].apiKeySet).length : 0 },
+    { id: 'all', label: 'All Providers' }
   ];
 
   return (
@@ -35,7 +35,10 @@ export function ProvidersList() {
 
       {/* Provider List Row-Style */}
       <div className="space-y-1">
-        {meta.providers.map((provider, index) => {
+        {(activeTab === 'installed'
+          ? meta.providers.filter((p) => config.providers[p.name]?.apiKeySet)
+          : meta.providers
+        ).map((provider) => {
           const providerConfig = config.providers[provider.name];
           const hasConfig = providerConfig?.apiKeySet;
 

@@ -76,11 +76,6 @@ export function Sidebar() {
           })}
         </ul>
 
-        {/* Navigation Categories */}
-        <div className="mt-8 px-3">
-          <span className="text-[11px] font-semibold text-[hsl(30,8%,65%)] uppercase tracking-wider mb-2 block">Configuration</span>
-          <div className="h-[1px] w-full bg-[hsl(40,10%,92%)] mt-2" />
-        </div>
       </nav>
 
       {/* Bottom Profile Section */}
