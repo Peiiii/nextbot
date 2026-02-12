@@ -43,8 +43,8 @@ export function Sidebar() {
       {/* Logo Area */}
       <div className="px-3 mb-8">
         <div className="flex items-center gap-2 group cursor-pointer">
-          <div className="h-6 w-6 rounded-md bg-[hsl(30,15%,10%)] flex items-center justify-center transition-transform group-hover:scale-110">
-            <Sparkles className="h-4 w-4 text-white" />
+          <div className="h-7 w-7 rounded-lg overflow-hidden flex items-center justify-center transition-transform group-hover:scale-110">
+            <img src="/logo.svg" alt="NextClaw Logo" className="h-full w-full object-contain" />
           </div>
           <h1 className="text-lg font-bold text-[hsl(30,15%,10%)] tracking-tight">nextclaw</h1>
         </div>

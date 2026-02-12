@@ -99,11 +99,11 @@ program
 
 program
   .command("start")
-  .description(`Start the ${APP_NAME} gateway + UI (backend + frontend)`)
+  .description(`Start the ${APP_NAME} gateway + UI (backend + optional frontend)`)
   .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
+  .option("--frontend", "Start UI frontend dev server", false)
   .option("--frontend-port <port>", "UI frontend dev server port")
-  .option("--no-frontend", "Disable UI frontend dev server")
   .option("--no-open", "Disable opening browser")
   .action(async (opts) => {
     const uiOverrides: Partial<Config["ui"]> = {
@@ -120,8 +120,8 @@ program
     const config = loadConfig();
     const uiConfig = resolveUiConfig(config, uiOverrides);
     const staticDir = resolveUiStaticDir();
-    const frontendPort = Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : 5173;
-    const shouldStartFrontend = opts.frontend !== false;
+    const shouldStartFrontend = Boolean(opts.frontend);
+    const frontendPort = shouldStartFrontend && Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : 5173;
     const frontendDir = shouldStartFrontend ? resolveUiFrontendDir() : null;
 
     let frontendUrl: string | null = null;
@@ -134,6 +134,9 @@ program
       frontendUrl = frontend?.url ?? null;
     } else if (shouldStartFrontend && !frontendDir && !staticDir) {
       console.log("Warning: UI frontend not found. Start it separately.");
+    }
+    if (!frontendUrl && staticDir) {
+      frontendUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
     }
     if (!frontendUrl && staticDir) {
       frontendUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);

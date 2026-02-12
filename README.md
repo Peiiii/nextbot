@@ -1,44 +1,59 @@
-# nextclaw
+<div align="center">
+  <h1>nextclaw</h1>
+  <p>
+    An easy-to-install, UI-first, OpenClaw-inspired agent runtime.
+  </p>
+  <p>
+    <a href="https://www.npmjs.com/package/nextclaw"><img src="https://img.shields.io/npm/v/nextclaw" alt="npm"></a>
+    <img src="https://img.shields.io/badge/node-\u226518-blue" alt="Node.js">
+    <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+  </p>
+</div>
 
-nextclaw 是一个面向个人与小团队的轻量 AI 助手，提供 CLI、网关模式、多模型路由与多渠道接入，并内置可视化配置界面。
+nextclaw focuses on the best possible installation and usage experience for an OpenClaw-style assistant.
+It ships with a single-command startup flow, a built-in configuration UI, and a clean CLI for
+multi-provider routing, channel integrations, and scheduled automation.
 
-## 亮点
+## Highlights
 
-- 一键启动：`nextclaw start` 同时启动网关 + UI 后端 + UI 前端
-- 多模型路由：兼容 OpenAI API 规范（OpenRouter / OpenAI / MiniMax 等）
-- 多渠道集成：Telegram / Discord / WhatsApp / Feishu / Mochat / DingTalk / Slack / Email / QQ
-- 自动化：Cron 定时任务 + Heartbeat 周期任务
-- 本地工具：Web 搜索 + 本地命令执行
+- One command to start everything: `nextclaw start` (gateway + UI backend + UI frontend)
+- Built-in configuration UI (no extra setup required after npm install)
+- OpenAI-compatible provider routing (OpenRouter, OpenAI, MiniMax, etc.)
+- Channel integrations: Telegram, Discord, WhatsApp, Feishu, Mochat, DingTalk, Slack, Email, QQ
+- Scheduled automation with Cron + Heartbeat
+- Local tools: web search and command execution
 
-## 快速开始（推荐）
-
-要求：Node.js >= 18
-
-1) 安装
+## Install
 
 ```bash
 npm i -g nextclaw
 ```
 
-2) 一键启动
+## Quick Start
+
+1) Start everything
 
 ```bash
 nextclaw start
 ```
 
-3) 打开浏览器
-
-默认 UI 地址：
+2) Open the UI
 
 ```
 http://127.0.0.1:18791
 ```
 
-首次启动会生成配置文件：`~/.nextclaw/config.json`。你可以在 UI 中配置模型与渠道。
+3) Configure your provider and model in the UI
 
-## 基础配置示例
+The config file is stored at:
 
-OpenRouter（推荐，全球可用）：
+```
+~/.nextclaw/config.json
+```
+
+## Provider Examples
+
+OpenRouter (recommended for global users):
 
 ```json
 {
@@ -51,7 +66,7 @@ OpenRouter（推荐，全球可用）：
 }
 ```
 
-MiniMax（国内）：
+MiniMax (Mainland China):
 
 ```json
 {
@@ -67,17 +82,7 @@ MiniMax（国内）：
 }
 ```
 
-## 常用命令
-
-- `nextclaw start`：一键启动（网关 + UI 后端 + UI 前端）
-- `nextclaw ui`：启动 UI 后端 + 网关
-- `nextclaw gateway`：仅启动网关（用于渠道接入）
-- `nextclaw agent -m "hello"`：CLI 直接对话
-- `nextclaw status`：查看配置与模型状态
-- `nextclaw channels status`：查看渠道启用状态
-- `nextclaw channels login`：部分渠道扫码登录（桥接）
-
-## 本地模型（vLLM）
+Local vLLM:
 
 ```json
 {
@@ -93,31 +98,46 @@ MiniMax（国内）：
 }
 ```
 
-## 渠道接入
+## Commands
 
-启用渠道后，运行网关：
+- `nextclaw start` - start gateway + UI backend + UI frontend
+- `nextclaw ui` - start UI backend + gateway
+- `nextclaw gateway` - start gateway only (for channels)
+- `nextclaw agent -m "hello"` - chat in CLI
+- `nextclaw status` - show config + provider status
+- `nextclaw channels status` - show enabled channels
+- `nextclaw channels login` - QR login for supported channels
 
-```bash
-nextclaw gateway
-```
+## Channels
 
-详细配置请查看：`docs/USAGE.md`。
+| Channel | Setup |
+|---------|-------|
+| Telegram | Easy (bot token) |
+| Discord | Easy (bot token + intents) |
+| WhatsApp | Medium (QR login) |
+| Feishu | Medium (app credentials) |
+| Mochat | Medium (claw token + websocket) |
+| DingTalk | Medium (app credentials) |
+| Slack | Medium (bot + app tokens) |
+| Email | Medium (IMAP/SMTP) |
+| QQ | Easy (app credentials) |
 
-## 从源码开发
+## Docs
+
+- `docs/USAGE.md` - configuration, providers, channels, cron, troubleshooting
+- `docs/logs/` - iteration logs
+
+## From Source
 
 ```bash
 git clone https://github.com/Peiiii/nextclaw.git
 cd nextclaw
 pnpm install
 
-# 一键启动（开发态）
-pnpm -C packages/nextclaw dev start
+# start all (dev)
+# use --frontend to run the Vite dev server
+pnpm -C packages/nextclaw dev start --frontend
 ```
-
-## 文档
-
-- `docs/USAGE.md`：配置、渠道、定时任务、排障
-- `docs/logs/`：迭代记录
 
 ## License
 

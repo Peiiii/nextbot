@@ -127,7 +127,7 @@ pnpm -C packages/nextclaw dev start
 Notes:
 
 - If UI static assets are bundled, `start` serves them from the UI backend.
-- In dev mode, it tries to start the UI frontend dev server automatically.
+- In dev mode, pass `--frontend` to start the UI frontend dev server.
 
 UI config (optional):
 
