@@ -9,7 +9,7 @@ interface TagInputProps {
   placeholder?: string;
 }
 
-export function TagInput({ value, onChange, className, placeholder = '输入后按回车...' }: TagInputProps) {
+export function TagInput({ value, onChange, className, placeholder = 'Type and press Enter...' }: TagInputProps) {
   const [input, setInput] = useState('');
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

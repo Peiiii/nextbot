@@ -7,7 +7,7 @@ interface HeaderProps {
 
 export function Header({ title, description }: HeaderProps) {
   return (
-    <header className="h-16 bg-white border-b border-[hsl(40,20%,90%)] flex items-center justify-between px-6">
+    <header className="h-16 bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-[hsl(40,20%,90%)] flex items-center justify-between px-6 transition-all duration-300">
       <div className="flex items-center gap-4">
         {title && (
           <div>

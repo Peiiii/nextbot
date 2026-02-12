@@ -39,7 +39,9 @@ function AppContent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AppLayout>
-        {renderContent()}
+        <div key={activeTab} className="animate-fade-in">
+          {renderContent()}
+        </div>
       </AppLayout>
       <Toaster position="top-right" richColors />
     </QueryClientProvider>

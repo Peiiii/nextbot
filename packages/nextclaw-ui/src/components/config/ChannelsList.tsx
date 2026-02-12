@@ -1,12 +1,12 @@
 import { useConfig, useConfigMeta } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MessageCircle, Settings2, Bell, Mail, MessageSquare, Slack } from 'lucide-react';
+import { MessageCircle, Settings2, Bell, Mail, MessageSquare, Slack, MoreHorizontal, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { ChannelForm } from './ChannelForm';
 import { useUiStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
+import { Tabs } from '@/components/ui/tabs-custom';
 
 const channelIcons: Record<string, typeof MessageCircle> = {
   telegram: MessageCircle,
@@ -16,116 +16,82 @@ const channelIcons: Record<string, typeof MessageCircle> = {
   default: MessageSquare
 };
 
-const channelColors: Record<string, string> = {
-  telegram: 'from-sky-400 to-blue-500',
-  slack: 'from-purple-400 to-indigo-500',
-  email: 'from-rose-400 to-pink-500',
-  webhook: 'from-amber-400 to-orange-500',
-  default: 'from-slate-400 to-gray-500'
-};
-
 export function ChannelsList() {
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
   const { openChannelModal } = useUiStore();
-  const [hoveredChannel, setHoveredChannel] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('active');
 
   if (!config || !meta) {
-    return (
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="p-5 rounded-2xl border-[hsl(40,20%,90%)]">
-              <div className="flex items-start gap-4">
-                <Skeleton className="h-12 w-12 rounded-xl" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-5 w-24" />
-                  <Skeleton className="h-3 w-16" />
-                </div>
-              </div>
-              <Skeleton className="h-4 w-full mt-4" />
-              <Skeleton className="h-9 w-full mt-4 rounded-lg" />
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
+    return <div className="p-8 text-[hsl(30,8%,55%)]">Loading channels...</div>;
   }
 
+  const tabs = [
+    { id: 'active', label: 'Enabled', count: meta.channels.filter(c => config.channels[c.name]?.enabled).length },
+    { id: 'all', label: 'All Channels', count: meta.channels.length }
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-xl font-semibold text-[hsl(30,20%,12%)]">消息渠道</h2>
-        <p className="text-sm text-[hsl(30,8%,45%)] mt-1">配置和管理各种消息通知渠道</p>
+    <div className="animate-fade-in pb-20">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-2xl font-bold text-[hsl(30,15%,10%)]">Message Channels</h2>
       </div>
 
-      {/* Channel Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {meta.channels.map((channel) => {
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+      <div className="space-y-1">
+        {meta.channels.map((channel, index) => {
           const channelConfig = config.channels[channel.name];
           const enabled = channelConfig?.enabled || false;
-          const isHovered = hoveredChannel === channel.name;
           const Icon = channelIcons[channel.name] || channelIcons.default;
-          const gradientClass = channelColors[channel.name] || channelColors.default;
 
-          return (
-            <Card
+          return (activeTab === 'all' || enabled) && (
+            <div
               key={channel.name}
-              className={cn(
-                'group cursor-pointer transition-all duration-300 rounded-2xl border-[hsl(40,20%,90%)] bg-white',
-                'hover:shadow-lg hover:shadow-[hsl(40,20%,90%)]/50 hover:-translate-y-0.5',
-                isHovered && 'ring-2 ring-[hsl(25,95%,53%)]/20'
-              )}
-              onMouseEnter={() => setHoveredChannel(channel.name)}
-              onMouseLeave={() => setHoveredChannel(null)}
+              className="group flex items-center gap-5 p-3 rounded-2xl hover:bg-[hsl(40,10%,96%)] transition-all cursor-pointer border border-transparent hover:border-[hsl(40,10%,94%)]"
+              onClick={() => openChannelModal(channel.name)}
             >
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className={cn(
-                    'h-12 w-12 rounded-xl flex items-center justify-center transition-all duration-300',
-                    enabled ? `bg-gradient-to-br ${gradientClass}` : 'bg-[hsl(40,20%,96%)]'
-                  )}>
-                    <Icon className={cn(
-                      'h-5 w-5',
-                      enabled ? 'text-white' : 'text-[hsl(30,8%,45%)]'
-                    )} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold text-[hsl(30,20%,12%)] truncate">
-                        {channel.displayName || channel.name}
-                      </h3>
-                      <span className={cn(
-                        'px-2 py-0.5 rounded-full text-[10px] font-medium',
-                        enabled
-                          ? 'bg-emerald-50 text-emerald-600'
-                          : 'bg-[hsl(40,20%,96%)] text-[hsl(30,8%,45%)]'
-                      )}>
-                        {enabled ? '已启用' : '已禁用'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-[hsl(30,8%,45%)] mt-0.5">{channel.name}</p>
-                  </div>
+              {/* Icon */}
+              <div className={cn(
+                'h-10 w-10 flex items-center justify-center rounded-xl transition-all group-hover:scale-105',
+                enabled ? 'bg-[hsl(30,15%,10%)] text-white' : 'bg-transparent border border-[hsl(40,10%,92%)] text-[hsl(30,8%,55%)]'
+              )}>
+                <Icon className="h-5 w-5" />
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-[14px] font-bold text-[hsl(30,15%,10%)] truncate">
+                    {channel.displayName || channel.name}
+                  </h3>
+                  {enabled && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  )}
                 </div>
-                <p className="text-sm text-[hsl(30,8%,45%)] mt-4">
-                  {enabled ? '渠道已配置并正常运行' : '点击配置此消息渠道'}
+                <p className="text-[12px] text-[hsl(30,8%,55%)] truncate leading-tight mt-0.5">
+                  {enabled ? 'Channel is active and processing messages' : 'Click to configure this communication channel'}
                 </p>
+              </div>
+
+              {/* Status/Actions */}
+              <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="mt-4 w-full gap-2 rounded-xl bg-[hsl(40,20%,96%)] hover:bg-[hsl(40,20%,94%)] text-[hsl(30,10%,35%)]"
-                  onClick={() => openChannelModal(channel.name)}
+                  className="rounded-xl bg-[hsl(40,10%,92%)] hover:bg-[hsl(40,10%,90%)] text-[hsl(30,10%,35%)] text-[11px] font-bold px-4 h-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openChannelModal(channel.name);
+                  }}
                 >
-                  <Settings2 className="h-4 w-4" />
-                  配置
+                  Configure
                 </Button>
-              </CardContent>
-            </Card>
+                <button className="h-8 w-8 flex items-center justify-center text-[hsl(30,8%,45%)]">
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           );
         })}
       </div>

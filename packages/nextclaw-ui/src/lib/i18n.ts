@@ -114,6 +114,6 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   headerValue: { zh: 'Header 值', en: 'Header Value' }
 };
 
-export function t(key: string, lang: 'zh' | 'en' = 'zh'): string {
+export function t(key: string, lang: 'zh' | 'en' = 'en'): string {
   return LABELS[key]?.[lang] || LABELS[key]?.en || key;
 }

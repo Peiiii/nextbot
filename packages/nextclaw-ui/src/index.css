@@ -4,54 +4,52 @@
 
 @layer base {
   :root {
-    /* HappyCapy-inspired warm color palette */
-    --background: 40 33% 97%; /* Warm cream #FAF8F5 */
-    --foreground: 30 10% 15%; /* Soft dark */
-    --card: 0 0% 100%; /* Pure white cards */
-    --card-foreground: 30 10% 15%;
+    /* HappyCapy-inspired cleaner "Milk/Cream" palette */
+    --background: 40 20% 98%;
+    /* Very light cream #F9F9F7 */
+    --foreground: 30 15% 10%;
+    /* Very dark brown/gray */
+    --card: 0 0% 100%;
+    /* Pure white cards */
+    --card-foreground: 30 15% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 30 10% 15%;
-    --primary: 25 95% 53%; /* Warm orange */
+    --popover-foreground: 30 15% 10%;
+    --primary: 30 15% 10%;
+    /* Dark active states */
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 20% 94%; /* Warm gray */
-    --secondary-foreground: 30 10% 15%;
-    --muted: 40 20% 94%;
+    --secondary: 40 10% 94%;
+    /* Neutral light gray */
+    --secondary-foreground: 30 15% 10%;
+    --muted: 40 10% 94%;
     --muted-foreground: 30 8% 45%;
-    --accent: 35 92% 95%; /* Soft peach */
-    --accent-foreground: 25 70% 35%;
+    --accent: 40 10% 92%;
+    /* Light pill background */
+    --accent-foreground: 30 15% 10%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
-    --border: 40 20% 90%;
-    --input: 40 20% 90%;
-    --ring: 25 95% 53%;
-    --radius: 1rem; /* Large rounded corners */
-    
-    /* Custom warm colors */
-    --warm-cream: 40 33% 97%;
-    --warm-white: 0 0% 100%;
-    --warm-gray-50: 40 20% 96%;
-    --warm-gray-100: 40 15% 92%;
-    --warm-gray-200: 40 12% 85%;
-    --warm-gray-300: 40 10% 70%;
-    --warm-gray-400: 40 8% 55%;
-    --warm-gray-500: 30 8% 45%;
-    --warm-gray-600: 30 10% 35%;
-    --warm-gray-700: 30 12% 25%;
-    --warm-gray-800: 30 15% 18%;
-    --warm-gray-900: 30 20% 12%;
-    
-    /* Accent colors */
-    --coral: 15 85% 65%;
-    --sage: 150 25% 65%;
-    --lavender: 260 50% 75%;
-    --sky: 200 70% 70%;
-    --amber: 35 95% 60%;
+    --border: 40 10% 92%;
+    --input: 40 10% 92%;
+    --ring: 30 15% 10%;
+    --radius: 1.25rem;
+    /* Large rounded corners (20px) */
+
+    /* HappyCapy Neutrals */
+    --milk-50: 40 20% 98%;
+    --milk-100: 40 15% 96%;
+    --milk-200: 40 12% 92%;
+    --milk-300: 40 10% 88%;
+    --milk-400: 40 8% 70%;
+    --milk-500: 30 8% 45%;
+    --milk-600: 30 10% 35%;
+    --milk-700: 30 12% 25%;
+    --milk-800: 30 15% 15%;
+    --milk-900: 30 20% 8%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-none transition-colors duration-200;
   }
 
   html {
@@ -65,9 +63,16 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     overflow: hidden;
   }
+
+  /* Smooth scrolling for the whole page if needed */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--warm-gray-300)) transparent;
+  }
 }
 
 @layer utilities {
+
   /* Custom scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -80,47 +85,93 @@
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: hsl(var(--warm-gray-300));
-    border-radius: 3px;
+    border-radius: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--warm-gray-400));
   }
+
+  /* Glassmorphism */
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-black/10 backdrop-blur-md border border-white/10;
+  }
+
+  /* Premium Shadows */
+  .shadow-premium {
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 4px 10px -4px rgba(0, 0, 0, 0.04);
+  }
+
+  .shadow-premium-hover {
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.12), 0 8px 15px -6px rgba(0, 0, 0, 0.06);
+  }
 }
 
 /* Animation keyframes */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideIn {
-  from { opacity: 0; transform: translateX(-8px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.96); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes pulse-soft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-slide-in {
-  animation: slideIn 0.25s ease-out forwards;
+  animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.25s ease-out forwards;
+  animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-pulse-soft {
-  animation: pulse-soft 2s ease-in-out infinite;
+  animation: pulse-soft 3s ease-in-out infinite;
 }

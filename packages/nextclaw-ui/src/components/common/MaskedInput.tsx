@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 interface MaskedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   maskedValue?: string;
@@ -17,7 +18,7 @@ export function MaskedInput({ maskedValue, isSet, className, ...props }: MaskedI
       <Input
         type={showKey ? 'text' : 'password'}
         className={cn('pr-20', className)}
-        placeholder={isSet ? '已设置 (未修改)' : ''}
+        placeholder={isSet ? `${t('apiKeySet')} (Unchanged)` : ''}
         {...props}
       />
       <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">

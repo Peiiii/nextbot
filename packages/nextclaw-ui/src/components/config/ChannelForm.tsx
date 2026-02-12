@@ -163,7 +163,7 @@ export function ChannelForm() {
             </div>
             <div>
               <DialogTitle className="capitalize">{channelName}</DialogTitle>
-              <DialogDescription>配置消息渠道参数</DialogDescription>
+              <DialogDescription>Configure message channel parameters</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -172,7 +172,7 @@ export function ChannelForm() {
           <form onSubmit={handleSubmit} className="space-y-5 pr-2">
             {fields.map((field) => (
               <div key={field.name} className="space-y-2.5">
-                <Label 
+                <Label
                   htmlFor={field.name}
                   className="text-sm font-medium text-[hsl(30,20%,12%)] flex items-center gap-2"
                 >
@@ -183,7 +183,7 @@ export function ChannelForm() {
                 {field.type === 'boolean' && (
                   <div className="flex items-center justify-between p-3 rounded-xl bg-[hsl(40,20%,96%)]">
                     <span className="text-sm text-[hsl(30,8%,45%)]">
-                      {(formData[field.name] as boolean) ? '已启用' : '已禁用'}
+                      {(formData[field.name] as boolean) ? t('enabled') : t('disabled')}
                     </span>
                     <Switch
                       id={field.name}
@@ -210,7 +210,7 @@ export function ChannelForm() {
                     type="password"
                     value={(formData[field.name] as string) || ''}
                     onChange={(e) => updateField(field.name, e.target.value)}
-                    placeholder="留空保持不变"
+                    placeholder="Leave blank to keep unchanged"
                     className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
                   />
                 )}
@@ -248,7 +248,7 @@ export function ChannelForm() {
                 disabled={updateChannel.isPending}
                 className="rounded-xl bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white border-0"
               >
-                {updateChannel.isPending ? '保存中...' : t('save')}
+                {updateChannel.isPending ? 'Saving...' : t('save')}
               </Button>
             </DialogFooter>
           </form>

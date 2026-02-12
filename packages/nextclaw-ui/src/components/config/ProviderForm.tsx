@@ -76,7 +76,7 @@ export function ProviderForm() {
             </div>
             <div>
               <DialogTitle>{providerSpec?.displayName || providerName}</DialogTitle>
-              <DialogDescription>配置 AI 提供商的 API 密钥和参数</DialogDescription>
+              <DialogDescription>Configure API keys and parameters for AI provider</DialogDescription>
             </div>
           </div>
         </DialogHeader>
@@ -92,7 +92,7 @@ export function ProviderForm() {
               value={apiKey}
               isSet={providerConfig?.apiKeySet}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={providerConfig?.apiKeySet ? t('apiKeySet') : '输入 API 密钥'}
+              placeholder={providerConfig?.apiKeySet ? t('apiKeySet') : 'Enter API Key'}
               className="rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] focus:bg-white"
             />
           </div>
@@ -137,7 +137,7 @@ export function ProviderForm() {
               disabled={updateProvider.isPending}
               className="rounded-xl bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white border-0"
             >
-              {updateProvider.isPending ? '保存中...' : t('save')}
+              {updateProvider.isPending ? 'Saving...' : t('save')}
             </Button>
           </DialogFooter>
         </form>

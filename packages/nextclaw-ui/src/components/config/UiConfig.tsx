@@ -8,6 +8,7 @@ import { Card, CardContent, CardTitle, CardDescription } from '@/components/ui/c
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, Save, Monitor, Power } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { t } from '@/lib/i18n';
 
 export function UiConfig() {
   const { data: config, isLoading } = useConfig();
@@ -70,8 +71,8 @@ export function UiConfig() {
     <div className="max-w-2xl space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-semibold text-[hsl(30,20%,12%)]">界面设置</h2>
-        <p className="text-sm text-[hsl(30,8%,45%)] mt-1">配置 Web UI 服务器和访问选项</p>
+        <h2 className="text-xl font-semibold text-[hsl(30,20%,12%)]">{t('uiConfig')}</h2>
+        <p className="text-sm text-[hsl(30,8%,45%)] mt-1">Configure Web UI server and access options</p>
       </div>
 
       <Card className="rounded-2xl border-[hsl(40,20%,90%)] bg-white">
@@ -81,8 +82,8 @@ export function UiConfig() {
               <Monitor className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-base font-semibold text-[hsl(30,20%,12%)]">Web UI 服务器</CardTitle>
-              <CardDescription className="text-xs text-[hsl(30,8%,45%)]">配置界面服务的运行参数</CardDescription>
+              <CardTitle className="text-base font-semibold text-[hsl(30,20%,12%)]">Web UI Server</CardTitle>
+              <CardDescription className="text-xs text-[hsl(30,8%,45%)]">Configure server runtime parameters</CardDescription>
             </div>
           </div>
 
@@ -99,12 +100,12 @@ export function UiConfig() {
                   <Power className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-[hsl(30,20%,12%)]">启用 Web UI</h3>
+                  <h3 className="font-medium text-[hsl(30,20%,12%)]">Enable Web UI</h3>
                   <p className={cn(
                     "text-xs",
                     enabled ? "text-emerald-600" : "text-[hsl(30,8%,45%)]"
                   )}>
-                    {enabled ? '服务正在运行' : '服务已停止'}
+                    {enabled ? t('connected') : t('disconnected')}
                   </p>
                 </div>
               </div>
@@ -118,7 +119,7 @@ export function UiConfig() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="host" className="text-sm font-medium text-[hsl(30,20%,12%)]">监听地址</Label>
+                <Label htmlFor="host" className="text-sm font-medium text-[hsl(30,20%,12%)]">{t('host')}</Label>
                 <Input
                   id="host"
                   type="text"
@@ -130,7 +131,7 @@ export function UiConfig() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="port" className="text-sm font-medium text-[hsl(30,20%,12%)]">端口</Label>
+                <Label htmlFor="port" className="text-sm font-medium text-[hsl(30,20%,12%)]">{t('port')}</Label>
                 <Input
                   id="port"
                   type="number"
@@ -151,7 +152,7 @@ export function UiConfig() {
                 className="gap-2 rounded-xl bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white border-0"
               >
                 <Save className="h-4 w-4" />
-                保存配置
+                {t('save')}
               </Button>
             </div>
           </form>
@@ -165,12 +166,12 @@ export function UiConfig() {
               <RefreshCw className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-base font-semibold text-[hsl(30,20%,12%)]">重载配置</CardTitle>
-              <CardDescription className="text-xs text-[hsl(30,8%,45%)]">应用配置更改并重启服务</CardDescription>
+              <CardTitle className="text-base font-semibold text-[hsl(30,20%,12%)]">{t('reloadConfig')}</CardTitle>
+              <CardDescription className="text-xs text-[hsl(30,8%,45%)]">Apply changes and restart services</CardDescription>
             </div>
           </div>
           <p className="text-sm text-[hsl(30,8%,45%)] mb-4">
-            点击下方按钮将重载配置文件，使所有更改生效。
+            Click the button below to reload the configuration file and apply all changes.
           </p>
           <Button
             variant="outline"
@@ -179,7 +180,7 @@ export function UiConfig() {
             className="w-full gap-2 rounded-xl border-[hsl(40,20%,90%)] bg-[hsl(40,20%,98%)] hover:bg-[hsl(40,20%,94%)] text-[hsl(30,10%,35%)]"
           >
             <RefreshCw className="h-4 w-4" />
-            重载配置
+            {t('reloadConfig')}
           </Button>
         </CardContent>
       </Card>
