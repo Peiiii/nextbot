@@ -18,8 +18,8 @@
 
 ## Features
 
-| | |
-|---|---|
+| Feature | Description |
+|---------|-------------|
 | **One-command start** | `nextclaw start` — background service + config UI |
 | **Built-in config UI** | No extra setup after `npm i -g nextclaw` |
 | **Multi-provider** | OpenRouter, OpenAI, MiniMax, vLLM, etc. (OpenAI-compatible) |
