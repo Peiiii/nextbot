@@ -16,7 +16,7 @@ multi-provider routing, channel integrations, and scheduled automation.
 
 ## Highlights
 
-- One command to start everything: `nextclaw start` (gateway + UI backend + UI frontend)
+- One command to start everything: `nextclaw start` (background service + UI)
 - Built-in configuration UI (no extra setup required after npm install)
 - OpenAI-compatible provider routing (OpenRouter, OpenAI, MiniMax, etc.)
 - Channel integrations: Telegram, Discord, WhatsApp, Feishu, Mochat, DingTalk, Slack, Email, QQ
@@ -31,7 +31,7 @@ npm i -g nextclaw
 
 ## Quick Start
 
-1) Start everything
+1) Start everything (runs in background)
 
 ```bash
 nextclaw start
@@ -49,6 +49,12 @@ The config file is stored at:
 
 ```
 ~/.nextclaw/config.json
+```
+
+Stop the service:
+
+```bash
+nextclaw stop
 ```
 
 ## Provider Examples
@@ -100,7 +106,8 @@ Local vLLM:
 
 ## Commands
 
-- `nextclaw start` - start gateway + UI backend + UI frontend
+- `nextclaw start` - start background service (gateway + UI)
+- `nextclaw stop` - stop background service
 - `nextclaw ui` - start UI backend + gateway
 - `nextclaw gateway` - start gateway only (for channels)
 - `nextclaw agent -m "hello"` - chat in CLI
@@ -134,9 +141,8 @@ git clone https://github.com/Peiiii/nextclaw.git
 cd nextclaw
 pnpm install
 
-# start all (dev)
-# use --frontend to run the Vite dev server
-pnpm -C packages/nextclaw dev start --frontend
+# run in foreground (dev)
+pnpm -C packages/nextclaw dev serve --frontend
 ```
 
 ## License

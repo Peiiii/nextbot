@@ -1,5 +1,7 @@
 # Logs
 
+- `docs/logs/v0.3.6-commands-doc-cleanup/README.md`
+- `docs/logs/v0.3.5-service-manager/README.md`
 - `docs/logs/v0.3.4-start-frontend-optin/README.md`
 - `docs/logs/v0.3.3-readme-english/README.md`
 - `docs/logs/v0.3.2-readme-user/README.md`

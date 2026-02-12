@@ -1,6 +1,15 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, cpSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  writeFileSync,
+  cpSync,
+  rmSync,
+  openSync,
+  closeSync
+} from "node:fs";
 import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
@@ -99,12 +108,40 @@ program
 
 program
   .command("start")
-  .description(`Start the ${APP_NAME} gateway + UI (backend + optional frontend)`)
+  .description(`Start the ${APP_NAME} gateway + UI in the background`)
   .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
   .option("--frontend", "Start UI frontend dev server", false)
   .option("--frontend-port <port>", "UI frontend dev server port")
-  .option("--no-open", "Disable opening browser")
+  .option("--open", "Open browser after start", false)
+  .action(async (opts) => {
+    const uiOverrides: Partial<Config["ui"]> = {
+      enabled: true,
+      open: false
+    };
+    if (opts.uiHost) {
+      uiOverrides.host = String(opts.uiHost);
+    }
+    if (opts.uiPort) {
+      uiOverrides.port = Number(opts.uiPort);
+    }
+
+    await startService({
+      uiOverrides,
+      frontend: Boolean(opts.frontend),
+      frontendPort: Number(opts.frontendPort),
+      open: Boolean(opts.open)
+    });
+  });
+
+program
+  .command("serve")
+  .description(`Run the ${APP_NAME} gateway + UI in the foreground`)
+  .option("--ui-host <host>", "UI host")
+  .option("--ui-port <port>", "UI port")
+  .option("--frontend", "Start UI frontend dev server", false)
+  .option("--frontend-port <port>", "UI frontend dev server port")
+  .option("--open", "Open browser after start", false)
   .action(async (opts) => {
     const uiOverrides: Partial<Config["ui"]> = {
       enabled: true,
@@ -132,11 +169,8 @@ program
         dir: frontendDir
       });
       frontendUrl = frontend?.url ?? null;
-    } else if (shouldStartFrontend && !frontendDir && !staticDir) {
+    } else if (shouldStartFrontend && !frontendDir) {
       console.log("Warning: UI frontend not found. Start it separately.");
-    }
-    if (!frontendUrl && staticDir) {
-      frontendUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
     }
     if (!frontendUrl && staticDir) {
       frontendUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
@@ -149,6 +183,13 @@ program
     }
 
     await startGateway({ uiOverrides, allowMissingProvider: true, uiStaticDir: staticDir ?? undefined });
+  });
+
+program
+  .command("stop")
+  .description(`Stop the ${APP_NAME} background service`)
+  .action(async () => {
+    await stopService();
   });
 
 program
@@ -492,6 +533,192 @@ function resolveUiConfig(config: Config, overrides?: Partial<Config["ui"]>): Con
 function resolveUiApiBase(host: string, port: number): string {
   const normalizedHost = host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
   return `http://${normalizedHost}:${port}`;
+}
+
+type ServiceState = {
+  pid: number;
+  startedAt: string;
+  uiUrl: string;
+  apiUrl: string;
+  logPath: string;
+};
+
+async function startService(options: {
+  uiOverrides: Partial<Config["ui"]>;
+  frontend: boolean;
+  frontendPort: number;
+  open: boolean;
+}): Promise<void> {
+  const config = loadConfig();
+  const uiConfig = resolveUiConfig(config, options.uiOverrides);
+  const uiUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
+  const apiUrl = `${uiUrl}/api`;
+  const staticDir = resolveUiStaticDir();
+
+  const existing = readServiceState();
+  if (existing && isProcessRunning(existing.pid)) {
+    console.log(`✓ ${APP_NAME} is already running (PID ${existing.pid})`);
+    console.log(`UI: ${existing.uiUrl}`);
+    console.log(`API: ${existing.apiUrl}`);
+    console.log(`Logs: ${existing.logPath}`);
+    console.log(`Stop: ${APP_NAME} stop`);
+    return;
+  }
+  if (existing) {
+    clearServiceState();
+  }
+
+  if (!staticDir && !options.frontend) {
+    console.log("Warning: UI frontend not found. Use --frontend to start the dev server.");
+  }
+
+  const logPath = resolveServiceLogPath();
+  const logDir = resolve(logPath, "..");
+  mkdirSync(logDir, { recursive: true });
+  const logFd = openSync(logPath, "a");
+
+  const serveArgs = buildServeArgs({
+    uiHost: uiConfig.host,
+    uiPort: uiConfig.port,
+    frontend: options.frontend,
+    frontendPort: options.frontendPort
+  });
+  const child = spawn(process.execPath, [...process.execArgv, ...serveArgs], {
+    env: process.env,
+    stdio: ["ignore", logFd, logFd],
+    detached: true
+  });
+  closeSync(logFd);
+  if (!child.pid) {
+    console.error("Error: Failed to start background service.");
+    return;
+  }
+  child.unref();
+
+  const state: ServiceState = {
+    pid: child.pid,
+    startedAt: new Date().toISOString(),
+    uiUrl,
+    apiUrl,
+    logPath
+  };
+  writeServiceState(state);
+
+  console.log(`✓ ${APP_NAME} started in background (PID ${state.pid})`);
+  console.log(`UI: ${uiUrl}`);
+  console.log(`API: ${apiUrl}`);
+  console.log(`Logs: ${logPath}`);
+  console.log(`Stop: ${APP_NAME} stop`);
+
+  if (options.open) {
+    openBrowser(uiUrl);
+  }
+}
+
+async function stopService(): Promise<void> {
+  const state = readServiceState();
+  if (!state) {
+    console.log("No running service found.");
+    return;
+  }
+  if (!isProcessRunning(state.pid)) {
+    console.log("Service is not running. Cleaning up state.");
+    clearServiceState();
+    return;
+  }
+
+  console.log(`Stopping ${APP_NAME} (PID ${state.pid})...`);
+  try {
+    process.kill(state.pid, "SIGTERM");
+  } catch (error) {
+    console.error(`Failed to stop service: ${String(error)}`);
+    return;
+  }
+
+  const stopped = await waitForExit(state.pid, 3000);
+  if (!stopped) {
+    try {
+      process.kill(state.pid, "SIGKILL");
+    } catch (error) {
+      console.error(`Failed to force stop service: ${String(error)}`);
+      return;
+    }
+    await waitForExit(state.pid, 2000);
+  }
+
+  clearServiceState();
+  console.log(`✓ ${APP_NAME} stopped`);
+}
+
+function buildServeArgs(options: {
+  uiHost: string;
+  uiPort: number;
+  frontend: boolean;
+  frontendPort: number;
+}): string[] {
+  const cliPath = fileURLToPath(import.meta.url);
+  const args = [cliPath, "serve", "--ui-host", options.uiHost, "--ui-port", String(options.uiPort)];
+  if (options.frontend) {
+    args.push("--frontend");
+  }
+  if (Number.isFinite(options.frontendPort)) {
+    args.push("--frontend-port", String(options.frontendPort));
+  }
+  return args;
+}
+
+function readServiceState(): ServiceState | null {
+  const path = resolveServiceStatePath();
+  if (!existsSync(path)) {
+    return null;
+  }
+  try {
+    const raw = readFileSync(path, "utf-8");
+    return JSON.parse(raw) as ServiceState;
+  } catch {
+    return null;
+  }
+}
+
+function writeServiceState(state: ServiceState): void {
+  const path = resolveServiceStatePath();
+  mkdirSync(resolve(path, ".."), { recursive: true });
+  writeFileSync(path, JSON.stringify(state, null, 2));
+}
+
+function clearServiceState(): void {
+  const path = resolveServiceStatePath();
+  if (existsSync(path)) {
+    rmSync(path, { force: true });
+  }
+}
+
+function resolveServiceStatePath(): string {
+  return resolve(getDataDir(), "run", "service.json");
+}
+
+function resolveServiceLogPath(): string {
+  return resolve(getDataDir(), "logs", "service.log");
+}
+
+function isProcessRunning(pid: number): boolean {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForExit(pid: number, timeoutMs: number): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (!isProcessRunning(pid)) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  return !isProcessRunning(pid);
 }
 
 function resolveUiStaticDir(): string | null {

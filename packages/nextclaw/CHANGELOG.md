@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.2.3
+
+### Patch Changes
+
+- Add background service management with `nextclaw start` and `nextclaw stop`.
+
 ## 0.2.2
 
 ### Patch Changes
