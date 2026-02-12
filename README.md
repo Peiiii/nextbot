@@ -8,6 +8,8 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
+[![Star History Chart](https://api.star-history.com/svg?repos=Peiiii/nextclaw&type=Date)](https://star-history.com/#Peiiii/nextclaw&Date)
+
 [Quick Start](#quick-start) · [Features](#features) · [Channels](#channels) · [Docs](docs/USAGE.md)
 
 </div>
@@ -120,7 +122,6 @@ nextclaw stop   # stop service
 ## Docs
 
 - [Configuration, providers, channels, cron](docs/USAGE.md)
-- [Iteration logs](docs/logs/)
 
 ## From source
 
