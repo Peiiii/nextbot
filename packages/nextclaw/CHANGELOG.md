@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.2.1
+
+### Patch Changes
+
+- Add `start` command and serve bundled UI assets from the UI backend.
+
 ## 0.2.0
 
 ### Minor Changes
