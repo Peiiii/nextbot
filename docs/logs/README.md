@@ -1,5 +1,7 @@
 # Logs
 
+- `docs/logs/v0.4.1-dev-start-ports/README.md`
+- `docs/logs/v0.4.0-channel-guides/README.md`
 - `docs/logs/v0.3.9-ui-model-examples/README.md`
 - `docs/logs/v0.3.8-frontend-release/README.md`
 - `docs/logs/v0.3.7-readme-docs/README.md`

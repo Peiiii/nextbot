@@ -1,7 +1,7 @@
 import { useConfig, useConfigMeta } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MessageCircle, Settings2, Bell, Mail, MessageSquare, Slack, MoreHorizontal, Plus } from 'lucide-react';
+import { MessageCircle, Mail, MessageSquare, Slack, MoreHorizontal, ExternalLink, Bell } from 'lucide-react';
 import { useState } from 'react';
 import { ChannelForm } from './ChannelForm';
 import { useUiStore } from '@/stores/ui.store';
@@ -76,6 +76,18 @@ export function ChannelsList() {
 
               {/* Status/Actions */}
               <div className="flex items-center gap-4">
+                {channel.tutorialUrl && (
+                  <a
+                    href={channel.tutorialUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-[hsl(30,10%,35%)] hover:text-[hsl(30,15%,10%)]"
+                  >
+                    Guide
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                )}
                 <Button
                   variant="ghost"
                   size="sm"

@@ -111,7 +111,7 @@ program
   .description(`Start the ${APP_NAME} gateway + UI in the background`)
   .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
-  .option("--frontend", "Start UI frontend dev server", false)
+  .option("--frontend", "Start UI frontend dev server")
   .option("--frontend-port <port>", "UI frontend dev server port")
   .option("--open", "Open browser after start", false)
   .action(async (opts) => {
@@ -124,6 +124,23 @@ program
     }
     if (opts.uiPort) {
       uiOverrides.port = Number(opts.uiPort);
+    }
+
+    const devMode = isDevRuntime();
+    if (devMode) {
+      const devUiPort = Number.isFinite(Number(opts.uiPort)) ? Number(opts.uiPort) : 18792;
+      const devFrontendPort = Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : 5174;
+      uiOverrides.port = devUiPort;
+      const shouldStartFrontend = opts.frontend === undefined ? true : Boolean(opts.frontend);
+      console.log(`Dev mode: UI ${devUiPort}, Frontend ${devFrontendPort}`);
+      console.log("Dev mode runs in the foreground (Ctrl+C to stop).");
+      await runForeground({
+        uiOverrides,
+        frontend: shouldStartFrontend,
+        frontendPort: devFrontendPort,
+        open: Boolean(opts.open)
+      });
+      return;
     }
 
     await startService({
@@ -139,7 +156,7 @@ program
   .description(`Run the ${APP_NAME} gateway + UI in the foreground`)
   .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
-  .option("--frontend", "Start UI frontend dev server", false)
+  .option("--frontend", "Start UI frontend dev server")
   .option("--frontend-port <port>", "UI frontend dev server port")
   .option("--open", "Open browser after start", false)
   .action(async (opts) => {
@@ -154,35 +171,20 @@ program
       uiOverrides.port = Number(opts.uiPort);
     }
 
-    const config = loadConfig();
-    const uiConfig = resolveUiConfig(config, uiOverrides);
-    const staticDir = resolveUiStaticDir();
+    const devMode = isDevRuntime();
+    if (devMode && uiOverrides.port === undefined) {
+      uiOverrides.port = 18792;
+    }
+
     const shouldStartFrontend = Boolean(opts.frontend);
-    const frontendPort = shouldStartFrontend && Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : 5173;
-    const frontendDir = shouldStartFrontend ? resolveUiFrontendDir() : null;
-
-    let frontendUrl: string | null = null;
-    if (shouldStartFrontend && frontendDir) {
-      const frontend = startUiFrontend({
-        apiBase: resolveUiApiBase(uiConfig.host, uiConfig.port),
-        port: frontendPort,
-        dir: frontendDir
-      });
-      frontendUrl = frontend?.url ?? null;
-    } else if (shouldStartFrontend && !frontendDir) {
-      console.log("Warning: UI frontend not found. Start it separately.");
-    }
-    if (!frontendUrl && staticDir) {
-      frontendUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
-    }
-
-    if (opts.open && frontendUrl) {
-      openBrowser(frontendUrl);
-    } else if (opts.open && !frontendUrl) {
-      console.log("Warning: UI frontend not started. Browser not opened.");
-    }
-
-    await startGateway({ uiOverrides, allowMissingProvider: true, uiStaticDir: staticDir ?? undefined });
+    const defaultFrontendPort = devMode ? 5174 : 5173;
+    const frontendPort = Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : defaultFrontendPort;
+    await runForeground({
+      uiOverrides,
+      frontend: shouldStartFrontend,
+      frontendPort,
+      open: Boolean(opts.open)
+    });
   });
 
 program
@@ -407,7 +409,7 @@ program
 program.parseAsync(process.argv);
 
 async function startGateway(
-  options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string } = {}
+  options: { uiOverrides?: Partial<Config["ui"]>; allowMissingProvider?: boolean; uiStaticDir?: string | null } = {}
 ): Promise<void> {
   const config = loadConfig();
   const bus = new MessageBus();
@@ -421,7 +423,7 @@ async function startGateway(
   const cron = new CronService(cronStorePath);
 
   const uiConfig = resolveUiConfig(config, options.uiOverrides);
-  const uiStaticDir = options.uiStaticDir ?? resolveUiStaticDir();
+  const uiStaticDir = options.uiStaticDir === undefined ? resolveUiStaticDir() : options.uiStaticDir;
   if (!provider) {
     if (uiConfig.enabled) {
       const uiServer = startUiServer({
@@ -535,6 +537,10 @@ function resolveUiApiBase(host: string, port: number): string {
   return `http://${normalizedHost}:${port}`;
 }
 
+function isDevRuntime(): boolean {
+  return import.meta.url.includes("/src/cli/") || process.env.NEXTCLAW_DEV === "1";
+}
+
 type ServiceState = {
   pid: number;
   startedAt: string;
@@ -542,6 +548,48 @@ type ServiceState = {
   apiUrl: string;
   logPath: string;
 };
+
+async function runForeground(options: {
+  uiOverrides: Partial<Config["ui"]>;
+  frontend: boolean;
+  frontendPort: number;
+  open: boolean;
+}): Promise<void> {
+  const config = loadConfig();
+  const uiConfig = resolveUiConfig(config, options.uiOverrides);
+  const shouldStartFrontend = options.frontend;
+  const frontendPort = Number.isFinite(options.frontendPort) ? options.frontendPort : 5173;
+  const frontendDir = shouldStartFrontend ? resolveUiFrontendDir() : null;
+  const staticDir = resolveUiStaticDir();
+
+  let frontendUrl: string | null = null;
+  if (shouldStartFrontend && frontendDir) {
+    const frontend = startUiFrontend({
+      apiBase: resolveUiApiBase(uiConfig.host, uiConfig.port),
+      port: frontendPort,
+      dir: frontendDir
+    });
+    frontendUrl = frontend?.url ?? null;
+  } else if (shouldStartFrontend && !frontendDir) {
+    console.log("Warning: UI frontend not found. Start it separately.");
+  }
+  if (!frontendUrl && staticDir) {
+    frontendUrl = resolveUiApiBase(uiConfig.host, uiConfig.port);
+  }
+
+  if (options.open && frontendUrl) {
+    openBrowser(frontendUrl);
+  } else if (options.open && !frontendUrl) {
+    console.log("Warning: UI frontend not started. Browser not opened.");
+  }
+
+  const uiStaticDir = shouldStartFrontend && frontendDir ? null : staticDir;
+  await startGateway({
+    uiOverrides: options.uiOverrides,
+    allowMissingProvider: true,
+    uiStaticDir
+  });
+}
 
 async function startService(options: {
   uiOverrides: Partial<Config["ui"]>;
@@ -926,7 +974,10 @@ function startUiFrontend(options: { apiBase: string; port: number; dir?: string 
 
   const args = [...runner.args];
   if (options.port) {
-    args.push("--", "--port", String(options.port));
+    if (runner.useArgSeparator) {
+      args.push("--");
+    }
+    args.push("--port", String(options.port));
   }
   const env = { ...process.env, VITE_API_BASE: options.apiBase };
   const child = spawn(runner.cmd, args, { cwd: uiDir, stdio: "inherit", env });
@@ -941,12 +992,12 @@ function startUiFrontend(options: { apiBase: string; port: number; dir?: string 
   return { url, dir: uiDir };
 }
 
-function resolveUiFrontendRunner(): { cmd: string; args: string[] } | null {
+function resolveUiFrontendRunner(): { cmd: string; args: string[]; useArgSeparator: boolean } | null {
   if (which("pnpm")) {
-    return { cmd: "pnpm", args: ["dev"] };
+    return { cmd: "pnpm", args: ["dev"], useArgSeparator: false };
   }
   if (which("npm")) {
-    return { cmd: "npm", args: ["run", "dev"] };
+    return { cmd: "npm", args: ["run", "dev"], useArgSeparator: true };
   }
   return null;
 }

@@ -8,6 +8,18 @@ import type {
   ProviderConfigView
 } from "./types.js";
 
+const CHANNEL_TUTORIALS: Record<string, string> = {
+  telegram: "https://github.com/Peiiii/nextclaw/blob/main/docs/channels/README.md#telegram",
+  discord: "https://github.com/Peiiii/nextclaw/blob/main/docs/channels/README.md#discord",
+  whatsapp: "https://github.com/Peiiii/nextclaw/blob/main/docs/channels/README.md#whatsapp",
+  feishu: "https://github.com/Peiiii/nextclaw/blob/main/docs/channels/README.md#feishu",
+  mochat: "https://github.com/Peiiii/nextclaw/blob/main/docs/channels/README.md#mochat",
+  dingtalk: "https://github.com/Peiiii/nextclaw/blob/main/docs/channels/README.md#dingtalk",
+  slack: "https://github.com/Peiiii/nextclaw/blob/main/docs/channels/README.md#slack",
+  email: "https://github.com/Peiiii/nextclaw/blob/main/docs/channels/README.md#email",
+  qq: "https://github.com/Peiiii/nextclaw/blob/main/docs/channels/README.md#qq"
+};
+
 const MASK_MIN_LENGTH = 8;
 
 function maskApiKey(value: string): { apiKeySet: boolean; apiKeyMasked?: string } {
@@ -61,7 +73,8 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
   const channels = Object.keys(config.channels).map((name) => ({
     name,
     displayName: name,
-    enabled: Boolean((config.channels as Record<string, { enabled?: boolean }>)[name]?.enabled)
+    enabled: Boolean((config.channels as Record<string, { enabled?: boolean }>)[name]?.enabled),
+    tutorialUrl: CHANNEL_TUTORIALS[name]
   }));
   return { providers, channels };
 }

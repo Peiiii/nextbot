@@ -59,6 +59,7 @@ export type ChannelSpecView = {
   name: string;
   displayName?: string;
   enabled: boolean;
+  tutorialUrl?: string;
 };
 
 export type ConfigMetaView = {

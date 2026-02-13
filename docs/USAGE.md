@@ -118,13 +118,13 @@ UI (gateway + config UI):
 pnpm -C packages/nextclaw dev ui
 ```
 
-All-in-one (background service):
+All-in-one (dev foreground):
 
 ```bash
 pnpm -C packages/nextclaw dev start
 ```
 
-Stop the service:
+Stop the service (background only):
 
 ```bash
 pnpm -C packages/nextclaw dev stop
@@ -132,9 +132,10 @@ pnpm -C packages/nextclaw dev stop
 
 Notes:
 
-- If UI static assets are bundled, `start` serves them from the UI backend.
-- In dev mode, pass `--frontend` to start the UI frontend dev server.
-- For foreground mode, use `pnpm -C packages/nextclaw dev serve --frontend`.
+- In dev, `start` runs in the foreground (Ctrl+C to stop) and starts the UI frontend dev server by default.
+- If UI static assets are bundled, `start` serves them from the UI backend when the dev frontend is not running.
+- For foreground mode without frontend, use `pnpm -C packages/nextclaw dev serve`.
+- Dev defaults: UI `18792`, frontend `5174` (to avoid conflicts with app ports).
 
 UI config (optional):
 

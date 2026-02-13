@@ -131,7 +131,12 @@ nextclaw stop   # stop service
 git clone https://github.com/Peiiii/nextclaw.git
 cd nextclaw
 pnpm install
-pnpm -C packages/nextclaw dev serve --frontend
+pnpm nextclaw start
+
+# dev ports
+# UI: http://127.0.0.1:18792
+# Frontend: http://127.0.0.1:5174
+# Ctrl+C to stop (dev foreground)
 ```
 
 ---
