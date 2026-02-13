@@ -8,6 +8,7 @@ import {
   updateProvider,
   updateUi
 } from "./config.js";
+import { probeFeishu } from "../channels/feishu-probe.js";
 import type { ProviderConfigUpdate, UiServerEvent } from "./types.js";
 
 type UiRouterOptions = {
@@ -84,6 +85,25 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     }
     options.publish({ type: "config.updated", payload: { path: `channels.${channel}` } });
     return c.json(ok(result));
+  });
+
+  app.post("/api/channels/feishu/probe", async (c) => {
+    const config = loadConfigOrDefault(options.configPath);
+    const feishu = config.channels.feishu;
+    if (!feishu?.appId || !feishu?.appSecret) {
+      return c.json(err("MISSING_CREDENTIALS", "Feishu appId/appSecret not configured"), 400);
+    }
+    const result = await probeFeishu(String(feishu.appId), String(feishu.appSecret));
+    if (!result.ok) {
+      return c.json(err("PROBE_FAILED", result.error), 400);
+    }
+    return c.json(
+      ok({
+        appId: result.appId,
+        botName: result.botName ?? null,
+        botOpenId: result.botOpenId ?? null
+      })
+    );
   });
 
   app.put("/api/config/ui", async (c) => {

@@ -70,6 +70,12 @@ export type ConfigMetaView = {
   channels: ChannelSpecView[];
 };
 
+export type FeishuProbeView = {
+  appId: string;
+  botName?: string | null;
+  botOpenId?: string | null;
+};
+
 // WebSocket events
 export type WsEvent =
   | { type: 'config.updated'; payload: { path: string } }

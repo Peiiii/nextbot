@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useConfig, useUpdateChannel } from '@/hooks/useConfig';
+import { probeFeishu, reloadConfig } from '@/api/config';
 import { useUiStore } from '@/stores/ui.store';
 import {
   Dialog,
@@ -15,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { TagInput } from '@/components/common/TagInput';
 import { t } from '@/lib/i18n';
+import { toast } from 'sonner';
 import { MessageCircle, Settings, ToggleLeft, Hash, Mail, Globe, KeyRound } from 'lucide-react';
 
 // Field icon mapping
@@ -122,6 +124,7 @@ export function ChannelForm() {
   const updateChannel = useUpdateChannel();
 
   const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const channelName = channelModal.channel;
   const channelConfig = channelName ? config?.channels[channelName] : null;
@@ -148,6 +151,27 @@ export function ChannelForm() {
       { channel: channelName, data: formData },
       { onSuccess: () => closeChannelModal() }
     );
+  };
+
+  const handleVerifyConnect = async () => {
+    if (!channelName || channelName !== 'feishu') return;
+    setIsConnecting(true);
+    try {
+      const nextData = { ...formData, enabled: true };
+      if (!formData.enabled) {
+        setFormData(nextData);
+      }
+      await updateChannel.mutateAsync({ channel: channelName, data: nextData });
+      const probe = await probeFeishu();
+      await reloadConfig();
+      const botLabel = probe.botName ? ` (${probe.botName})` : '';
+      toast.success(t('feishuVerifySuccess') + botLabel);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toast.error(`${t('feishuVerifyFailed')}: ${message}`);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   const Icon = channelIcons[channelName || ''] || channelIcons.default;
@@ -245,11 +269,21 @@ export function ChannelForm() {
               </Button>
               <Button
                 type="submit"
-                disabled={updateChannel.isPending}
+                disabled={updateChannel.isPending || isConnecting}
                 className="rounded-xl bg-gradient-to-r from-orange-400 to-amber-500 hover:from-orange-500 hover:to-amber-600 text-white border-0"
               >
                 {updateChannel.isPending ? 'Saving...' : t('save')}
               </Button>
+              {channelName === 'feishu' && (
+                <Button
+                  type="button"
+                  onClick={handleVerifyConnect}
+                  disabled={updateChannel.isPending || isConnecting}
+                  className="rounded-xl bg-gradient-to-r from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white border-0"
+                >
+                  {isConnecting ? t('feishuConnecting') : t('saveVerifyConnect')}
+                </Button>
+              )}
             </DialogFooter>
           </form>
         </div>

@@ -515,7 +515,25 @@ async function startGateway(
     true
   );
 
-  const channels = new ChannelManager(config, bus, sessionManager);
+  let channels = new ChannelManager(config, bus, sessionManager);
+  let reloadTask: Promise<void> | null = null;
+  const reloadChannels = async (): Promise<void> => {
+    if (reloadTask) {
+      await reloadTask;
+      return;
+    }
+    reloadTask = (async () => {
+      const nextConfig = loadConfig();
+      await channels.stopAll();
+      channels = new ChannelManager(nextConfig, bus, sessionManager);
+      await channels.startAll();
+    })();
+    try {
+      await reloadTask;
+    } finally {
+      reloadTask = null;
+    }
+  };
   if (channels.enabledChannels.length) {
     console.log(`✓ Channels enabled: ${channels.enabledChannels.join(", ")}`);
   } else {
@@ -529,7 +547,7 @@ async function startGateway(
       configPath: getConfigPath(),
       staticDir: uiStaticDir ?? undefined,
       onReload: async () => {
-        return;
+        await reloadChannels();
       }
     });
     const uiUrl = `http://${uiServer.host}:${uiServer.port}`;

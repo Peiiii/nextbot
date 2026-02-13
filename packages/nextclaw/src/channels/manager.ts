@@ -95,6 +95,13 @@ export class ChannelManager {
 
   async stopAll(): Promise<void> {
     this.dispatching = false;
+    await this.bus.publishOutbound({
+      channel: "__control__",
+      chatId: "",
+      content: "",
+      media: [],
+      metadata: { reason: "shutdown" }
+    });
     if (this.dispatchTask) {
       await this.dispatchTask;
     }

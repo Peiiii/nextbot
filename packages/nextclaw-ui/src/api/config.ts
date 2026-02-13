@@ -5,7 +5,8 @@ import type {
   ProviderConfigView,
   UiConfigView,
   ChannelConfigUpdate,
-  ProviderConfigUpdate
+  ProviderConfigUpdate,
+  FeishuProbeView
 } from './types';
 
 // GET /api/config
@@ -79,6 +80,15 @@ export async function updateUiConfig(data: UiConfigView): Promise<UiConfigView> 
 // POST /api/config/reload
 export async function reloadConfig(): Promise<{ status: string }> {
   const response = await api.post<{ status: string }>('/api/config/reload', {});
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// POST /api/channels/feishu/probe
+export async function probeFeishu(): Promise<FeishuProbeView> {
+  const response = await api.post<FeishuProbeView>('/api/channels/feishu/probe', {});
   if (!response.ok) {
     throw new Error(response.error.message);
   }

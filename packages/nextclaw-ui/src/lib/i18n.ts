@@ -98,17 +98,24 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   port: { zh: '端口', en: 'Port' },
   open: { zh: '自动打开', en: 'Open Automatically' },
   reloadConfig: { zh: '重载配置', en: 'Reload Config' },
+  saveVerifyConnect: { zh: '保存并验证 / 连接', en: 'Save & Verify / Connect' },
 
   // Status
   connected: { zh: '已连接', en: 'Connected' },
   disconnected: { zh: '未连接', en: 'Disconnected' },
   connecting: { zh: '连接中...', en: 'Connecting...' },
+  feishuConnecting: { zh: '验证 / 连接中...', en: 'Verifying / connecting...' },
 
   // Messages
   configSaved: { zh: '配置已保存', en: 'Configuration saved' },
   configSaveFailed: { zh: '保存配置失败', en: 'Failed to save configuration' },
   configReloaded: { zh: '配置已重载', en: 'Configuration reloaded' },
   configReloadFailed: { zh: '重载配置失败', en: 'Failed to reload configuration' },
+  feishuVerifySuccess: {
+    zh: '验证成功，请到飞书开放平台完成事件订阅与发布后再开始使用。',
+    en: 'Verified. Please finish Feishu event subscription and app publishing before using.'
+  },
+  feishuVerifyFailed: { zh: '验证失败', en: 'Verification failed' },
   enterTag: { zh: '输入后按回车...', en: 'Type and press Enter...' },
   headerName: { zh: 'Header 名称', en: 'Header Name' },
   headerValue: { zh: 'Header 值', en: 'Header Value' }

@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.2.5
+
+### Patch Changes
+
+- Improve dev start port handling and remove guide links
+
 ## 0.2.4
 
 ### Patch Changes
