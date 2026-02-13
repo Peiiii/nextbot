@@ -9,6 +9,7 @@
 
 - dev runtime 下的 `start` 改为前台模式
 - dev mode 默认端口：UI `18792`，frontend `5174`
+- 端口冲突时自动递增选择可用端口并提示（含 IPv4/IPv6 loopback 检测）
 - 当 UI 前端 dev server 正常启动时，UI API 不再挂载静态 UI
 
 ## 变更内容
@@ -16,6 +17,7 @@
 - `start` 在 dev runtime 自动走前台模式，并默认启动 UI 前端 dev server
 - `serve` 在 dev runtime 默认使用 dev 端口，避免与应用态冲突
 - UI API 在 dev 前端启用时不再输出静态 UI
+- UI API CORS 允许本地任意端口访问（便于 dev 端口自动切换）
 - 文档更新 dev 运行说明与端口默认值
 
 ## 验证（怎么确认符合预期）

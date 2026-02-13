@@ -136,6 +136,7 @@ Notes:
 - If UI static assets are bundled, `start` serves them from the UI backend when the dev frontend is not running.
 - For foreground mode without frontend, use `pnpm -C packages/nextclaw dev serve`.
 - Dev defaults: UI `18792`, frontend `5174` (to avoid conflicts with app ports).
+- If a dev port is already in use, the CLI will switch to the next available port and print it.
 
 UI config (optional):
 

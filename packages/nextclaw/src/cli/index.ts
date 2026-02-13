@@ -14,6 +14,7 @@ import { join, resolve } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
+import { createServer } from "node:net";
 import { loadConfig, saveConfig, getConfigPath, getDataDir } from "../config/loader.js";
 import { ConfigSchema, getApiBase, getProvider, getProviderName, type Config } from "../config/schema.js";
 import { getWorkspacePath } from "../utils/helpers.js";
@@ -128,10 +129,21 @@ program
 
     const devMode = isDevRuntime();
     if (devMode) {
-      const devUiPort = Number.isFinite(Number(opts.uiPort)) ? Number(opts.uiPort) : 18792;
-      const devFrontendPort = Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : 5174;
-      uiOverrides.port = devUiPort;
+      const requestedUiPort = Number.isFinite(Number(opts.uiPort)) ? Number(opts.uiPort) : 18792;
+      const requestedFrontendPort = Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : 5174;
+      const uiHost = uiOverrides.host ?? "127.0.0.1";
+      const devUiPort = await findAvailablePort(requestedUiPort, uiHost);
       const shouldStartFrontend = opts.frontend === undefined ? true : Boolean(opts.frontend);
+      const devFrontendPort = shouldStartFrontend
+        ? await findAvailablePort(requestedFrontendPort, "127.0.0.1")
+        : requestedFrontendPort;
+      uiOverrides.port = devUiPort;
+      if (requestedUiPort !== devUiPort) {
+        console.log(`Dev mode: UI port ${requestedUiPort} is in use, switched to ${devUiPort}.`);
+      }
+      if (shouldStartFrontend && requestedFrontendPort !== devFrontendPort) {
+        console.log(`Dev mode: Frontend port ${requestedFrontendPort} is in use, switched to ${devFrontendPort}.`);
+      }
       console.log(`Dev mode: UI ${devUiPort}, Frontend ${devFrontendPort}`);
       console.log("Dev mode runs in the foreground (Ctrl+C to stop).");
       await runForeground({
@@ -178,7 +190,22 @@ program
 
     const shouldStartFrontend = Boolean(opts.frontend);
     const defaultFrontendPort = devMode ? 5174 : 5173;
-    const frontendPort = Number.isFinite(Number(opts.frontendPort)) ? Number(opts.frontendPort) : defaultFrontendPort;
+    const requestedFrontendPort = Number.isFinite(Number(opts.frontendPort))
+      ? Number(opts.frontendPort)
+      : defaultFrontendPort;
+    if (devMode && uiOverrides.port !== undefined) {
+      const uiHost = uiOverrides.host ?? "127.0.0.1";
+      const uiPort = await findAvailablePort(uiOverrides.port, uiHost);
+      if (uiPort !== uiOverrides.port) {
+        console.log(`Dev mode: UI port ${uiOverrides.port} is in use, switched to ${uiPort}.`);
+        uiOverrides.port = uiPort;
+      }
+    }
+    const frontendPort =
+      devMode && shouldStartFrontend ? await findAvailablePort(requestedFrontendPort, "127.0.0.1") : requestedFrontendPort;
+    if (devMode && shouldStartFrontend && frontendPort !== requestedFrontendPort) {
+      console.log(`Dev mode: Frontend port ${requestedFrontendPort} is in use, switched to ${frontendPort}.`);
+    }
     await runForeground({
       uiOverrides,
       frontend: shouldStartFrontend,
@@ -539,6 +566,52 @@ function resolveUiApiBase(host: string, port: number): string {
 
 function isDevRuntime(): boolean {
   return import.meta.url.includes("/src/cli/") || process.env.NEXTCLAW_DEV === "1";
+}
+
+function normalizeHostForPortCheck(host: string): string {
+  return host === "0.0.0.0" || host === "::" ? "127.0.0.1" : host;
+}
+
+async function findAvailablePort(port: number, host: string, attempts = 20): Promise<number> {
+  const basePort = Number.isFinite(port) ? port : 0;
+  let candidate = basePort;
+  for (let i = 0; i < attempts; i += 1) {
+    const ok = await isPortAvailable(candidate, host);
+    if (ok) {
+      return candidate;
+    }
+    candidate += 1;
+  }
+  return basePort;
+}
+
+async function isPortAvailable(port: number, host: string): Promise<boolean> {
+  const checkHost = normalizeHostForPortCheck(host);
+  const hostsToCheck: string[] = [checkHost];
+  if (checkHost === "127.0.0.1") {
+    hostsToCheck.push("::1");
+  } else if (checkHost === "::1") {
+    hostsToCheck.push("127.0.0.1");
+  }
+
+  for (const hostToCheck of hostsToCheck) {
+    const ok = await canBindPort(port, hostToCheck);
+    if (!ok) {
+      return false;
+    }
+  }
+  return true;
+}
+
+async function canBindPort(port: number, host: string): Promise<boolean> {
+  return await new Promise((resolve) => {
+    const server = createServer();
+    server.unref();
+    server.once("error", () => resolve(false));
+    server.listen({ port, host }, () => {
+      server.close(() => resolve(true));
+    });
+  });
 }
 
 type ServiceState = {

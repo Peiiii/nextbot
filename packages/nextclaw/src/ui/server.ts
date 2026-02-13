@@ -10,7 +10,15 @@ import { createUiRouter } from "./router.js";
 import type { UiServerEvent, UiServerHandle, UiServerOptions } from "./types.js";
 import { serveStatic } from "hono/serve-static";
 
-const DEFAULT_CORS_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"];
+const DEFAULT_CORS_ORIGINS = (origin: string | undefined | null) => {
+  if (!origin) {
+    return undefined;
+  }
+  if (origin.startsWith("http://localhost:") || origin.startsWith("http://127.0.0.1:")) {
+    return origin;
+  }
+  return undefined;
+};
 
 export function startUiServer(options: UiServerOptions): UiServerHandle {
   const app = new Hono();
