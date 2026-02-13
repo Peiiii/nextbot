@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
-import { useConfig, useUpdateModel } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Save, Sparkles, Sliders, Folder } from 'lucide-react';
+import { useConfig, useUpdateModel } from '@/hooks/useConfig';
+import { Folder, Loader2, Sliders, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 export function ModelConfig() {
   const { data: config, isLoading } = useConfig();
