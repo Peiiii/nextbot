@@ -1,5 +1,11 @@
 # @nextclaw/ui
 
+## 0.2.4
+
+### Patch Changes
+
+- Add Feishu verify/connect flow, probe API, and channel reload handling.
+
 ## 0.2.3
 
 ### Patch Changes
