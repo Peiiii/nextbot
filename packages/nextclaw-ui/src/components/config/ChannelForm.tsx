@@ -99,7 +99,7 @@ const CHANNEL_FIELDS: Record<string, Array<{ name: string; type: string; label: 
   qq: [
     { name: 'enabled', type: 'boolean', label: t('enabled') },
     { name: 'appId', type: 'text', label: t('appId') },
-    { name: 'secret', type: 'password', label: t('secret') },
+    { name: 'secret', type: 'password', label: t('appSecret') },
     { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
   ]
 };
