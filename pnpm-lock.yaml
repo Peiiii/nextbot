@@ -26,6 +26,9 @@ importers:
       '@slack/web-api':
         specifier: ^7.6.0
         version: 7.13.0
+      chokidar:
+        specifier: ^3.6.0
+        version: 3.6.0
       commander:
         specifier: ^12.1.0
         version: 12.1.0

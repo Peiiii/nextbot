@@ -52,6 +52,7 @@
     "dingtalk-stream": "^2.1.4",
     "dotenv": "^16.4.5",
     "discord.js": "^14.16.3",
+    "chokidar": "^3.6.0",
     "hono": "^4.6.2",
     "imapflow": "^1.0.214",
     "mailparser": "^3.7.1",

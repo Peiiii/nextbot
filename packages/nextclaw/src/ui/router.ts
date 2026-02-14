@@ -86,14 +86,6 @@ export function createUiRouter(options: UiRouterOptions): Hono {
       return c.json(err("NOT_FOUND", `unknown channel: ${channel}`), 404);
     }
     options.publish({ type: "config.updated", payload: { path: `channels.${channel}` } });
-    try {
-      await options.onReload?.();
-    } catch (error) {
-      options.publish({
-        type: "error",
-        payload: { message: "reload failed after channel update", code: "RELOAD_FAILED" }
-      });
-    }
     return c.json(ok(result));
   });
 
@@ -130,15 +122,15 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     options.publish({ type: "config.reload.started" });
     try {
       await options.onReload?.();
-      options.publish({ type: "config.reload.finished" });
-      return c.json(ok({ status: "ok" }));
     } catch (error) {
       options.publish({
         type: "error",
         payload: { message: "reload failed", code: "RELOAD_FAILED" }
       });
-      return c.json(err("RELOAD_FAILED", String(error ?? "reload failed")), 500);
+      return c.json(err("RELOAD_FAILED", "reload failed"), 500);
     }
+    options.publish({ type: "config.reload.finished" });
+    return c.json(ok({ status: "ok" }));
   });
 
   return app;

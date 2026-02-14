@@ -15,8 +15,10 @@ import { spawn, spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { createServer } from "node:net";
+import chokidar from "chokidar";
 import { loadConfig, saveConfig, getConfigPath, getDataDir } from "../config/loader.js";
 import { ConfigSchema, getApiBase, getProvider, getProviderName, type Config } from "../config/schema.js";
+import { buildReloadPlan, diffConfigPaths } from "../config/reload.js";
 import { getWorkspacePath } from "../utils/helpers.js";
 import { MessageBus } from "../bus/queue.js";
 import { AgentLoop } from "../agent/loop.js";
@@ -515,15 +517,15 @@ async function startGateway(
     true
   );
 
-  let channels = new ChannelManager(config, bus, sessionManager);
+  let currentConfig = config;
+  let channels = new ChannelManager(currentConfig, bus, sessionManager);
   let reloadTask: Promise<void> | null = null;
-  const reloadChannels = async (): Promise<void> => {
+  const reloadChannels = async (nextConfig: Config): Promise<void> => {
     if (reloadTask) {
       await reloadTask;
       return;
     }
     reloadTask = (async () => {
-      const nextConfig = loadConfig();
       await channels.stopAll();
       channels = new ChannelManager(nextConfig, bus, sessionManager);
       await channels.startAll();
@@ -532,6 +534,56 @@ async function startGateway(
       await reloadTask;
     } finally {
       reloadTask = null;
+    }
+  };
+  const applyReloadPlan = async (nextConfig: Config): Promise<void> => {
+    const changedPaths = diffConfigPaths(currentConfig, nextConfig);
+    if (!changedPaths.length) {
+      return;
+    }
+    currentConfig = nextConfig;
+    const plan = buildReloadPlan(changedPaths);
+    if (plan.restartChannels) {
+      await reloadChannels(nextConfig);
+    }
+    if (plan.restartRequired.length > 0) {
+      console.warn(`Config changes require restart: ${plan.restartRequired.join(", ")}`);
+    }
+  };
+
+  let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+  let reloadRunning = false;
+  let reloadPending = false;
+  const scheduleConfigReload = (reason: string): void => {
+    if (reloadTimer) {
+      clearTimeout(reloadTimer);
+    }
+    reloadTimer = setTimeout(() => {
+      void runConfigReload(reason);
+    }, 300);
+  };
+
+  const runConfigReload = async (reason: string): Promise<void> => {
+    if (reloadRunning) {
+      reloadPending = true;
+      return;
+    }
+    reloadRunning = true;
+    if (reloadTimer) {
+      clearTimeout(reloadTimer);
+      reloadTimer = null;
+    }
+    try {
+      const nextConfig = loadConfig();
+      await applyReloadPlan(nextConfig);
+    } catch (error) {
+      console.error(`Config reload failed (${reason}): ${String(error)}`);
+    } finally {
+      reloadRunning = false;
+      if (reloadPending) {
+        reloadPending = false;
+        scheduleConfigReload("pending");
+      }
     }
   };
   if (channels.enabledChannels.length) {
@@ -547,7 +599,7 @@ async function startGateway(
       configPath: getConfigPath(),
       staticDir: uiStaticDir ?? undefined,
       onReload: async () => {
-        await reloadChannels();
+        await runConfigReload("ui");
       }
     });
     const uiUrl = `http://${uiServer.host}:${uiServer.port}`;
@@ -565,6 +617,15 @@ async function startGateway(
     console.log(`✓ Cron: ${cronStatus.jobs} scheduled jobs`);
   }
   console.log("✓ Heartbeat: every 30m");
+
+  const configPath = getConfigPath();
+  const watcher = chokidar.watch(configPath, {
+    ignoreInitial: true,
+    awaitWriteFinish: { stabilityThreshold: 200, pollInterval: 50 }
+  });
+  watcher.on("add", () => scheduleConfigReload("config add"));
+  watcher.on("change", () => scheduleConfigReload("config change"));
+  watcher.on("unlink", () => scheduleConfigReload("config unlink"));
 
   await cron.start();
   await heartbeat.start();

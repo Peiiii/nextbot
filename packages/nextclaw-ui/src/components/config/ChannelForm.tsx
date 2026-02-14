@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useConfig, useUpdateChannel } from '@/hooks/useConfig';
-import { probeFeishu, reloadConfig } from '@/api/config';
+import { probeFeishu } from '@/api/config';
 import { useUiStore } from '@/stores/ui.store';
 import {
   Dialog,
@@ -163,7 +163,6 @@ export function ChannelForm() {
       }
       await updateChannel.mutateAsync({ channel: channelName, data: nextData });
       const probe = await probeFeishu();
-      await reloadConfig();
       const botLabel = probe.botName ? ` (${probe.botName})` : '';
       toast.success(t('feishuVerifySuccess') + botLabel);
     } catch (error) {
