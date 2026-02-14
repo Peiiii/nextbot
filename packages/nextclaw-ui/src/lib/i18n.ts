@@ -4,7 +4,6 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   model: { zh: '模型', en: 'Model' },
   providers: { zh: '提供商', en: 'Providers' },
   channels: { zh: '渠道', en: 'Channels' },
-  uiConfig: { zh: '界面', en: 'UI' },
 
   // Common
   enabled: { zh: '启用', en: 'Enabled' },
@@ -94,11 +93,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   replyDelayMs: { zh: '回复延迟(ms)', en: 'Reply Delay (ms)' },
   secret: { zh: '密钥', en: 'Secret' },
 
-  // UI Config
-  host: { zh: '主机', en: 'Host' },
-  port: { zh: '端口', en: 'Port' },
-  open: { zh: '自动打开', en: 'Open Automatically' },
-  reloadConfig: { zh: '重载配置', en: 'Reload Config' },
+  // UI
   saveVerifyConnect: { zh: '保存并验证 / 连接', en: 'Save & Verify / Connect' },
 
   // Status

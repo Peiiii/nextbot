@@ -41,8 +41,7 @@ export function buildConfigView(config: Config): ConfigView {
     providers,
     channels: config.channels as Record<string, Record<string, unknown>>,
     tools: config.tools,
-    gateway: config.gateway,
-    ui: config.ui
+    gateway: config.gateway
   };
 }
 
@@ -115,15 +114,4 @@ export function updateChannel(
   const next = ConfigSchema.parse(config);
   saveConfig(next, configPath);
   return (next.channels as Record<string, Record<string, unknown>>)[channelName];
-}
-
-export function updateUi(
-  configPath: string,
-  patch: Record<string, unknown>
-): Record<string, unknown> {
-  const config = loadConfigOrDefault(configPath);
-  config.ui = { ...config.ui, ...patch };
-  const next = ConfigSchema.parse(config);
-  saveConfig(next, configPath);
-  return next.ui as Record<string, unknown>;
 }

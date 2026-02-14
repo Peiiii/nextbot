@@ -5,8 +5,7 @@ import {
   loadConfigOrDefault,
   updateChannel,
   updateModel,
-  updateProvider,
-  updateUi
+  updateProvider
 } from "./config.js";
 import { probeFeishu } from "nextclaw-core";
 import type { ProviderConfigUpdate, UiServerEvent } from "./types.js";
@@ -14,7 +13,6 @@ import type { ProviderConfigUpdate, UiServerEvent } from "./types.js";
 type UiRouterOptions = {
   configPath: string;
   publish: (event: UiServerEvent) => void;
-  onReload?: () => Promise<void> | void;
 };
 
 function ok<T>(data: T) {
@@ -106,31 +104,6 @@ export function createUiRouter(options: UiRouterOptions): Hono {
         botOpenId: result.botOpenId ?? null
       })
     );
-  });
-
-  app.put("/api/config/ui", async (c) => {
-    const body = await readJson<Record<string, unknown>>(c.req.raw);
-    if (!body.ok) {
-      return c.json(err("INVALID_BODY", "invalid json body"), 400);
-    }
-    const result = updateUi(options.configPath, body.data);
-    options.publish({ type: "config.updated", payload: { path: "ui" } });
-    return c.json(ok(result));
-  });
-
-  app.post("/api/config/reload", async (c) => {
-    options.publish({ type: "config.reload.started" });
-    try {
-      await options.onReload?.();
-    } catch (error) {
-      options.publish({
-        type: "error",
-        payload: { message: "reload failed", code: "RELOAD_FAILED" }
-      });
-      return c.json(err("RELOAD_FAILED", "reload failed"), 500);
-    }
-    options.publish({ type: "config.reload.finished" });
-    return c.json(ok({ status: "ok" }));
   });
 
   return app;

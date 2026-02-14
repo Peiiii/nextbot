@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchConfig, fetchConfigMeta, updateModel, updateProvider, updateChannel, updateUiConfig, reloadConfig } from '@/api/config';
+import { fetchConfig, fetchConfigMeta, updateModel, updateProvider, updateChannel } from '@/api/config';
 import { toast } from 'sonner';
 import { t } from '@/lib/i18n';
 
@@ -63,33 +63,6 @@ export function useUpdateChannel() {
     },
     onError: (error: Error) => {
       toast.error(t('configSaveFailed') + ': ' + error.message);
-    }
-  });
-}
-
-export function useUpdateUiConfig() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: updateUiConfig,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['config'] });
-      toast.success(t('configSaved'));
-    },
-    onError: (error: Error) => {
-      toast.error(t('configSaveFailed') + ': ' + error.message);
-    }
-  });
-}
-
-export function useReloadConfig() {
-  return useMutation({
-    mutationFn: reloadConfig,
-    onSuccess: () => {
-      toast.success(t('configReloaded'));
-    },
-    onError: (error: Error) => {
-      toast.error(t('configReloadFailed') + ': ' + error.message);
     }
   });
 }

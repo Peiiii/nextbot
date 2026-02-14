@@ -3,7 +3,6 @@ import type {
   ConfigView,
   ConfigMetaView,
   ProviderConfigView,
-  UiConfigView,
   ChannelConfigUpdate,
   ProviderConfigUpdate,
   FeishuProbeView
@@ -62,24 +61,6 @@ export async function updateChannel(
     `/api/config/channels/${channel}`,
     data
   );
-  if (!response.ok) {
-    throw new Error(response.error.message);
-  }
-  return response.data;
-}
-
-// PUT /api/config/ui
-export async function updateUiConfig(data: UiConfigView): Promise<UiConfigView> {
-  const response = await api.put<UiConfigView>('/api/config/ui', data);
-  if (!response.ok) {
-    throw new Error(response.error.message);
-  }
-  return response.data;
-}
-
-// POST /api/config/reload
-export async function reloadConfig(): Promise<{ status: string }> {
-  const response = await api.post<{ status: string }>('/api/config/reload', {});
   if (!response.ok) {
     throw new Error(response.error.message);
   }

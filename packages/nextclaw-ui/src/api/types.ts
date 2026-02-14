@@ -24,13 +24,6 @@ export type ProviderConfigUpdate = {
 
 export type ChannelConfigUpdate = Record<string, unknown>;
 
-export type UiConfigView = {
-  enabled: boolean;
-  host: string;
-  port: number;
-  open: boolean;
-};
-
 export type ConfigView = {
   agents: {
     defaults: {
@@ -45,7 +38,6 @@ export type ConfigView = {
   channels: Record<string, Record<string, unknown>>;
   tools?: Record<string, unknown>;
   gateway?: Record<string, unknown>;
-  ui?: UiConfigView;
 };
 
 export type ProviderSpecView = {

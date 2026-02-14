@@ -1,13 +1,11 @@
 import { useConfig, useConfigMeta } from '@/hooks/useConfig';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { KeyRound, Lock, Check, Plus, MoreHorizontal } from 'lucide-react';
+import { KeyRound, Check, Settings } from 'lucide-react';
 import { useState } from 'react';
 import { ProviderForm } from './ProviderForm';
 import { useUiStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
 import { Tabs } from '@/components/ui/tabs-custom';
-import { HighlightCard } from '@/components/ui/HighlightCard';
 
 export function ProvidersList() {
   const { data: config } = useConfig();
@@ -16,7 +14,7 @@ export function ProvidersList() {
   const [activeTab, setActiveTab] = useState('installed');
 
   if (!config || !meta) {
-    return <div className="p-8">Loading...</div>; // Skeleton optimization can follow
+    return <div className="p-8">Loading...</div>;
   }
 
   const tabs = [
@@ -24,65 +22,111 @@ export function ProvidersList() {
     { id: 'all', label: 'All Providers' }
   ];
 
+  const filteredProviders = activeTab === 'installed'
+    ? meta.providers.filter((p) => config.providers[p.name]?.apiKeySet)
+    : meta.providers;
+
   return (
     <div className="animate-fade-in pb-20">
       <div className="flex items-center justify-between mb-8">
         <h2 className="text-2xl font-bold text-[hsl(30,15%,10%)]">AI Providers</h2>
       </div>
 
-      {/* Tabs */}
       <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
-      {/* Provider List Row-Style */}
-      <div className="space-y-1">
-        {(activeTab === 'installed'
-          ? meta.providers.filter((p) => config.providers[p.name]?.apiKeySet)
-          : meta.providers
-        ).map((provider) => {
+      {/* Provider Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredProviders.map((provider) => {
           const providerConfig = config.providers[provider.name];
           const hasConfig = providerConfig?.apiKeySet;
 
           return (
             <div
               key={provider.name}
-              className="group flex items-center gap-5 p-3 rounded-2xl hover:bg-[hsl(40,10%,96%)] transition-all cursor-pointer border border-transparent hover:border-[hsl(40,10%,94%)]"
+              className={cn(
+                'group relative flex flex-col p-5 rounded-2xl border transition-all duration-300 cursor-pointer',
+                'hover:shadow-lg hover:-translate-y-0.5',
+                hasConfig
+                  ? 'bg-white border-[hsl(40,10%,90%)] hover:border-[hsl(40,10%,80%)]'
+                  : 'bg-[hsl(40,10%,98%)] border-[hsl(40,10%,92%)] hover:border-[hsl(40,10%,85%)] hover:bg-white'
+              )}
               onClick={() => openProviderModal(provider.name)}
             >
-              {/* Logo/Icon */}
-              <div className="h-10 w-10 flex items-center justify-center bg-transparent border border-[hsl(40,10%,92%)] rounded-xl group-hover:scale-105 transition-transform overflow-hidden">
-                <span className="text-xl font-bold uppercase text-[hsl(30,15%,10%)]">{provider.name[0]}</span>
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <h3 className="text-[14px] font-bold text-[hsl(30,15%,10%)] truncate">
-                  {provider.displayName || provider.name}
-                </h3>
-                <p className="text-[12px] text-[hsl(30,8%,55%)] truncate leading-tight">
-                  {provider.name === 'openai' ? 'TypeScript authentication framework integration guide' : 'Configure AI services for your agents'}
-                </p>
-              </div>
-
-              {/* Status/Actions */}
-              <div className="flex items-center gap-4">
+              {/* Header with Logo and Status */}
+              <div className="flex items-start justify-between mb-4">
+                <div className={cn(
+                  'h-12 w-12 flex items-center justify-center rounded-xl text-lg font-bold uppercase transition-all',
+                  hasConfig
+                    ? 'bg-[hsl(30,15%,10%)] text-white'
+                    : 'bg-[hsl(40,10%,92%)] text-[hsl(30,8%,55%)] group-hover:bg-[hsl(40,10%,88%)]'
+                )}>
+                  {provider.name[0]}
+                </div>
+                
+                {/* Status Badge */}
                 {hasConfig ? (
-                  <div className="flex items-center gap-1.5 text-emerald-600">
-                    <Check className="h-4 w-4" />
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-600">
+                    <Check className="h-3.5 w-3.5" />
                     <span className="text-[11px] font-bold">Ready</span>
                   </div>
                 ) : (
-                  <button className="h-8 w-8 flex items-center justify-center text-[hsl(30,8%,45%)] hover:text-[hsl(30,15%,10%)] group-hover:opacity-100 opacity-0 transition-opacity">
-                    <Plus className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[hsl(40,10%,94%)] text-[hsl(30,8%,55%)]">
+                    <Settings className="h-3.5 w-3.5" />
+                    <span className="text-[11px] font-bold">Setup</span>
+                  </div>
                 )}
-                <button className="h-8 w-8 flex items-center justify-center text-[hsl(30,8%,45%)]">
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
+              </div>
+
+              {/* Provider Info */}
+              <div className="flex-1">
+                <h3 className="text-[15px] font-bold text-[hsl(30,15%,10%)] mb-1">
+                  {provider.displayName || provider.name}
+                </h3>
+                <p className="text-[12px] text-[hsl(30,8%,55%)] leading-relaxed line-clamp-2">
+                  {provider.name === 'openai' 
+                    ? 'Leading AI models including GPT-4 and GPT-3.5' 
+                    : 'Configure AI services for your agents'}
+                </p>
+              </div>
+
+              {/* Footer with Action */}
+              <div className="mt-4 pt-4 border-t border-[hsl(40,10%,94%)]">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    'w-full rounded-xl text-[12px] font-bold h-9 transition-all',
+                    hasConfig
+                      ? 'bg-[hsl(40,10%,96%)] hover:bg-[hsl(40,10%,92%)] text-[hsl(30,15%,10%)]'
+                      : 'bg-[hsl(30,15%,10%)] hover:bg-[hsl(30,15%,20%)] text-white'
+                  )}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openProviderModal(provider.name);
+                  }}
+                >
+                  {hasConfig ? 'Configure' : 'Add Provider'}
+                </Button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Empty State */}
+      {filteredProviders.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="h-16 w-16 flex items-center justify-center rounded-2xl bg-[hsl(40,10%,96%)] mb-4">
+            <KeyRound className="h-8 w-8 text-[hsl(30,8%,55%)]" />
+          </div>
+          <h3 className="text-[15px] font-bold text-[hsl(30,15%,10%)] mb-2">
+            No providers configured
+          </h3>
+          <p className="text-[13px] text-[hsl(30,8%,55%)] max-w-sm">
+            Add an AI provider to start using the platform. Click on any provider to configure it.
+          </p>
+        </div>
+      )}
 
       <ProviderForm />
     </div>

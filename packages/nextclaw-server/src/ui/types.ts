@@ -21,13 +21,6 @@ export type ProviderConfigUpdate = {
   extraHeaders?: Record<string, string> | null;
 };
 
-export type UiConfigView = {
-  enabled: boolean;
-  host: string;
-  port: number;
-  open: boolean;
-};
-
 export type ConfigView = {
   agents: {
     defaults: {
@@ -42,7 +35,6 @@ export type ConfigView = {
   channels: Record<string, Record<string, unknown>>;
   tools?: Record<string, unknown>;
   gateway?: Record<string, unknown>;
-  ui?: UiConfigView;
 };
 
 export type ProviderSpecView = {
@@ -77,7 +69,6 @@ export type UiServerOptions = {
   host: string;
   port: number;
   configPath: string;
-  onReload?: () => Promise<void> | void;
   corsOrigins?: string[] | "*";
   staticDir?: string;
 };

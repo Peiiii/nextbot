@@ -470,10 +470,7 @@ async function startGateway(
         host: uiConfig.host,
         port: uiConfig.port,
         configPath: getConfigPath(),
-        staticDir: uiStaticDir ?? undefined,
-        onReload: async () => {
-          return;
-        }
+        staticDir: uiStaticDir ?? undefined
       });
       const uiUrl = `http://${uiServer.host}:${uiServer.port}`;
       console.log(`✓ UI API: ${uiUrl}/api`);
@@ -608,10 +605,7 @@ async function startGateway(
       host: uiConfig.host,
       port: uiConfig.port,
       configPath: getConfigPath(),
-      staticDir: uiStaticDir ?? undefined,
-      onReload: async () => {
-        await runConfigReload("ui");
-      }
+      staticDir: uiStaticDir ?? undefined
     });
     const uiUrl = `http://${uiServer.host}:${uiServer.port}`;
     console.log(`✓ UI API: ${uiUrl}/api`);

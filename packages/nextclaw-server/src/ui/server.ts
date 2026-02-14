@@ -40,8 +40,7 @@ export function startUiServer(options: UiServerOptions): UiServerHandle {
     "/",
     createUiRouter({
       configPath: options.configPath,
-      publish,
-      onReload: options.onReload
+      publish
     })
   );
 

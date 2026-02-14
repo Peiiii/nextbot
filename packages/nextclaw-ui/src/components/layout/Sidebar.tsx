@@ -1,12 +1,6 @@
 import { useUiStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
-import {
-  Cpu,
-  MessageSquare,
-  Sparkles,
-  ChevronRight,
-  Settings
-} from 'lucide-react';
+import { Cpu, MessageSquare, Sparkles } from 'lucide-react';
 
 const navItems = [
   {
@@ -25,12 +19,6 @@ const navItems = [
     id: 'channels' as const,
     label: 'Channels',
     icon: MessageSquare,
-    color: 'text-[hsl(30,15%,10%)]'
-  },
-  {
-    id: 'ui' as const,
-    label: 'Appearance',
-    icon: Settings,
     color: 'text-[hsl(30,15%,10%)]'
   }
 ];
