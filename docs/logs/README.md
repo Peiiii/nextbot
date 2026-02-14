@@ -11,6 +11,7 @@
 - `docs/logs/v0.3.4-start-frontend-optin/README.md`
 - `docs/logs/v0.3.3-readme-english/README.md`
 - `docs/logs/v0.3.2-readme-user/README.md`
+- `docs/logs/v0.2.9-logo-refresh/README.md`
 - `docs/logs/v0.0.1-mvp/README.md`
 - `docs/logs/v0.0.1-ts-port-complete/README.md`
 - `docs/logs/v0.0.1-dev-cli-shortcut/README.md`

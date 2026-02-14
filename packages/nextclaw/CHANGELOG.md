@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.2.9
+
+### Patch Changes
+
+- Update provider/channel logos and UI assets.
+
 ## 0.2.6
 
 ### Patch Changes
