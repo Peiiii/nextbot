@@ -121,6 +121,7 @@ export const QQConfigSchema = z.object({
   enabled: z.boolean().default(false),
   appId: z.string().default(""),
   secret: z.string().default(""),
+  markdownSupport: z.boolean().default(false),
   allowFrom: allowFrom
 });
 

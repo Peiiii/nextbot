@@ -41,6 +41,7 @@ export const LABELS: Record<string, { zh: string; en: string }> = {
   appToken: { zh: 'App Token', en: 'App Token' },
   appId: { zh: 'App ID', en: 'App ID' },
   appSecret: { zh: 'App Secret', en: 'App Secret' },
+  markdownSupport: { zh: 'Markdown 支持', en: 'Markdown Support' },
   clientId: { zh: 'Client ID', en: 'Client ID' },
   clientSecret: { zh: 'Client Secret', en: 'Client Secret' },
   encryptKey: { zh: '加密密钥', en: 'Encrypt Key' },

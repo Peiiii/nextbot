@@ -5,6 +5,7 @@ import type { Config } from "../config/schema.js";
 import {
   Bot,
   ReceiverMode,
+  segment,
   type GroupMessageEvent,
   type GuildMessageEvent,
   type PrivateMessageEvent
@@ -72,27 +73,28 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
     const sourceId = msg.replyTo ?? metadataMessageId ?? undefined;
     const source = sourceId ? { id: sourceId } : undefined;
     const content = this.normalizeContent(msg.content ?? "");
+    const payload = this.config.markdownSupport ? segment.markdown(content) : content;
 
     if (messageType === "group") {
       const groupId = (qqMeta.groupId as string | undefined) ?? msg.chatId;
-      await this.sendWithTokenRetry(() => this.bot?.sendGroupMessage(groupId, content, source));
+      await this.sendWithTokenRetry(() => this.bot?.sendGroupMessage(groupId, payload, source));
       return;
     }
 
     if (messageType === "direct") {
       const guildId = (qqMeta.guildId as string | undefined) ?? msg.chatId;
-      await this.sendWithTokenRetry(() => this.bot?.sendDirectMessage(guildId, content, source));
+      await this.sendWithTokenRetry(() => this.bot?.sendDirectMessage(guildId, payload, source));
       return;
     }
 
     if (messageType === "guild") {
       const channelId = (qqMeta.channelId as string | undefined) ?? msg.chatId;
-      await this.sendWithTokenRetry(() => this.bot?.sendGuildMessage(channelId, content, source));
+      await this.sendWithTokenRetry(() => this.bot?.sendGuildMessage(channelId, payload, source));
       return;
     }
 
     const userId = (qqMeta.userId as string | undefined) ?? msg.chatId;
-    await this.sendWithTokenRetry(() => this.bot?.sendPrivateMessage(userId, content, source));
+    await this.sendWithTokenRetry(() => this.bot?.sendPrivateMessage(userId, payload, source));
   }
 
   private async handleIncoming(event: QQMessageEvent): Promise<void> {
