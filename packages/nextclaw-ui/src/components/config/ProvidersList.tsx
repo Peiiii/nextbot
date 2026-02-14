@@ -13,7 +13,7 @@ export function ProvidersList() {
   const { data: config } = useConfig();
   const { data: meta } = useConfigMeta();
   const { openProviderModal } = useUiStore();
-  const [activeTab, setActiveTab] = useState('featured');
+  const [activeTab, setActiveTab] = useState('installed');
 
   if (!config || !meta) {
     return <div className="p-8">Loading...</div>; // Skeleton optimization can follow
@@ -31,7 +31,7 @@ export function ProvidersList() {
       </div>
 
       {/* Tabs */}
-      <Tabs tabs={tabs} activeTab={activeTab === 'featured' ? 'all' : activeTab} onChange={setActiveTab} />
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
       {/* Provider List Row-Style */}
       <div className="space-y-1">
