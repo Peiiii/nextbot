@@ -1,6 +1,7 @@
 # Logs
 
 - `docs/logs/v0.4.2-remove-guide-links/README.md`
+- `docs/logs/v0.5.12-exec-guard-format/README.md`
 - `docs/logs/v0.5.11-session-tool-history/README.md`
 - `docs/logs/v0.5.10-init-seed-skills/README.md`
 - `docs/logs/v0.5.9-core-skills-bundled/README.md`

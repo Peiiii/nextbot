@@ -8,6 +8,7 @@ const execAsync = promisify(exec);
 export class ExecTool extends Tool {
   private denyPatterns: RegExp[];
   private allowPatterns: RegExp[];
+  private dangerousCommands: string[];
 
   constructor(
     private options: {
@@ -23,13 +24,13 @@ export class ExecTool extends Tool {
       "\\brm\\s+-[rf]{1,2}\\b",
       "\\bdel\\s+/[fq]\\b",
       "\\brmdir\\s+/s\\b",
-      "\\b(format|mkfs|diskpart)\\b",
       "\\bdd\\s+if=",
       ">\\s*/dev/sd",
       "\\b(shutdown|reboot|poweroff)\\b",
       ":\\(\\)\\s*\\{.*\\};\\s*:"
     ]).map((pattern) => new RegExp(pattern, "i"));
     this.allowPatterns = (options.allowPatterns ?? []).map((pattern) => new RegExp(pattern, "i"));
+    this.dangerousCommands = ["format", "diskpart", "mkfs"];
   }
 
   get name(): string {
@@ -81,6 +82,9 @@ export class ExecTool extends Tool {
 
   private guardCommand(command: string, cwd: string): string | null {
     const normalized = command.trim().toLowerCase();
+    if (this.isDangerousCommand(normalized)) {
+      return "Error: Command blocked by safety guard (dangerous pattern detected)";
+    }
     for (const pattern of this.denyPatterns) {
       if (pattern.test(normalized)) {
         return "Error: Command blocked by safety guard (dangerous pattern detected)";
@@ -105,6 +109,27 @@ export class ExecTool extends Tool {
       }
     }
     return null;
+  }
+
+  private isDangerousCommand(command: string): boolean {
+    const segments = command.split(/\s*(?:\|\||&&|;|\|)\s*/);
+    for (const segment of segments) {
+      const match = segment.trim().match(/^(?:sudo\s+)?([^\s]+)/i);
+      if (!match) {
+        continue;
+      }
+      const token = match[1]?.toLowerCase() ?? "";
+      if (!token) {
+        continue;
+      }
+      if (this.dangerousCommands.includes(token)) {
+        return true;
+      }
+      if (token.startsWith("mkfs")) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

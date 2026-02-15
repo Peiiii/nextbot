@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.4.4
+
+### Patch Changes
+
+- fix: avoid exec guard blocking curl format query
+- Updated dependencies
+  - nextclaw-core@0.4.4
+
 ## 0.4.3
 
 ### Patch Changes
