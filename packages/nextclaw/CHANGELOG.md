@@ -1,5 +1,17 @@
 # nextclaw
 
+## 0.3.0
+
+### Minor Changes
+
+- Add provider hot-reload support and wire_api configuration updates.
+
+### Patch Changes
+
+- Updated dependencies
+  - nextclaw-core@0.3.0
+  - nextclaw-server@0.3.0
+
 ## 0.2.9
 
 ### Patch Changes

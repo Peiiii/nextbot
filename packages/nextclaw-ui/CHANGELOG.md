@@ -1,5 +1,11 @@
 # @nextclaw/ui
 
+## 0.3.0
+
+### Minor Changes
+
+- Add provider hot-reload support and wire_api configuration updates.
+
 ## 0.2.5
 
 ### Patch Changes
