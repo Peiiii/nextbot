@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.3.2
+
+### Patch Changes
+
+- Fix dev UI API base/WS derivation and correct port availability checks to avoid conflicts.
+
 ## 0.3.1
 
 ### Patch Changes
