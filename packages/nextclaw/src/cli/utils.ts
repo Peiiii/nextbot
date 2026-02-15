@@ -48,20 +48,7 @@ export async function findAvailablePort(port: number, host: string, attempts = 2
 
 export async function isPortAvailable(port: number, host: string): Promise<boolean> {
   const checkHost = normalizeHostForPortCheck(host);
-  const hostsToCheck: string[] = [checkHost];
-  if (checkHost === "127.0.0.1") {
-    hostsToCheck.push("::1");
-  } else if (checkHost === "::1") {
-    hostsToCheck.push("127.0.0.1");
-  }
-
-  for (const candidate of hostsToCheck) {
-    const ok = await canBindPort(port, candidate);
-    if (ok) {
-      return true;
-    }
-  }
-  return false;
+  return await canBindPort(port, checkHost);
 }
 
 export async function canBindPort(port: number, host: string): Promise<boolean> {

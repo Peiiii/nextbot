@@ -1,6 +1,22 @@
 import type { ApiResponse } from './types';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:18791';
+const DEFAULT_API_BASE = 'http://127.0.0.1:18791';
+const API_BASE = (() => {
+  const envBase = import.meta.env.VITE_API_BASE?.trim();
+  if (envBase) {
+    return envBase.replace(/\/$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return DEFAULT_API_BASE;
+})();
+
+if (import.meta.env.DEV && !import.meta.env.VITE_API_BASE) {
+  console.warn('VITE_API_BASE is not set; falling back to window origin.');
+}
+
+export { API_BASE };
 
 async function apiRequest<T>(
   endpoint: string,
