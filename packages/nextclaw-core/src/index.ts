@@ -10,6 +10,7 @@ export * from "./cron/service.js";
 export * from "./heartbeat/service.js";
 export * from "./providers/base.js";
 export * from "./providers/litellm_provider.js";
+export * from "./providers/provider_manager.js";
 export * from "./providers/registry.js";
 export * from "./session/manager.js";
 export * from "./utils/helpers.js";

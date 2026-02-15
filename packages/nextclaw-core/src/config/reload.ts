@@ -12,18 +12,19 @@ const isPlainObject = (value: unknown): value is Record<string, unknown> => {
 export type ReloadPlan = {
   changedPaths: string[];
   restartChannels: boolean;
+  reloadProviders: boolean;
   restartRequired: string[];
   noopPaths: string[];
 };
 
 type ReloadRule = {
   prefix: string;
-  kind: "restart-channels" | "restart-required" | "none";
+  kind: "restart-channels" | "reload-providers" | "restart-required" | "none";
 };
 
 const RELOAD_RULES: ReloadRule[] = [
   { prefix: "channels", kind: "restart-channels" },
-  { prefix: "providers", kind: "restart-required" },
+  { prefix: "providers", kind: "reload-providers" },
   { prefix: "agents.defaults.model", kind: "restart-required" },
   { prefix: "agents.defaults.maxTokens", kind: "restart-required" },
   { prefix: "agents.defaults.temperature", kind: "restart-required" },
@@ -75,6 +76,7 @@ export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
   const plan: ReloadPlan = {
     changedPaths,
     restartChannels: false,
+    reloadProviders: false,
     restartRequired: [],
     noopPaths: []
   };
@@ -87,6 +89,10 @@ export function buildReloadPlan(changedPaths: string[]): ReloadPlan {
     }
     if (rule.kind === "restart-channels") {
       plan.restartChannels = true;
+      continue;
+    }
+    if (rule.kind === "reload-providers") {
+      plan.reloadProviders = true;
       continue;
     }
     if (rule.kind === "restart-required") {

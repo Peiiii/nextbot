@@ -32,6 +32,7 @@ import {
   MessageBus,
   AgentLoop,
   LiteLLMProvider,
+  ProviderManager,
   ChannelManager,
   SessionManager,
   CronService,
@@ -244,9 +245,10 @@ program
     const config = loadConfig();
     const bus = new MessageBus();
     const provider = makeProvider(config);
+    const providerManager = new ProviderManager(provider);
     const agentLoop = new AgentLoop({
       bus,
-      provider,
+      providerManager,
       workspace: getWorkspacePath(config.agents.defaults.workspace),
       braveApiKey: config.tools.web.search.apiKey || undefined,
       execConfig: config.tools.exec,
@@ -457,6 +459,7 @@ async function startGateway(
     options.allowMissingProvider === true
       ? makeProvider(config, { allowMissing: true })
       : makeProvider(config);
+  const providerManager = provider ? new ProviderManager(provider) : null;
   const sessionManager = new SessionManager(getWorkspacePath(config.agents.defaults.workspace));
 
   const cronStorePath = join(getDataDir(), "cron", "jobs.json");
@@ -488,7 +491,7 @@ async function startGateway(
 
   const agent = new AgentLoop({
     bus,
-    provider,
+    providerManager: providerManager ?? new ProviderManager(provider),
     workspace: getWorkspacePath(config.agents.defaults.workspace),
     model: config.agents.defaults.model,
     maxIterations: config.agents.defaults.maxToolIterations,
@@ -544,6 +547,29 @@ async function startGateway(
       reloadTask = null;
     }
   };
+  let providerReloadTask: Promise<void> | null = null;
+  const reloadProvider = async (nextConfig: Config): Promise<void> => {
+    if (!providerManager) {
+      return;
+    }
+    if (providerReloadTask) {
+      await providerReloadTask;
+      return;
+    }
+    providerReloadTask = (async () => {
+      const nextProvider = makeProvider(nextConfig, { allowMissing: true });
+      if (!nextProvider) {
+        console.warn("Provider reload skipped: missing API key.");
+        return;
+      }
+      providerManager.set(nextProvider);
+    })();
+    try {
+      await providerReloadTask;
+    } finally {
+      providerReloadTask = null;
+    }
+  };
   const applyReloadPlan = async (nextConfig: Config): Promise<void> => {
     const changedPaths = diffConfigPaths(currentConfig, nextConfig);
     if (!changedPaths.length) {
@@ -553,6 +579,9 @@ async function startGateway(
     const plan = buildReloadPlan(changedPaths);
     if (plan.restartChannels) {
       await reloadChannels(nextConfig);
+    }
+    if (plan.reloadProviders) {
+      await reloadProvider(nextConfig);
     }
     if (plan.restartRequired.length > 0) {
       console.warn(`Config changes require restart: ${plan.restartRequired.join(", ")}`);

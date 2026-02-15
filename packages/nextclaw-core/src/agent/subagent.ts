@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { LLMProvider } from "../providers/base.js";
+import type { ProviderManager } from "../providers/provider_manager.js";
 import type { MessageBus } from "../bus/queue.js";
 import type { InboundMessage } from "../bus/events.js";
 import { ToolRegistry } from "./tools/registry.js";
@@ -12,7 +12,7 @@ export class SubagentManager {
 
   constructor(
     private options: {
-      provider: LLMProvider;
+      providerManager: ProviderManager;
       workspace: string;
       bus: MessageBus;
       model?: string;
@@ -80,7 +80,7 @@ export class SubagentManager {
 
       while (iteration < 15) {
         iteration += 1;
-        const response = await this.options.provider.chat({
+        const response = await this.options.providerManager.get().chat({
           messages,
           tools: tools.getDefinitions(),
           model: this.options.model

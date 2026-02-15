@@ -1,6 +1,6 @@
 import type { InboundMessage, OutboundMessage } from "../bus/events.js";
 import type { MessageBus } from "../bus/queue.js";
-import type { LLMProvider } from "../providers/base.js";
+import type { ProviderManager } from "../providers/provider_manager.js";
 import { ContextBuilder } from "./context.js";
 import { ToolRegistry } from "./tools/registry.js";
 import { ReadFileTool, WriteFileTool, EditFileTool, ListDirTool } from "./tools/filesystem.js";
@@ -23,7 +23,7 @@ export class AgentLoop {
   constructor(
     private options: {
       bus: MessageBus;
-      provider: LLMProvider;
+      providerManager: ProviderManager;
       workspace: string;
       model?: string | null;
       maxIterations?: number;
@@ -38,10 +38,10 @@ export class AgentLoop {
     this.sessions = options.sessionManager ?? new SessionManager(options.workspace);
     this.tools = new ToolRegistry();
     this.subagents = new SubagentManager({
-      provider: options.provider,
+      providerManager: options.providerManager,
       workspace: options.workspace,
       bus: options.bus,
-      model: options.model ?? options.provider.getDefaultModel(),
+      model: options.model ?? options.providerManager.get().getDefaultModel(),
       braveApiKey: options.braveApiKey ?? undefined,
       execConfig: options.execConfig ?? { timeout: 60 },
       restrictToWorkspace: options.restrictToWorkspace ?? false
@@ -159,7 +159,7 @@ export class AgentLoop {
 
     while (iteration < maxIterations) {
       iteration += 1;
-      const response = await this.options.provider.chat({
+      const response = await this.options.providerManager.get().chat({
         messages,
         tools: this.tools.getDefinitions(),
         model: this.options.model ?? undefined
@@ -236,7 +236,7 @@ export class AgentLoop {
 
     while (iteration < maxIterations) {
       iteration += 1;
-      const response = await this.options.provider.chat({
+      const response = await this.options.providerManager.get().chat({
         messages,
         tools: this.tools.getDefinitions(),
         model: this.options.model ?? undefined
