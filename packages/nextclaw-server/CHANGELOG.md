@@ -1,5 +1,12 @@
 # nextclaw-server
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies
+  - nextclaw-core@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

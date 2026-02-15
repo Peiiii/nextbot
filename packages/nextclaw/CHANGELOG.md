@@ -1,5 +1,17 @@
 # nextclaw
 
+## 0.4.0
+
+### Minor Changes
+
+- Align core tools (gateway/sessions/subagents/memory) with openclaw semantics and add gateway update flow.
+
+### Patch Changes
+
+- Updated dependencies
+  - nextclaw-core@0.4.0
+  - nextclaw-server@0.3.1
+
 ## 0.3.3
 
 ### Patch Changes
