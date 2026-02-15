@@ -145,8 +145,38 @@ export const AgentDefaultsSchema = z.object({
   maxToolIterations: z.number().int().default(20)
 });
 
+export const ContextBootstrapSchema = z.object({
+  files: z
+    .array(z.string())
+    .default([
+      "AGENTS.md",
+      "SOUL.md",
+      "USER.md",
+      "IDENTITY.md",
+      "TOOLS.md",
+      "BOOT.md",
+      "BOOTSTRAP.md",
+      "HEARTBEAT.md"
+    ]),
+  minimalFiles: z.array(z.string()).default(["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md"]),
+  heartbeatFiles: z.array(z.string()).default(["HEARTBEAT.md"]),
+  perFileChars: z.number().int().default(4000),
+  totalChars: z.number().int().default(12000)
+});
+
+export const ContextMemorySchema = z.object({
+  enabled: z.boolean().default(true),
+  maxChars: z.number().int().default(8000)
+});
+
+export const ContextConfigSchema = z.object({
+  bootstrap: ContextBootstrapSchema.default({}),
+  memory: ContextMemorySchema.default({})
+});
+
 export const AgentsConfigSchema = z.object({
-  defaults: AgentDefaultsSchema.default({})
+  defaults: AgentDefaultsSchema.default({}),
+  context: ContextConfigSchema.default({})
 });
 
 export const ProviderConfigSchema = z.object({

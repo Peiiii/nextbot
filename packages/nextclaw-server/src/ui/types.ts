@@ -32,6 +32,19 @@ export type ConfigView = {
       temperature?: number;
       maxToolIterations?: number;
     };
+    context?: {
+      bootstrap?: {
+        files?: string[];
+        minimalFiles?: string[];
+        heartbeatFiles?: string[];
+        perFileChars?: number;
+        totalChars?: number;
+      };
+      memory?: {
+        enabled?: boolean;
+        maxChars?: number;
+      };
+    };
   };
   providers: Record<string, ProviderConfigView>;
   channels: Record<string, Record<string, unknown>>;

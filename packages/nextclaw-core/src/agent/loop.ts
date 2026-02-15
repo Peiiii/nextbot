@@ -9,9 +9,15 @@ import { WebSearchTool, WebFetchTool } from "./tools/web.js";
 import { MessageTool } from "./tools/message.js";
 import { SpawnTool } from "./tools/spawn.js";
 import { CronTool } from "./tools/cron.js";
+import { SessionsListTool, SessionsHistoryTool, SessionsSendTool } from "./tools/sessions.js";
+import { MemorySearchTool, MemoryGetTool } from "./tools/memory.js";
+import { GatewayTool, type GatewayController } from "./tools/gateway.js";
+import { SubagentsTool } from "./tools/subagents.js";
 import { SubagentManager } from "./subagent.js";
 import { SessionManager } from "../session/manager.js";
 import type { CronService } from "../cron/service.js";
+import type { Config } from "../config/schema.js";
+import { SILENT_REPLY_TOKEN, isSilentReplyText } from "./tokens.js";
 
 export class AgentLoop {
   private context: ContextBuilder;
@@ -32,9 +38,11 @@ export class AgentLoop {
       cronService?: CronService | null;
       restrictToWorkspace?: boolean;
       sessionManager?: SessionManager;
+      contextConfig?: Config["agents"]["context"];
+      gatewayController?: GatewayController;
     }
   ) {
-    this.context = new ContextBuilder(options.workspace);
+    this.context = new ContextBuilder(options.workspace, options.contextConfig);
     this.sessions = options.sessionManager ?? new SessionManager(options.workspace);
     this.tools = new ToolRegistry();
     this.subagents = new SubagentManager({
@@ -73,6 +81,16 @@ export class AgentLoop {
 
     const spawnTool = new SpawnTool(this.subagents);
     this.tools.register(spawnTool);
+
+    this.tools.register(new SessionsListTool(this.sessions));
+    this.tools.register(new SessionsHistoryTool(this.sessions));
+    this.tools.register(new SessionsSendTool(this.sessions, this.options.bus));
+
+    this.tools.register(new MemorySearchTool(this.options.workspace));
+    this.tools.register(new MemoryGetTool(this.options.workspace));
+
+    this.tools.register(new SubagentsTool(this.subagents));
+    this.tools.register(new GatewayTool(this.options.gatewayController));
 
     if (this.options.cronService) {
       const cronTool = new CronTool(this.options.cronService);
@@ -131,6 +149,10 @@ export class AgentLoop {
 
     const sessionKey = sessionKeyOverride ?? `${msg.channel}:${msg.chatId}`;
     const session = this.sessions.getOrCreate(sessionKey);
+    const messageId = msg.metadata?.message_id as string | undefined;
+    if (messageId) {
+      session.metadata.last_message_id = messageId;
+    }
 
     const messageTool = this.tools.get("message");
     if (messageTool instanceof MessageTool) {
@@ -150,7 +172,8 @@ export class AgentLoop {
       currentMessage: msg.content,
       media: msg.media,
       channel: msg.channel,
-      chatId: msg.chatId
+      chatId: msg.chatId,
+      sessionKey
     });
 
     let iteration = 0;
@@ -189,6 +212,14 @@ export class AgentLoop {
       finalContent = "I've completed processing but have no response to give.";
     }
 
+    const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, messageId);
+    finalContent = cleanedContent;
+    if (isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
+      this.sessions.addMessage(session, "user", msg.content);
+      this.sessions.save(session);
+      return null;
+    }
+
     this.sessions.addMessage(session, "user", msg.content);
     this.sessions.addMessage(session, "assistant", finalContent);
     this.sessions.save(session);
@@ -197,6 +228,7 @@ export class AgentLoop {
       channel: msg.channel,
       chatId: msg.chatId,
       content: finalContent,
+      replyTo,
       media: [],
       metadata: msg.metadata ?? {}
     };
@@ -227,7 +259,8 @@ export class AgentLoop {
       history: this.sessions.getHistory(session),
       currentMessage: msg.content,
       channel: originChannel,
-      chatId: originChatId
+      chatId: originChatId,
+      sessionKey
     });
 
     let iteration = 0;
@@ -265,6 +298,11 @@ export class AgentLoop {
     if (!finalContent) {
       finalContent = "Background task completed.";
     }
+    const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, undefined);
+    finalContent = cleanedContent;
+    if (isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
+      return null;
+    }
 
     this.sessions.addMessage(session, "user", `[System: ${msg.senderId}] ${msg.content}`);
     this.sessions.addMessage(session, "assistant", finalContent);
@@ -274,8 +312,28 @@ export class AgentLoop {
       channel: originChannel,
       chatId: originChatId,
       content: finalContent,
+      replyTo,
       media: [],
       metadata: {}
     };
   }
+}
+
+function parseReplyTags(
+  content: string,
+  currentMessageId?: string
+): { content: string; replyTo?: string } {
+  let replyTo: string | undefined;
+  const replyCurrent = /\[\[\s*reply_to_current\s*\]\]/gi;
+  if (replyCurrent.test(content)) {
+    replyTo = currentMessageId;
+    content = content.replace(replyCurrent, "").trim();
+  }
+  const replyId = /\[\[\s*reply_to\s*:\s*([^\]]+?)\s*\]\]/i;
+  const match = content.match(replyId);
+  if (match && match[1]) {
+    replyTo = match[1].trim();
+    content = content.replace(replyId, "").trim();
+  }
+  return { content, replyTo };
 }

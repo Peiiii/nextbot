@@ -20,6 +20,7 @@ import {
   SessionManager,
   CronService,
   HeartbeatService,
+  type GatewayController,
   PROVIDERS,
   APP_NAME,
   DEFAULT_WORKSPACE_DIR,
@@ -306,7 +307,8 @@ export class CliRuntime {
       workspace: getWorkspacePath(config.agents.defaults.workspace),
       braveApiKey: config.tools.web.search.apiKey || undefined,
       execConfig: config.tools.exec,
-      restrictToWorkspace: config.tools.restrictToWorkspace
+      restrictToWorkspace: config.tools.restrictToWorkspace,
+      contextConfig: config.agents.context
     });
 
     if (opts.message) {
@@ -508,6 +510,7 @@ export class CliRuntime {
       return;
     }
 
+    const gatewayController: GatewayController = {};
     const agent = new AgentLoop({
       bus,
       providerManager: providerManager ?? new ProviderManager(provider),
@@ -518,7 +521,9 @@ export class CliRuntime {
       execConfig: config.tools.exec,
       cronService: cron,
       restrictToWorkspace: config.tools.restrictToWorkspace,
-      sessionManager
+      sessionManager,
+      contextConfig: config.agents.context,
+      gatewayController
     });
 
     cron.onJob = async (job) => {
@@ -641,6 +646,22 @@ export class CliRuntime {
           scheduleConfigReload("pending");
         }
       }
+    };
+    gatewayController.status = () => ({
+      channels: channels.enabledChannels,
+      cron: cron.status(),
+      configPath: getConfigPath()
+    });
+    gatewayController.reloadConfig = async (reason?: string) => {
+      await runConfigReload(reason ?? "gateway tool");
+      return "Config reload triggered";
+    };
+    gatewayController.restart = async () => {
+      console.log("Gateway restart requested via tool.");
+      setTimeout(() => {
+        process.exit(0);
+      }, 100);
+      return "Restart scheduled";
     };
     if (channels.enabledChannels.length) {
       console.log(`✓ Channels enabled: ${channels.enabledChannels.join(", ")}`);
@@ -875,7 +896,8 @@ export class CliRuntime {
       { source: "BOOT.md", target: "BOOT.md" },
       { source: "BOOTSTRAP.md", target: "BOOTSTRAP.md" },
       { source: "HEARTBEAT.md", target: "HEARTBEAT.md" },
-      { source: "MEMORY.md", target: "MEMORY.md" }
+      { source: "MEMORY.md", target: "MEMORY.md" },
+      { source: "memory/MEMORY.md", target: "memory/MEMORY.md" }
     ];
 
     for (const entry of templateFiles) {

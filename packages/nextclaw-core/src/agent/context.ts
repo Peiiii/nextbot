@@ -4,32 +4,58 @@ import { fileURLToPath } from "node:url";
 import { MemoryStore } from "./memory.js";
 import { SkillsLoader } from "./skills.js";
 import { APP_NAME } from "../config/brand.js";
+import type { Config } from "../config/schema.js";
 
 export type Message = Record<string, unknown>;
 
-const BOOTSTRAP_FILES = ["AGENTS.md", "SOUL.md", "USER.md", "TOOLS.md", "IDENTITY.md"];
+type ContextConfig = Config["agents"]["context"];
+
+const DEFAULT_CONTEXT_CONFIG: ContextConfig = {
+  bootstrap: {
+    files: ["AGENTS.md", "SOUL.md", "USER.md", "IDENTITY.md", "TOOLS.md", "BOOT.md", "BOOTSTRAP.md", "HEARTBEAT.md"],
+    minimalFiles: ["AGENTS.md", "SOUL.md", "TOOLS.md", "IDENTITY.md"],
+    heartbeatFiles: ["HEARTBEAT.md"],
+    perFileChars: 4000,
+    totalChars: 12000
+  },
+  memory: {
+    enabled: true,
+    maxChars: 8000
+  }
+};
 
 export class ContextBuilder {
   private memory: MemoryStore;
   private skills: SkillsLoader;
+  private contextConfig: ContextConfig;
 
-  constructor(private workspace: string) {
+  constructor(private workspace: string, contextConfig?: ContextConfig) {
     this.memory = new MemoryStore(workspace);
     this.skills = new SkillsLoader(workspace, join(fileURLToPath(new URL("..", import.meta.url)), "skills"));
+    this.contextConfig = {
+      bootstrap: {
+        ...DEFAULT_CONTEXT_CONFIG.bootstrap,
+        ...(contextConfig?.bootstrap ?? {})
+      },
+      memory: {
+        ...DEFAULT_CONTEXT_CONFIG.memory,
+        ...(contextConfig?.memory ?? {})
+      }
+    };
   }
 
-  buildSystemPrompt(skillNames?: string[]): string {
+  buildSystemPrompt(skillNames?: string[], sessionKey?: string): string {
     const parts: string[] = [];
     parts.push(this.getIdentity());
 
-    const bootstrap = this.loadBootstrapFiles();
+    const bootstrap = this.loadBootstrapFiles(sessionKey);
     if (bootstrap) {
-      parts.push(bootstrap);
+      parts.push(`# Workspace Context\n\n${bootstrap}`);
     }
 
-    const memory = this.memory.getMemoryContext();
+    const memory = this.buildMemorySection();
     if (memory) {
-      parts.push(`# Memory\n\n${memory}`);
+      parts.push(memory);
     }
 
     const alwaysSkills = this.skills.getAlwaysSkills();
@@ -62,11 +88,15 @@ export class ContextBuilder {
     media?: string[];
     channel?: string;
     chatId?: string;
+    sessionKey?: string;
   }): Message[] {
     const messages: Message[] = [];
-    let systemPrompt = this.buildSystemPrompt(params.skillNames);
+    let systemPrompt = this.buildSystemPrompt(params.skillNames, params.sessionKey);
     if (params.channel && params.chatId) {
       systemPrompt += `\n\n## Current Session\nChannel: ${params.channel}\nChat ID: ${params.chatId}`;
+    }
+    if (params.sessionKey) {
+      systemPrompt += `\nSession: ${params.sessionKey}`;
     }
     messages.push({ role: "system", content: systemPrompt });
     messages.push(...params.history);
@@ -106,19 +136,77 @@ export class ContextBuilder {
 
   private getIdentity(): string {
     const now = new Date().toLocaleString();
-    return `# ${APP_NAME} 🤖\n\nYou are ${APP_NAME}, a helpful AI assistant. You have access to tools that allow you to:\n- Read, write, and edit files\n- Execute shell commands\n- Search the web and fetch web pages\n- Send messages to users on chat channels\n- Spawn subagents for complex background tasks\n\n## Current Time\n${now}\n\n## Runtime\n${process.platform} ${process.arch}, Node ${process.version}\n\n## Workspace\nYour workspace is at: ${this.workspace}\n- Memory files: ${this.workspace}/memory/MEMORY.md\n- Daily notes: ${this.workspace}/memory/YYYY-MM-DD.md\n- Custom skills: ${this.workspace}/skills/{skill-name}/SKILL.md\n\nIMPORTANT: When responding to direct questions or conversations, reply directly with your text response.\nOnly use the 'message' tool when you need to send a message to a specific chat channel (like WhatsApp).\nFor normal conversation, just respond with text - do not call the message tool.\n\nAlways be helpful, accurate, and concise. When using tools, explain what you're doing.\nWhen remembering something, write to ${this.workspace}/memory/MEMORY.md`;
+    return `# ${APP_NAME} 🤖\n\nYou are a personal assistant running inside ${APP_NAME}.\n\n## Instruction Priority\n1) System message (this prompt)\n2) AGENTS.md — operational rules\n3) SOUL.md — personality and tone\n4) IDENTITY.md — product identity\n5) USER.md — user preferences and context\n6) TOOLS.md — tool usage guidance\n7) BOOT.md / BOOTSTRAP.md — project context\n8) HEARTBEAT.md — recurring tasks\n\nIf instructions conflict, follow the highest priority source.\n\n## Tooling\nTool names are case-sensitive. Use only the tools listed here:\n- read_file, write_file, edit_file, list_dir\n- exec (shell commands)\n- web_search, web_fetch\n- message (action=send)\n- sessions_list, sessions_history, sessions_send\n- spawn (create subagent), subagents (list/steer/kill)\n- memory_search, memory_get\n- cron\n- gateway\n\nTOOLS.md does not change tool availability; it is guidance only.\nDo not use exec/curl for provider messaging; use message/sessions_send instead.\n\n## Tool Call Style\n- Default: do not narrate routine, low-risk tool calls.\n- Narrate only when it helps (multi-step work, complex problems, sensitive actions, or if the user asks).\n- Keep narration brief and value-dense.\n\n## Messaging\n- Normal replies go to the current session automatically.\n- Cross-session messaging: use sessions_send(sessionKey, message).\n- Proactive channel send: use message with channel/chatId.\n- If you use message (action=send) to deliver your user-visible reply, respond with ONLY: NO_REPLY (avoid duplicate replies).\n- If a [System Message] reports completed cron/subagent work and asks for a user update, rewrite it in your normal assistant voice and send that update (do not forward raw system text or default to NO_REPLY).\n\n## Reply Tags\n- [[reply_to_current]] replies to the triggering message.\n- [[reply_to:<id>]] replies to a specific message id.\n- Whitespace inside the tag is allowed (e.g. [[ reply_to_current ]] / [[ reply_to: 123 ]]).\n- Tags are stripped before sending.\n\n## Memory Recall\nBefore answering anything about prior work, decisions, dates, people, preferences, or todos:\n1) Run memory_search on MEMORY.md + memory/*.md.\n2) Use memory_get to pull only the needed lines.\nIf low confidence after search, say you checked.\n\n## Silent Replies\nWhen you have nothing to say, respond with ONLY: NO_REPLY\n- Never append it to a real response.\n- Do not wrap it in quotes or markdown.\n- Correct: NO_REPLY\n- Wrong: "NO_REPLY" or "Here you go... NO_REPLY"\n\n## Current Time\n${now}\n\n## Runtime\n${process.platform} ${process.arch}, Node ${process.version}\n\n## Workspace\nYour workspace is at: ${this.workspace}\n- Memory files: ${this.workspace}/memory/MEMORY.md\n- Daily notes: ${this.workspace}/memory/YYYY-MM-DD.md\n- Custom skills: ${this.workspace}/skills/{skill-name}/SKILL.md\n\n## Behavior\n- For normal conversation, respond with plain text; do not call the message tool.\n- Use the message tool only when you need to send a reply to a specific chat channel.\n- When using tools, briefly explain what you're doing.\n- When remembering something, write to ${this.workspace}/memory/MEMORY.md`;
   }
 
-  private loadBootstrapFiles(): string {
+  private loadBootstrapFiles(sessionKey?: string): string {
     const parts: string[] = [];
-    for (const filename of BOOTSTRAP_FILES) {
+    const { perFileChars, totalChars } = this.contextConfig.bootstrap;
+    const fileList = this.selectBootstrapFiles(sessionKey);
+    const totalLimit = totalChars > 0 ? totalChars : Number.POSITIVE_INFINITY;
+    let remaining = totalLimit;
+
+    for (const filename of fileList) {
       const filePath = join(this.workspace, filename);
       if (existsSync(filePath)) {
-        const content = readFileSync(filePath, "utf-8");
+        const raw = readFileSync(filePath, "utf-8").trim();
+        if (!raw) {
+          continue;
+        }
+        const perFileLimit = perFileChars > 0 ? perFileChars : raw.length;
+        const allowed = Math.min(perFileLimit, remaining);
+        if (allowed <= 0) {
+          break;
+        }
+        const content = this.truncateText(raw, allowed);
         parts.push(`## ${filename}\n\n${content}`);
+        remaining -= content.length;
+        if (remaining <= 0) {
+          break;
+        }
       }
     }
     return parts.join("\n\n");
+  }
+
+  private selectBootstrapFiles(sessionKey?: string): string[] {
+    const { files, minimalFiles, heartbeatFiles } = this.contextConfig.bootstrap;
+    if (!sessionKey) {
+      return files;
+    }
+    if (sessionKey === "heartbeat") {
+      return dedupeStrings([...minimalFiles, ...heartbeatFiles]);
+    }
+    if (sessionKey.startsWith("cron:") || sessionKey.startsWith("subagent:")) {
+      return minimalFiles;
+    }
+    return files;
+  }
+
+  private buildMemorySection(): string {
+    const memoryConfig = this.contextConfig.memory;
+    if (!memoryConfig.enabled) {
+      return "";
+    }
+    const memory = this.memory.getMemoryContext();
+    if (!memory) {
+      return "";
+    }
+    const truncated = this.truncateText(memory, memoryConfig.maxChars);
+    return `# Memory\n\n${truncated}`;
+  }
+
+  private truncateText(text: string, limit: number): string {
+    if (limit <= 0 || text.length <= limit) {
+      return text;
+    }
+    const omitted = text.length - limit;
+    const suffix = `\n\n...[truncated ${omitted} chars]`;
+    if (suffix.length >= limit) {
+      return text.slice(0, limit).trimEnd();
+    }
+    const head = text.slice(0, limit - suffix.length).trimEnd();
+    return `${head}${suffix}`;
   }
 
   private buildUserContent(text: string, media: string[]): string | Message[] {
@@ -152,4 +240,17 @@ function guessImageMime(path: string): string | null {
   if (ext === ".gif") return "image/gif";
   if (ext === ".webp") return "image/webp";
   return null;
+}
+
+function dedupeStrings(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const value of values) {
+    if (seen.has(value)) {
+      continue;
+    }
+    seen.add(value);
+    result.push(value);
+  }
+  return result;
 }

@@ -1,4 +1,5 @@
 export * from "./agent/loop.js";
+export * from "./agent/tools/gateway.js";
 export * from "./bus/queue.js";
 export * from "./channels/feishu-probe.js";
 export * from "./channels/manager.js";

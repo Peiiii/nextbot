@@ -21,9 +21,12 @@ export class MessageTool extends Tool {
     return {
       type: "object",
       properties: {
+        action: { type: "string", enum: ["send"], description: "Action to perform" },
         content: { type: "string", description: "Message to send" },
         channel: { type: "string", description: "Channel name" },
-        chatId: { type: "string", description: "Chat ID" }
+        chatId: { type: "string", description: "Chat ID" },
+        replyTo: { type: "string", description: "Message ID to reply to" },
+        silent: { type: "boolean", description: "Send without notification where supported" }
       },
       required: ["content"]
     };
@@ -35,15 +38,22 @@ export class MessageTool extends Tool {
   }
 
   async execute(params: Record<string, unknown>): Promise<string> {
+    const action = params.action ? String(params.action) : "send";
+    if (action !== "send") {
+      return `Error: Unsupported action '${action}'`;
+    }
     const content = String(params.content ?? "");
     const channel = String(params.channel ?? this.channel);
     const chatId = String(params.chatId ?? this.chatId);
+    const replyTo = params.replyTo ? String(params.replyTo) : undefined;
+    const silent = typeof params.silent === "boolean" ? params.silent : undefined;
     await this.sendCallback({
       channel,
       chatId,
       content,
+      replyTo,
       media: [],
-      metadata: {}
+      metadata: silent !== undefined ? { silent } : {}
     });
     return `Message sent to ${channel}:${chatId}`;
   }

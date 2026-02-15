@@ -9,6 +9,20 @@ import { WebSearchTool, WebFetchTool } from "./tools/web.js";
 
 export class SubagentManager {
   private runningTasks = new Map<string, Promise<void>>();
+  private runs = new Map<
+    string,
+    {
+      id: string;
+      label: string;
+      task: string;
+      origin: { channel: string; chatId: string };
+      startedAt: string;
+      status: "running" | "done" | "error" | "cancelled";
+      cancelled: boolean;
+      doneAt?: string;
+    }
+  >();
+  private steerQueue = new Map<string, string[]>();
 
   constructor(
     private options: {
@@ -34,6 +48,16 @@ export class SubagentManager {
       channel: params.originChannel ?? "cli",
       chatId: params.originChatId ?? "direct"
     };
+    this.runs.set(taskId, {
+      id: taskId,
+      label: displayLabel,
+      task: params.task,
+      origin,
+      startedAt: new Date().toISOString(),
+      status: "running",
+      cancelled: false
+    });
+    this.steerQueue.set(taskId, []);
 
     const background = this.runSubagent({
       taskId,
@@ -42,7 +66,15 @@ export class SubagentManager {
       origin
     });
     this.runningTasks.set(taskId, background);
-    background.finally(() => this.runningTasks.delete(taskId));
+    background.finally(() => {
+      this.runningTasks.delete(taskId);
+      const run = this.runs.get(taskId);
+      if (run && run.status === "running") {
+        run.status = run.cancelled ? "cancelled" : "done";
+        run.doneAt = new Date().toISOString();
+      }
+      this.steerQueue.delete(taskId);
+    });
 
     return `Subagent [${displayLabel}] started (id: ${taskId}). I'll notify you when it completes.`;
   }
@@ -54,6 +86,10 @@ export class SubagentManager {
     origin: { channel: string; chatId: string };
   }): Promise<void> {
     try {
+      const run = this.runs.get(params.taskId);
+      if (run?.cancelled) {
+        return;
+      }
       const tools = new ToolRegistry();
       const allowedDir = this.options.restrictToWorkspace ? this.options.workspace : undefined;
       tools.register(new ReadFileTool(allowedDir));
@@ -80,6 +116,12 @@ export class SubagentManager {
 
       while (iteration < 15) {
         iteration += 1;
+        const queued = this.steerQueue.get(params.taskId);
+        if (queued && queued.length) {
+          for (const note of queued.splice(0, queued.length)) {
+            messages.push({ role: "user", content: `Steer: ${note}` });
+          }
+        }
         const response = await this.options.providerManager.get().chat({
           messages,
           tools: tools.getDefinitions(),
@@ -104,27 +146,40 @@ export class SubagentManager {
           finalResult = response.content ?? "";
           break;
         }
+        if (this.runs.get(params.taskId)?.cancelled) {
+          return;
+        }
       }
 
       if (!finalResult) {
         finalResult = "Task completed but no final response was generated.";
       }
 
-      await this.announceResult({
-        label: params.label,
-        task: params.task,
-        result: finalResult,
-        origin: params.origin,
-        status: "ok"
-      });
+      const runAfter = this.runs.get(params.taskId);
+      if (runAfter && !runAfter.cancelled) {
+        runAfter.status = "done";
+        runAfter.doneAt = new Date().toISOString();
+        await this.announceResult({
+          label: params.label,
+          task: params.task,
+          result: finalResult,
+          origin: params.origin,
+          status: "ok"
+        });
+      }
     } catch (err) {
-      await this.announceResult({
-        label: params.label,
-        task: params.task,
-        result: `Error: ${String(err)}`,
-        origin: params.origin,
-        status: "error"
-      });
+      const runAfter = this.runs.get(params.taskId);
+      if (runAfter && !runAfter.cancelled) {
+        runAfter.status = "error";
+        runAfter.doneAt = new Date().toISOString();
+        await this.announceResult({
+          label: params.label,
+          task: params.task,
+          result: `Error: ${String(err)}`,
+          origin: params.origin,
+          status: "error"
+        });
+      }
     }
   }
 
@@ -157,5 +212,40 @@ export class SubagentManager {
 
   getRunningCount(): number {
     return this.runningTasks.size;
+  }
+
+  listRuns(): Array<{ id: string; label: string; status: string; startedAt: string; doneAt?: string }> {
+    return Array.from(this.runs.values()).map((run) => ({
+      id: run.id,
+      label: run.label,
+      status: run.status,
+      startedAt: run.startedAt,
+      doneAt: run.doneAt
+    }));
+  }
+
+  steerRun(id: string, note: string): boolean {
+    const run = this.runs.get(id);
+    if (!run || run.cancelled || run.status !== "running") {
+      return false;
+    }
+    const queue = this.steerQueue.get(id);
+    if (!queue) {
+      return false;
+    }
+    queue.push(note);
+    return true;
+  }
+
+  cancelRun(id: string): boolean {
+    const run = this.runs.get(id);
+    if (!run) {
+      return false;
+    }
+    run.cancelled = true;
+    run.status = "cancelled";
+    run.doneAt = new Date().toISOString();
+    this.steerQueue.delete(id);
+    return true;
   }
 }

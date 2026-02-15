@@ -5,10 +5,12 @@ import { ensureDir, todayDate } from "../utils/helpers.js";
 export class MemoryStore {
   private memoryDir: string;
   private memoryFile: string;
+  private workspaceMemoryFile: string;
 
   constructor(private workspace: string) {
     this.memoryDir = ensureDir(join(workspace, "memory"));
     this.memoryFile = join(this.memoryDir, "MEMORY.md");
+    this.workspaceMemoryFile = join(workspace, "MEMORY.md");
   }
 
   getTodayFile(): string {
@@ -39,6 +41,13 @@ export class MemoryStore {
   readLongTerm(): string {
     if (existsSync(this.memoryFile)) {
       return readFileSync(this.memoryFile, "utf-8");
+    }
+    return "";
+  }
+
+  readWorkspaceMemory(): string {
+    if (existsSync(this.workspaceMemoryFile)) {
+      return readFileSync(this.workspaceMemoryFile, "utf-8");
     }
     return "";
   }
@@ -75,6 +84,10 @@ export class MemoryStore {
 
   getMemoryContext(): string {
     const parts: string[] = [];
+    const workspaceMemory = this.readWorkspaceMemory();
+    if (workspaceMemory) {
+      parts.push(`## Workspace Memory\n${workspaceMemory}`);
+    }
     const longTerm = this.readLongTerm();
     if (longTerm) {
       parts.push(`## Long-term Memory\n${longTerm}`);

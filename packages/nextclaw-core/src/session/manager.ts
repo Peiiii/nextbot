@@ -47,6 +47,18 @@ export class SessionManager {
     return session;
   }
 
+  getIfExists(key: string): Session | null {
+    const cached = this.cache.get(key);
+    if (cached) {
+      return cached;
+    }
+    const loaded = this.load(key);
+    if (loaded) {
+      this.cache.set(key, loaded);
+    }
+    return loaded;
+  }
+
   addMessage(session: Session, role: string, content: string, extra: Record<string, unknown> = {}): void {
     const msg: SessionMessage = {
       role,
