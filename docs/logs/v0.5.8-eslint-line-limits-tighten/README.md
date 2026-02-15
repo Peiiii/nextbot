@@ -30,12 +30,44 @@ PATH="/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH" \
 
 验收点：
 
-- build/lint/tsc 全部通过
+- build/tsc 通过
+- lint 通过（有两条 max-lines warning：`mochat.ts`、`runtime.ts`）
 - 冒烟输出包含 `smoke-ok`
 
 ## 发布 / 部署
 
-- 本次为规则调整，不做发布；如需发布按 `docs/workflows/npm-release-process.md`
+迁移：
+
+- 无后端/数据库变更，migration N/A
+
+发布（按 `docs/workflows/npm-release-process.md`）：
+
+```bash
+pnpm changeset
+pnpm release:version
+pnpm release:publish
+```
+
+发布结果：
+
+- `nextclaw@0.4.1`
+- `nextclaw-core@0.4.1`
+- `nextclaw-server@0.3.2`
+- `@nextclaw/ui@0.3.2`
+
+线上冒烟（npm）：
+
+```bash
+cd /tmp
+PATH="/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH" npm view nextclaw@0.4.1 version
+PATH="/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH" npm install -g nextclaw@0.4.1
+PATH="/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH" nextclaw --version
+```
+
+观察点：
+
+- `npm view` 输出 `0.4.1`
+- `nextclaw --version` 输出 `0.4.1`
 
 ## 影响范围 / 风险
 

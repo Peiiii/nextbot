@@ -1,5 +1,14 @@
 # nextclaw
 
+## 0.4.1
+
+### Patch Changes
+
+- chore: tighten eslint line limits
+- Updated dependencies
+  - nextclaw-core@0.4.1
+  - nextclaw-server@0.3.2
+
 ## 0.4.0
 
 ### Minor Changes
