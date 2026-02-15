@@ -125,6 +125,8 @@ nextclaw stop   # stop service
 
 ![Config UI](images/screenshots/nextclaw-ui-screenshot.png)
 
+![Message Channels](images/screenshots/nextclaw-channels-page.png)
+
 ## From source
 
 ```bash
