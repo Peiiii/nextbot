@@ -1,5 +1,21 @@
 # nextclaw
 
+## 0.4.3
+
+### Patch Changes
+
+- fix: persist tool call history in sessions
+- Updated dependencies
+  - nextclaw-core@0.4.3
+
+## 0.4.2
+
+### Patch Changes
+
+- chore: seed built-in skills during init
+- Updated dependencies
+  - nextclaw-core@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes

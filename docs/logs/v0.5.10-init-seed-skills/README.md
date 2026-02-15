@@ -40,7 +40,39 @@ ls -1 "$NEXTCLAW_HOME/workspace/skills" | head -n 5
 
 ## 发布 / 部署
 
-- 本次为 CLI 行为变更；如需发布 npm 包按 `docs/workflows/npm-release-process.md`
+迁移：
+
+- 无后端/数据库变更，migration N/A
+
+发布（按 `docs/workflows/npm-release-process.md`）：
+
+```bash
+pnpm changeset
+pnpm release:version
+pnpm release:publish
+```
+
+发布结果：
+
+- `nextclaw@0.4.2`
+- `nextclaw-core@0.4.2`
+
+线上冒烟（npm）：
+
+```bash
+cd /tmp
+PATH="/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH" npm view nextclaw@0.4.2 version
+PATH="/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH" npm install -g nextclaw@0.4.2
+export NEXTCLAW_HOME=/tmp/nextclaw-init-smoke-release
+rm -rf "$NEXTCLAW_HOME"
+PATH="/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH" nextclaw init --force
+ls -1 "$NEXTCLAW_HOME/workspace/skills" | head -n 5
+```
+
+观察点：
+
+- `npm view` 输出 `0.4.2`
+- `nextclaw init --force` 输出 `seeded`，且 `workspace/skills` 非空
 
 ## 影响范围 / 风险
 

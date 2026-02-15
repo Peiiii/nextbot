@@ -70,9 +70,27 @@ export class SessionManager {
     session.updatedAt = new Date();
   }
 
-  getHistory(session: Session, maxMessages = 50): Array<Record<string, string>> {
+  getHistory(session: Session, maxMessages = 50): Array<Record<string, unknown>> {
     const recent = session.messages.length > maxMessages ? session.messages.slice(-maxMessages) : session.messages;
-    return recent.map((msg) => ({ role: msg.role, content: msg.content }));
+    return recent.map((msg) => {
+      const entry: Record<string, unknown> = {
+        role: msg.role,
+        content: msg.content
+      };
+      if (typeof msg.name === "string") {
+        entry.name = msg.name;
+      }
+      if (typeof msg.tool_call_id === "string") {
+        entry.tool_call_id = msg.tool_call_id;
+      }
+      if (Array.isArray(msg.tool_calls)) {
+        entry.tool_calls = msg.tool_calls;
+      }
+      if (typeof msg.reasoning_content === "string" && msg.reasoning_content) {
+        entry.reasoning_content = msg.reasoning_content;
+      }
+      return entry;
+    });
   }
 
   clear(session: Session): void {

@@ -187,6 +187,7 @@ export class AgentLoop {
       chatId: msg.chatId,
       sessionKey
     });
+    this.sessions.addMessage(session, "user", msg.content);
 
     let iteration = 0;
     let finalContent: string | null = null;
@@ -210,9 +211,17 @@ export class AgentLoop {
           }
         }));
         this.context.addAssistantMessage(messages, response.content, toolCallDicts, response.reasoningContent ?? null);
+        this.sessions.addMessage(session, "assistant", response.content ?? "", {
+          tool_calls: toolCallDicts,
+          reasoning_content: response.reasoningContent ?? null
+        });
         for (const call of response.toolCalls) {
           const result = await this.tools.execute(call.name, call.arguments);
           this.context.addToolResult(messages, call.id, call.name, result);
+          this.sessions.addMessage(session, "tool", result, {
+            tool_call_id: call.id,
+            name: call.name
+          });
         }
       } else {
         finalContent = response.content;
@@ -227,12 +236,10 @@ export class AgentLoop {
     const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, messageId);
     finalContent = cleanedContent;
     if (isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
-      this.sessions.addMessage(session, "user", msg.content);
       this.sessions.save(session);
       return null;
     }
 
-    this.sessions.addMessage(session, "user", msg.content);
     this.sessions.addMessage(session, "assistant", finalContent);
     this.sessions.save(session);
 
@@ -274,6 +281,7 @@ export class AgentLoop {
       chatId: originChatId,
       sessionKey
     });
+    this.sessions.addMessage(session, "user", `[System: ${msg.senderId}] ${msg.content}`);
 
     let iteration = 0;
     let finalContent: string | null = null;
@@ -297,9 +305,17 @@ export class AgentLoop {
           }
         }));
         this.context.addAssistantMessage(messages, response.content, toolCallDicts, response.reasoningContent ?? null);
+        this.sessions.addMessage(session, "assistant", response.content ?? "", {
+          tool_calls: toolCallDicts,
+          reasoning_content: response.reasoningContent ?? null
+        });
         for (const call of response.toolCalls) {
           const result = await this.tools.execute(call.name, call.arguments);
           this.context.addToolResult(messages, call.id, call.name, result);
+          this.sessions.addMessage(session, "tool", result, {
+            tool_call_id: call.id,
+            name: call.name
+          });
         }
       } else {
         finalContent = response.content;
@@ -313,10 +329,10 @@ export class AgentLoop {
     const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, undefined);
     finalContent = cleanedContent;
     if (isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
+      this.sessions.save(session);
       return null;
     }
 
-    this.sessions.addMessage(session, "user", `[System: ${msg.senderId}] ${msg.content}`);
     this.sessions.addMessage(session, "assistant", finalContent);
     this.sessions.save(session);
 
