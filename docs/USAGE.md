@@ -14,7 +14,6 @@ This guide covers installation, configuration, channels, tools, automation, and 
 - [Tools](#tools)
 - [Cron & Heartbeat](#cron--heartbeat)
 - [Troubleshooting](#troubleshooting)
-- [Running from source](#running-from-source)
 
 ---
 
@@ -501,24 +500,3 @@ Default URL when using `nextclaw start`: **http://127.0.0.1:18791**.
 | **Agent not responding in CLI** | Run `nextclaw init` if you have not yet; ensure a provider and model are set and the provider key is valid. |
 
 ---
-
-## Running from source
-
-If you develop or run from the repository:
-
-```bash
-git clone https://github.com/Peiiii/nextclaw.git
-cd nextclaw
-pnpm install
-pnpm nextclaw start
-```
-
-Development mode runs in the foreground (Ctrl+C to stop). Default dev ports: UI **18792**, frontend dev server **5174**. If a port is in use, the CLI will try the next available port and print it.
-
-Other commands from repo root (same as global `nextclaw`):
-
-- `pnpm nextclaw agent -m "Hello"` — CLI agent
-- `pnpm nextclaw status` — status
-- `pnpm nextclaw cron list` — cron list
-
-When running from source, use `pnpm nextclaw <command>` instead of `nextclaw <command>`; the rest of this guide applies the same way.

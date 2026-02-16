@@ -5,9 +5,9 @@
 - 抽取自我升级逻辑到共享模块，CLI 与 gateway update.run 复用同一实现，避免重复逻辑。
 - 升级策略：
   1) `NEXTCLAW_UPDATE_COMMAND` 覆盖
-  2) git 仓库拉取 + 依赖安装
-  3) `npm i -g nextclaw`
+  2) `npm i -g nextclaw`
 - 文档补充 `nextclaw update` 命令说明。
+- 文档移除“从源码运行”场景；update 不再尝试 git 拉取。
 
 ## 验证
 - `PATH=/Users/peiwang/.nvm/versions/node/v22.16.0/bin:$PATH pnpm build`

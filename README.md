@@ -141,22 +141,6 @@ nextclaw stop   # stop the service
 
 ---
 
-## 🔧 From source
-
-```bash
-git clone https://github.com/Peiiii/nextclaw.git
-cd nextclaw
-pnpm install
-pnpm nextclaw start
-
-# dev ports
-# UI: http://127.0.0.1:18792
-# Frontend: http://127.0.0.1:5174
-# Ctrl+C to stop (dev foreground)
-```
-
----
-
 <div align="center">
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Peiiii/nextclaw&type=Date)](https://star-history.com/#Peiiii/nextclaw&Date)

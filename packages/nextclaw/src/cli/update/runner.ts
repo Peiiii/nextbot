@@ -1,7 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { which } from "../utils.js";
 
 const DEFAULT_TIMEOUT_MS = 20 * 60_000;
@@ -18,7 +16,7 @@ export type UpdateStep = {
 export type SelfUpdateResult = {
   ok: boolean;
   error?: string;
-  strategy: "command" | "git" | "npm" | "none";
+  strategy: "command" | "npm" | "none";
   steps: UpdateStep[];
 };
 
@@ -53,11 +51,6 @@ export function runSelfUpdate(options: SelfUpdateOptions = {}): SelfUpdateResult
     return { ok: result.status === 0, code: result.status };
   };
 
-  const updateRoot = resolve(fileURLToPath(new URL(".", import.meta.url)));
-  const cliDir = resolve(updateRoot, "..");
-  const pkgRoot = resolve(cliDir, "..", "..");
-  const repoRoot = existsSync(join(pkgRoot, ".git")) ? pkgRoot : resolve(pkgRoot, "..", "..");
-
   if (updateCommand) {
     const cwd = options.cwd ? resolve(options.cwd) : process.cwd();
     const ok = runStep("sh", ["-c", updateCommand], cwd);
@@ -65,28 +58,6 @@ export function runSelfUpdate(options: SelfUpdateOptions = {}): SelfUpdateResult
       return { ok: false, error: "update command failed", strategy: "command", steps };
     }
     return { ok: true, strategy: "command", steps };
-  }
-
-  if (existsSync(join(repoRoot, ".git"))) {
-    if (!which("git")) {
-      return { ok: false, error: "git not found for repo update", strategy: "git", steps };
-    }
-    const ok = runStep("git", ["-C", repoRoot, "pull", "--rebase"], repoRoot);
-    if (!ok.ok) {
-      return { ok: false, error: "git pull failed", strategy: "git", steps };
-    }
-    if (existsSync(join(repoRoot, "pnpm-lock.yaml")) && which("pnpm")) {
-      const installOk = runStep("pnpm", ["install"], repoRoot);
-      if (!installOk.ok) {
-        return { ok: false, error: "pnpm install failed", strategy: "git", steps };
-      }
-    } else if (existsSync(join(repoRoot, "package.json")) && which("npm")) {
-      const installOk = runStep("npm", ["install"], repoRoot);
-      if (!installOk.ok) {
-        return { ok: false, error: "npm install failed", strategy: "git", steps };
-      }
-    }
-    return { ok: true, strategy: "git", steps };
   }
 
   if (which("npm")) {
