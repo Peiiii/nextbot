@@ -44,6 +44,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
 import { GatewayControllerImpl } from "./gateway/controller.js";
+import { installClawHubSkill } from "./skills/clawhub.js";
 import type { ServiceState } from "./utils.js";
 import {
   buildServeArgs,
@@ -481,6 +482,36 @@ export class CliRuntime {
       });
       printAgentResponse(response);
     }
+  }
+
+  async skillsInstall(options: {
+    slug: string;
+    version?: string;
+    registry?: string;
+    workdir?: string;
+    dir?: string;
+    force?: boolean;
+  }): Promise<void> {
+    const workdir = options.workdir ? expandHome(options.workdir) : getWorkspacePath();
+    const result = await installClawHubSkill({
+      slug: options.slug,
+      version: options.version,
+      registry: options.registry,
+      workdir,
+      dir: options.dir,
+      force: options.force
+    });
+
+    const versionLabel = result.version ?? "latest";
+    if (result.alreadyInstalled) {
+      console.log(`✓ ${result.slug} is already installed`);
+    } else {
+      console.log(`✓ Installed ${result.slug}@${versionLabel}`);
+    }
+    if (result.registry) {
+      console.log(`  Registry: ${result.registry}`);
+    }
+    console.log(`  Path: ${result.destinationDir}`);
   }
 
   channelsStatus(): void {

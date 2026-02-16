@@ -75,6 +75,24 @@ program
   .option("--no-markdown", "Disable Markdown rendering")
   .action(async (opts) => runtime.agent(opts));
 
+const registerClawHubInstall = (cmd: Command) => {
+  cmd
+    .command("install <slug>")
+    .description("Install a skill from ClawHub")
+    .option("--version <version>", "Skill version (default: latest)")
+    .option("--registry <url>", "ClawHub registry base URL")
+    .option("--workdir <dir>", "Workspace directory to install into")
+    .option("--dir <dir>", "Skills directory name (default: skills)")
+    .option("-f, --force", "Overwrite existing skill files", false)
+    .action(async (slug, opts) => runtime.skillsInstall({ slug, ...opts }));
+};
+
+const skills = program.command("skills").description("Manage skills");
+registerClawHubInstall(skills);
+
+const clawhub = program.command("clawhub").description("Install skills from ClawHub");
+registerClawHubInstall(clawhub);
+
 const channels = program.command("channels").description("Manage channels");
 
 channels
