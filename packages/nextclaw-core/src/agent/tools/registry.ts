@@ -23,7 +23,7 @@ export class ToolRegistry {
     return Array.from(this.tools.values()).map((tool) => tool.toSchema());
   }
 
-  async execute(name: string, params: Record<string, unknown>): Promise<string> {
+  async execute(name: string, params: Record<string, unknown>, toolCallId?: string): Promise<string> {
     const tool = this.tools.get(name);
     if (!tool) {
       return `Error: Tool '${name}' not found`;
@@ -33,7 +33,7 @@ export class ToolRegistry {
       if (errors.length) {
         return `Error: Invalid parameters for tool '${name}': ${errors.join("; ")}`;
       }
-      return await tool.execute(params);
+      return await tool.execute(params, toolCallId);
     } catch (err) {
       return `Error executing ${name}: ${String(err)}`;
     }

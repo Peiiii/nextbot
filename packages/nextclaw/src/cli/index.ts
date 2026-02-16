@@ -99,6 +99,52 @@ registerClawHubInstall(skills);
 const clawhub = program.command("clawhub").description("Install skills from ClawHub");
 registerClawHubInstall(clawhub);
 
+const plugins = program.command("plugins").description("Manage OpenClaw-compatible plugins");
+
+plugins
+  .command("list")
+  .description("List discovered plugins")
+  .option("--json", "Print JSON")
+  .option("--enabled", "Only show enabled plugins", false)
+  .option("--verbose", "Show detailed entries", false)
+  .action((opts) => runtime.pluginsList(opts));
+
+plugins
+  .command("info <id>")
+  .description("Show plugin details")
+  .option("--json", "Print JSON")
+  .action((id, opts) => runtime.pluginsInfo(id, opts));
+
+plugins
+  .command("enable <id>")
+  .description("Enable a plugin in config")
+  .action((id) => runtime.pluginsEnable(id));
+
+plugins
+  .command("disable <id>")
+  .description("Disable a plugin in config")
+  .action((id) => runtime.pluginsDisable(id));
+
+plugins
+  .command("uninstall <id>")
+  .description("Uninstall a plugin")
+  .option("--keep-files", "Keep installed files on disk", false)
+  .option("--keep-config", "Deprecated alias for --keep-files", false)
+  .option("--force", "Skip confirmation prompt", false)
+  .option("--dry-run", "Show what would be removed without making changes", false)
+  .action(async (id, opts) => runtime.pluginsUninstall(id, opts));
+
+plugins
+  .command("install <path-or-spec>")
+  .description("Install a plugin (path, archive, or npm spec)")
+  .option("-l, --link", "Link a local path instead of copying", false)
+  .action(async (pathOrSpec, opts) => runtime.pluginsInstall(pathOrSpec, opts));
+
+plugins
+  .command("doctor")
+  .description("Report plugin load issues")
+  .action(() => runtime.pluginsDoctor());
+
 const channels = program.command("channels").description("Manage channels");
 
 channels

@@ -1,0 +1,167 @@
+import { Tool } from "../agent/tools/base.js";
+import type { Config } from "../config/schema.js";
+import type {
+  OpenClawPluginTool,
+  OpenClawPluginToolContext,
+  PluginDiagnostic,
+  PluginToolRegistration
+} from "./types.js";
+
+function normalizeToolList(value: unknown): OpenClawPluginTool[] {
+  if (!value) {
+    return [];
+  }
+  const list = Array.isArray(value) ? value : [value];
+  return list.filter((entry): entry is OpenClawPluginTool => {
+    if (!entry || typeof entry !== "object") {
+      return false;
+    }
+    const tool = entry as OpenClawPluginTool;
+    return (
+      typeof tool.name === "string" &&
+      tool.name.trim().length > 0 &&
+      tool.parameters !== undefined &&
+      typeof tool.execute === "function"
+    );
+  });
+}
+
+function normalizeSchema(schema: unknown): Record<string, unknown> {
+  if (!schema || typeof schema !== "object") {
+    return {
+      type: "object",
+      properties: {},
+      additionalProperties: true
+    };
+  }
+  const typed = schema as Record<string, unknown>;
+  if (typed.type !== "object") {
+    return {
+      type: "object",
+      properties: {},
+      additionalProperties: true
+    };
+  }
+  return typed;
+}
+
+function stringifyToolResult(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value === undefined || value === null) {
+    return "";
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+export class PluginToolAdapter extends Tool {
+  private fallbackDescription: string;
+  private fallbackParameters: Record<string, unknown>;
+
+  constructor(
+    private params: {
+      registration: PluginToolRegistration;
+      alias: string;
+      config: Config;
+      workspaceDir: string;
+      contextProvider: () => OpenClawPluginToolContext;
+      diagnostics: PluginDiagnostic[];
+    }
+  ) {
+    super();
+    const preview = this.resolveToolPreview();
+    this.fallbackDescription =
+      preview?.description?.trim() || `Plugin tool '${params.alias}' from ${params.registration.pluginId}`;
+    this.fallbackParameters = normalizeSchema(preview?.parameters);
+  }
+
+  get name(): string {
+    return this.params.alias;
+  }
+
+  get description(): string {
+    return this.fallbackDescription;
+  }
+
+  get parameters(): Record<string, unknown> {
+    return this.fallbackParameters;
+  }
+
+  async execute(params: Record<string, unknown>, toolCallId?: string): Promise<string> {
+    const resolved = this.resolveToolRuntime();
+    if (!resolved) {
+      return `Error: Tool '${this.name}' not available in plugin '${this.params.registration.pluginId}'`;
+    }
+
+    try {
+      const result =
+        resolved.execute.length >= 2
+          ? await (resolved.execute as (toolCallId: string, values: Record<string, unknown>) => Promise<unknown> | unknown)(
+              toolCallId ?? "",
+              params
+            )
+          : await (resolved.execute as (values: Record<string, unknown>) => Promise<unknown> | unknown)(params);
+      return stringifyToolResult(result);
+    } catch (err) {
+      return `Error executing ${this.name}: ${String(err)}`;
+    }
+  }
+
+  private buildContext(): OpenClawPluginToolContext {
+    return {
+      config: this.params.config,
+      workspaceDir: this.params.workspaceDir,
+      ...this.params.contextProvider()
+    };
+  }
+
+  private resolveToolPreview(): OpenClawPluginTool | null {
+    try {
+      const tools = normalizeToolList(this.params.registration.factory(this.buildContext()));
+      return this.pickToolForAlias(tools);
+    } catch {
+      return null;
+    }
+  }
+
+  private resolveToolRuntime(): OpenClawPluginTool | null {
+    try {
+      const tools = normalizeToolList(this.params.registration.factory(this.buildContext()));
+      return this.pickToolForAlias(tools);
+    } catch (err) {
+      this.params.diagnostics.push({
+        level: "warn",
+        pluginId: this.params.registration.pluginId,
+        source: this.params.registration.source,
+        message: `tool factory failed for '${this.name}': ${String(err)}`
+      });
+      return null;
+    }
+  }
+
+  private pickToolForAlias(tools: OpenClawPluginTool[]): OpenClawPluginTool | null {
+    if (tools.length === 0) {
+      return null;
+    }
+    const byName = tools.find((tool) => tool.name === this.params.alias);
+    if (byName) {
+      return byName;
+    }
+    if (tools.length === 1) {
+      return tools[0];
+    }
+    const declared = this.params.registration.names;
+    if (declared.length === tools.length) {
+      const index = declared.indexOf(this.params.alias);
+      if (index >= 0 && index < tools.length) {
+        return tools[index];
+      }
+    }
+    return tools[0];
+  }
+}

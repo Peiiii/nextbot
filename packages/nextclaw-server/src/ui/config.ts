@@ -8,7 +8,9 @@ import {
   buildConfigSchema,
   findProviderByName,
   getPackageVersion,
-  type ProviderSpec
+  type ProviderSpec,
+  loadPluginUiMetadata,
+  getWorkspacePathFromConfig
 } from "nextclaw-core";
 import type {
   ConfigMetaView,
@@ -58,7 +60,9 @@ export function buildConfigView(config: Config): ConfigView {
     providers,
     channels: config.channels as Record<string, Record<string, unknown>>,
     tools: config.tools,
-    gateway: config.gateway
+    gateway: config.gateway,
+    ui: config.ui,
+    plugins: config.plugins as unknown as Record<string, unknown>
   };
 }
 
@@ -83,8 +87,10 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
   return { providers, channels };
 }
 
-export function buildConfigSchemaView(): ConfigSchemaResponse {
-  return buildConfigSchema({ version: getPackageVersion() });
+export function buildConfigSchemaView(config: Config): ConfigSchemaResponse {
+  const workspaceDir = getWorkspacePathFromConfig(config);
+  const plugins = loadPluginUiMetadata({ config, workspaceDir });
+  return buildConfigSchema({ version: getPackageVersion(), plugins });
 }
 
 export function loadConfigOrDefault(configPath: string): Config {

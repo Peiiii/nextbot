@@ -12,13 +12,20 @@ import { DingTalkChannel } from "./dingtalk.js";
 import { EmailChannel } from "./email.js";
 import { SlackChannel } from "./slack.js";
 import { QQChannel } from "./qq.js";
+import { PluginChannel } from "./plugin_channel.js";
+import type { PluginChannelRegistration } from "../plugins/types.js";
 
 export class ChannelManager {
   private channels: Record<string, BaseChannel<Record<string, unknown>>> = {};
   private dispatchTask: Promise<void> | null = null;
   private dispatching = false;
 
-  constructor(private config: Config, private bus: MessageBus, private sessionManager?: SessionManager) {
+  constructor(
+    private config: Config,
+    private bus: MessageBus,
+    private sessionManager?: SessionManager,
+    private pluginChannels: PluginChannelRegistration[] = []
+  ) {
     this.initChannels();
   }
 
@@ -71,6 +78,19 @@ export class ChannelManager {
     if (this.config.channels.qq.enabled) {
       const channel = new QQChannel(this.config.channels.qq, this.bus);
       this.channels.qq = channel;
+    }
+
+    for (const registration of this.pluginChannels) {
+      const id = registration.channel.id;
+      if (!id) {
+        continue;
+      }
+      if (this.channels[id]) {
+        // eslint-disable-next-line no-console
+        console.warn(`Plugin channel ignored because id already exists: ${id}`);
+        continue;
+      }
+      this.channels[id] = new PluginChannel(this.config, this.bus, registration);
     }
   }
 

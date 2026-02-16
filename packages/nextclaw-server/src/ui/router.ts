@@ -50,7 +50,10 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     return c.json(ok(buildConfigMeta(config)));
   });
 
-  app.get("/api/config/schema", (c) => c.json(ok(buildConfigSchemaView())));
+  app.get("/api/config/schema", (c) => {
+    const config = loadConfigOrDefault(options.configPath);
+    return c.json(ok(buildConfigSchemaView(config)));
+  });
 
   app.put("/api/config/model", async (c) => {
     const body = await readJson<{ model?: string }>(c.req.raw);

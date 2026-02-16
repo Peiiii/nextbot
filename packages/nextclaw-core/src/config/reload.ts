@@ -30,6 +30,7 @@ const RELOAD_RULES: ReloadRule[] = [
   { prefix: "agents.defaults.temperature", kind: "restart-required" },
   { prefix: "agents.defaults.maxToolIterations", kind: "restart-required" },
   { prefix: "tools", kind: "restart-required" },
+  { prefix: "plugins", kind: "restart-required" },
   { prefix: "gateway", kind: "none" },
   { prefix: "ui", kind: "none" }
 ];

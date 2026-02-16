@@ -18,6 +18,8 @@ import { SessionManager } from "../session/manager.js";
 import type { CronService } from "../cron/service.js";
 import type { Config } from "../config/schema.js";
 import { SILENT_REPLY_TOKEN, isSilentReplyText } from "./tokens.js";
+import { PluginToolAdapter } from "../plugins/tool-adapter.js";
+import type { OpenClawPluginToolContext, PluginRegistry } from "../plugins/types.js";
 
 export class AgentLoop {
   private context: ContextBuilder;
@@ -25,6 +27,7 @@ export class AgentLoop {
   private tools: ToolRegistry;
   private subagents: SubagentManager;
   private running = false;
+  private currentPluginToolContext: OpenClawPluginToolContext = {};
 
   constructor(
     private options: {
@@ -40,6 +43,8 @@ export class AgentLoop {
       sessionManager?: SessionManager;
       contextConfig?: Config["agents"]["context"];
       gatewayController?: GatewayController;
+      config?: Config;
+      pluginRegistry?: PluginRegistry;
     }
   ) {
     this.context = new ContextBuilder(options.workspace, options.contextConfig);
@@ -56,6 +61,7 @@ export class AgentLoop {
     });
 
     this.registerDefaultTools();
+    this.registerPluginTools();
   }
 
   private registerDefaultTools(): void {
@@ -96,6 +102,45 @@ export class AgentLoop {
       const cronTool = new CronTool(this.options.cronService);
       this.tools.register(cronTool);
     }
+  }
+
+
+  private registerPluginTools(): void {
+    const registry = this.options.pluginRegistry;
+    if (!registry || registry.tools.length === 0 || !this.options.config) {
+      return;
+    }
+
+    const seen = new Set<string>(this.tools.toolNames);
+    for (const registration of registry.tools) {
+      for (const alias of registration.names) {
+        if (seen.has(alias)) {
+          continue;
+        }
+        seen.add(alias);
+        this.tools.register(
+          new PluginToolAdapter({
+            registration,
+            alias,
+            config: this.options.config,
+            workspaceDir: this.options.workspace,
+            contextProvider: () => this.currentPluginToolContext,
+            diagnostics: registry.diagnostics
+          })
+        );
+      }
+    }
+  }
+
+  private setPluginToolContext(params: { sessionKey: string; channel: string; chatId: string }): void {
+    this.currentPluginToolContext = {
+      config: this.options.config,
+      workspaceDir: this.options.workspace,
+      sessionKey: params.sessionKey,
+      channel: params.channel,
+      chatId: params.chatId,
+      sandboxed: this.options.restrictToWorkspace ?? false
+    };
   }
 
   async run(): Promise<void> {
@@ -149,6 +194,7 @@ export class AgentLoop {
 
     const sessionKey = sessionKeyOverride ?? `${msg.channel}:${msg.chatId}`;
     const session = this.sessions.getOrCreate(sessionKey);
+    this.setPluginToolContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
     const messageId = msg.metadata?.message_id as string | undefined;
     if (messageId) {
       session.metadata.last_message_id = messageId;
@@ -216,7 +262,7 @@ export class AgentLoop {
           reasoning_content: response.reasoningContent ?? null
         });
         for (const call of response.toolCalls) {
-          const result = await this.tools.execute(call.name, call.arguments);
+          const result = await this.tools.execute(call.name, call.arguments, call.id);
           this.context.addToolResult(messages, call.id, call.name, result);
           this.sessions.addMessage(session, "tool", result, {
             tool_call_id: call.id,
@@ -260,6 +306,7 @@ export class AgentLoop {
 
     const sessionKey = `${originChannel}:${originChatId}`;
     const session = this.sessions.getOrCreate(sessionKey);
+    this.setPluginToolContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
 
     const messageTool = this.tools.get("message");
     if (messageTool instanceof MessageTool) {
@@ -310,7 +357,7 @@ export class AgentLoop {
           reasoning_content: response.reasoningContent ?? null
         });
         for (const call of response.toolCalls) {
-          const result = await this.tools.execute(call.name, call.arguments);
+          const result = await this.tools.execute(call.name, call.arguments, call.id);
           this.context.addToolResult(messages, call.id, call.name, result);
           this.sessions.addMessage(session, "tool", result, {
             tool_call_id: call.id,

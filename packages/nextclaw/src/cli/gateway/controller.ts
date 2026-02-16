@@ -7,7 +7,8 @@ import {
   type Config,
   type GatewayController,
   type CronService,
-  type ChannelManager
+  type ChannelManager,
+  type PluginUiMetadata
 } from "nextclaw-core";
 import { getPackageVersion } from "../utils.js";
 import { runSelfUpdate } from "../update/runner.js";
@@ -22,11 +23,12 @@ type ControllerDeps = {
   cron: CronService;
   getConfigPath: () => string;
   saveConfig: (config: Config) => void;
+  getPluginUiMetadata?: () => PluginUiMetadata[];
 };
 
 const hashRaw = (raw: string): string => createHash("sha256").update(raw).digest("hex");
 
-const readConfigSnapshot = (getConfigPath: () => string): {
+const readConfigSnapshot = (getConfigPath: () => string, plugins: PluginUiMetadata[]): {
   raw: string | null;
   hash: string | null;
   config: Config;
@@ -56,13 +58,13 @@ const readConfigSnapshot = (getConfigPath: () => string): {
     raw = JSON.stringify(config, null, 2);
   }
   const hash = hashRaw(raw);
-  const schema = buildConfigSchema({ version: getPackageVersion() });
+  const schema = buildConfigSchema({ version: getPackageVersion(), plugins });
   const redacted = redactConfigObject(config, schema.uiHints) as Record<string, unknown>;
   return { raw: valid ? JSON.stringify(redacted, null, 2) : null, hash: valid ? hash : null, config, redacted, valid };
 };
 
-const redactValue = (value: Config): Record<string, unknown> => {
-  const schema = buildConfigSchema({ version: getPackageVersion() });
+const redactValue = (value: Config, plugins: PluginUiMetadata[]): Record<string, unknown> => {
+  const schema = buildConfigSchema({ version: getPackageVersion(), plugins });
   return redactConfigObject(value, schema.uiHints) as Record<string, unknown>;
 };
 
@@ -112,7 +114,8 @@ export class GatewayControllerImpl implements GatewayController {
   }
 
   async getConfig(): Promise<Record<string, unknown>> {
-    const snapshot = readConfigSnapshot(this.deps.getConfigPath);
+    const plugins = this.deps.getPluginUiMetadata?.() ?? [];
+    const snapshot = readConfigSnapshot(this.deps.getConfigPath, plugins);
     return {
       raw: snapshot.raw,
       hash: snapshot.hash,
@@ -125,7 +128,7 @@ export class GatewayControllerImpl implements GatewayController {
   }
 
   async getConfigSchema(): Promise<Record<string, unknown>> {
-    return buildConfigSchema({ version: getPackageVersion() });
+    return buildConfigSchema({ version: getPackageVersion(), plugins: this.deps.getPluginUiMetadata?.() ?? [] });
   }
 
   async applyConfig(params: {
@@ -135,7 +138,8 @@ export class GatewayControllerImpl implements GatewayController {
     restartDelayMs?: number;
     sessionKey?: string;
   }): Promise<Record<string, unknown>> {
-    const snapshot = readConfigSnapshot(this.deps.getConfigPath);
+    const plugins = this.deps.getPluginUiMetadata?.() ?? [];
+    const snapshot = readConfigSnapshot(this.deps.getConfigPath, plugins);
     if (!params.baseHash) {
       return { ok: false, error: "config base hash required; re-run config.get and retry" };
     }
@@ -164,7 +168,7 @@ export class GatewayControllerImpl implements GatewayController {
       ok: true,
       note: params.note ?? null,
       path: this.deps.getConfigPath(),
-      config: redactValue(validated),
+      config: redactValue(validated, plugins),
       restart: { scheduled: true, delayMs }
     };
   }
@@ -176,7 +180,8 @@ export class GatewayControllerImpl implements GatewayController {
     restartDelayMs?: number;
     sessionKey?: string;
   }): Promise<Record<string, unknown>> {
-    const snapshot = readConfigSnapshot(this.deps.getConfigPath);
+    const plugins = this.deps.getPluginUiMetadata?.() ?? [];
+    const snapshot = readConfigSnapshot(this.deps.getConfigPath, plugins);
     if (!params.baseHash) {
       return { ok: false, error: "config base hash required; re-run config.get and retry" };
     }
@@ -206,7 +211,7 @@ export class GatewayControllerImpl implements GatewayController {
       ok: true,
       note: params.note ?? null,
       path: this.deps.getConfigPath(),
-      config: redactValue(validated),
+      config: redactValue(validated, plugins),
       restart: { scheduled: true, delayMs }
     };
   }

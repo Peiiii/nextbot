@@ -25,7 +25,7 @@ export abstract class Tool {
   abstract get description(): string;
   abstract get parameters(): Record<string, unknown>;
 
-  abstract execute(params: Record<string, unknown>): Promise<string>;
+  abstract execute(params: Record<string, unknown>, toolCallId?: string): Promise<string>;
 
   validateParams(params: Record<string, unknown>): string[] {
     const schema = this.parameters as ToolSchema;
