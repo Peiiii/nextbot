@@ -12,8 +12,8 @@ import { DingTalkChannel } from "./dingtalk.js";
 import { EmailChannel } from "./email.js";
 import { SlackChannel } from "./slack.js";
 import { QQChannel } from "./qq.js";
-import { PluginChannel } from "./plugin_channel.js";
-import type { PluginChannelRegistration } from "../plugins/types.js";
+import { ExtensionChannelAdapter } from "./extension_channel.js";
+import type { ExtensionChannelRegistration } from "../extensions/types.js";
 
 export class ChannelManager {
   private channels: Record<string, BaseChannel<Record<string, unknown>>> = {};
@@ -24,7 +24,7 @@ export class ChannelManager {
     private config: Config,
     private bus: MessageBus,
     private sessionManager?: SessionManager,
-    private pluginChannels: PluginChannelRegistration[] = []
+    private extensionChannels: ExtensionChannelRegistration[] = []
   ) {
     this.initChannels();
   }
@@ -80,17 +80,17 @@ export class ChannelManager {
       this.channels.qq = channel;
     }
 
-    for (const registration of this.pluginChannels) {
+    for (const registration of this.extensionChannels) {
       const id = registration.channel.id;
       if (!id) {
         continue;
       }
       if (this.channels[id]) {
         // eslint-disable-next-line no-console
-        console.warn(`Plugin channel ignored because id already exists: ${id}`);
+        console.warn(`Extension channel ignored because id already exists: ${id}`);
         continue;
       }
-      this.channels[id] = new PluginChannel(this.config, this.bus, registration);
+      this.channels[id] = new ExtensionChannelAdapter(this.config, this.bus, registration);
     }
   }
 

@@ -4,7 +4,6 @@ import { findProviderByName, PROVIDERS } from "../providers/registry.js";
 import { DEFAULT_WORKSPACE_PATH } from "./brand.js";
 import { expandHome, getPackageVersion } from "../utils/helpers.js";
 import { applySensitiveHints, buildBaseHints, mapSensitivePaths, type ConfigUiHints } from "./schema.hints.js";
-import type { PluginUiMetadata } from "../plugins/types.js";
 
 const allowFrom = z.array(z.string()).default([]);
 
@@ -284,6 +283,20 @@ export type ConfigSchemaResponse = {
 export type Config = z.infer<typeof ConfigSchema>;
 export type ProviderConfig = z.infer<typeof ProviderConfigSchema>;
 
+export type PluginUiMetadata = {
+  id: string;
+  configSchema?: Record<string, unknown>;
+  configUiHints?: Record<
+    string,
+    {
+      label?: string;
+      help?: string;
+      advanced?: boolean;
+      sensitive?: boolean;
+      placeholder?: string;
+    }
+  >;
+};
 
 
 type JsonSchemaNode = Record<string, unknown>;

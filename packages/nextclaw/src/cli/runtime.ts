@@ -8,6 +8,7 @@ import {
   getProvider,
   getProviderName,
   type Config,
+  type ExtensionRegistry,
   buildReloadPlan,
   diffConfigPaths,
   getWorkspacePath,
@@ -23,7 +24,9 @@ import {
   PROVIDERS,
   APP_NAME,
   DEFAULT_WORKSPACE_DIR,
-  DEFAULT_WORKSPACE_PATH,
+  DEFAULT_WORKSPACE_PATH
+} from "nextclaw-core";
+import {
   loadOpenClawPlugins,
   buildPluginStatusReport,
   enablePluginInConfig,
@@ -36,7 +39,7 @@ import {
   resolveUninstallDirectoryTarget,
   loadPluginUiMetadata,
   type PluginRegistry
-} from "nextclaw-core";
+} from "nextclaw-openclaw-compat";
 import { startUiServer } from "nextclaw-server";
 import {
   closeSync,
@@ -166,7 +169,7 @@ class ConfigReloader {
       providerManager: ProviderManager | null;
       makeProvider: (config: Config) => LiteLLMProvider | null;
       loadConfig: () => Config;
-      getPluginChannels?: () => PluginRegistry["channels"];
+      getExtensionChannels?: () => ExtensionRegistry["channels"];
       onRestartRequired: (paths: string[]) => void;
     }
   ) {
@@ -245,7 +248,7 @@ class ConfigReloader {
         nextConfig,
         this.options.bus,
         this.options.sessionManager,
-        this.options.getPluginChannels?.() ?? []
+        this.options.getExtensionChannels?.() ?? []
       );
       await this.channels.startAll();
     })();
@@ -473,6 +476,7 @@ export class CliRuntime {
     const config = loadConfig();
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
     const pluginRegistry = this.loadPluginRegistry(config, workspace);
+    const extensionRegistry = this.toExtensionRegistry(pluginRegistry);
     this.logPluginDiagnostics(pluginRegistry);
 
     const bus = new MessageBus();
@@ -487,7 +491,7 @@ export class CliRuntime {
       restrictToWorkspace: config.tools.restrictToWorkspace,
       contextConfig: config.agents.context,
       config,
-      pluginRegistry
+      extensionRegistry
     });
 
     if (opts.message) {
@@ -1162,6 +1166,29 @@ export class CliRuntime {
     });
   }
 
+  private toExtensionRegistry(pluginRegistry: PluginRegistry): ExtensionRegistry {
+    return {
+      tools: pluginRegistry.tools.map((tool) => ({
+        extensionId: tool.pluginId,
+        factory: tool.factory,
+        names: tool.names,
+        optional: tool.optional,
+        source: tool.source
+      })),
+      channels: pluginRegistry.channels.map((channel) => ({
+        extensionId: channel.pluginId,
+        channel: channel.channel,
+        source: channel.source
+      })),
+      diagnostics: pluginRegistry.diagnostics.map((diag) => ({
+        level: diag.level,
+        message: diag.message,
+        extensionId: diag.pluginId,
+        source: diag.source
+      }))
+    };
+  }
+
   private logPluginDiagnostics(registry: PluginRegistry): void {
     for (const diag of registry.diagnostics) {
       const prefix = diag.pluginId ? `${diag.pluginId}: ` : "";
@@ -1180,6 +1207,7 @@ export class CliRuntime {
     const config = loadConfig();
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
     const pluginRegistry = this.loadPluginRegistry(config, workspace);
+    const extensionRegistry = this.toExtensionRegistry(pluginRegistry);
     this.logPluginDiagnostics(pluginRegistry);
 
     const bus = new MessageBus();
@@ -1201,7 +1229,7 @@ export class CliRuntime {
       return;
     }
 
-    const channels = new ChannelManager(config, bus, sessionManager, pluginRegistry.channels);
+    const channels = new ChannelManager(config, bus, sessionManager, extensionRegistry.channels);
     const reloader = new ConfigReloader({
       initialConfig: config,
       channels,
@@ -1210,7 +1238,7 @@ export class CliRuntime {
       providerManager,
       makeProvider: (nextConfig) => this.makeProvider(nextConfig, { allowMissing: true }),
       loadConfig,
-      getPluginChannels: () => pluginRegistry.channels,
+      getExtensionChannels: () => extensionRegistry.channels,
       onRestartRequired: (paths) => {
         console.warn(`Config changes require restart: ${paths.join(", ")}`);
       }
@@ -1237,7 +1265,7 @@ export class CliRuntime {
       contextConfig: config.agents.context,
       gatewayController,
       config,
-      pluginRegistry
+      extensionRegistry
     });
 
     cron.onJob = async (job) => {

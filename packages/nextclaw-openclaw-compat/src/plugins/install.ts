@@ -4,7 +4,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import JSZip from "jszip";
 import * as tar from "tar";
-import { getDataPath } from "../utils/helpers.js";
+import { getDataPath } from "nextclaw-core";
 import { loadPluginManifest } from "./manifest.js";
 
 export type PluginInstallLogger = {

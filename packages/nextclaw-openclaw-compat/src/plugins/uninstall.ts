@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { Config } from "../config/schema.js";
+import type { Config } from "nextclaw-core";
 import { resolvePluginInstallDir } from "./install.js";
 
 export type UninstallActions = {

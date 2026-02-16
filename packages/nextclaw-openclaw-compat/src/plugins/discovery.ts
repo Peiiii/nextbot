@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { homedir } from "node:os";
-import type { Config } from "../config/schema.js";
-import { expandHome, getDataPath } from "../utils/helpers.js";
+import type { Config } from "nextclaw-core";
+import { expandHome, getDataPath } from "nextclaw-core";
 import { getPackageManifestMetadata, type PackageManifest } from "./manifest.js";
 import type { PluginDiagnostic, PluginOrigin } from "./types.js";
 

@@ -1,14 +1,14 @@
 import type { MessageBus } from "../bus/queue.js";
 import type { OutboundMessage } from "../bus/events.js";
 import type { Config } from "../config/schema.js";
+import type { ExtensionChannelRegistration } from "../extensions/types.js";
 import { BaseChannel } from "./base.js";
-import type { PluginChannelRegistration } from "../plugins/types.js";
 
-export class PluginChannel extends BaseChannel<Record<string, unknown>> {
+export class ExtensionChannelAdapter extends BaseChannel<Record<string, unknown>> {
   constructor(
     private readonly runtimeConfig: Config,
     bus: MessageBus,
-    private readonly registration: PluginChannelRegistration
+    private readonly registration: ExtensionChannelRegistration
   ) {
     super({}, bus);
   }
@@ -28,7 +28,7 @@ export class PluginChannel extends BaseChannel<Record<string, unknown>> {
   async send(msg: OutboundMessage): Promise<void> {
     const outbound = this.registration.channel.outbound;
     if (!outbound) {
-      throw new Error(`plugin channel '${this.name}' has no outbound adapter`);
+      throw new Error(`extension channel '${this.name}' has no outbound adapter`);
     }
 
     const to = msg.chatId;
@@ -59,6 +59,6 @@ export class PluginChannel extends BaseChannel<Record<string, unknown>> {
       return;
     }
 
-    throw new Error(`plugin channel '${this.name}' outbound handler is not configured`);
+    throw new Error(`extension channel '${this.name}' outbound handler is not configured`);
   }
 }

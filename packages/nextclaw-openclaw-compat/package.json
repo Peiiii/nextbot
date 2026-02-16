@@ -1,8 +1,8 @@
 {
-  "name": "nextclaw-server",
-  "version": "0.3.3",
+  "name": "nextclaw-openclaw-compat",
+  "version": "0.1.0",
   "private": false,
-  "description": "Nextclaw UI/API server.",
+  "description": "OpenClaw plugin compatibility layer for NextClaw.",
   "type": "module",
   "exports": {
     ".": {
@@ -20,15 +20,14 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@hono/node-server": "^1.13.3",
-    "hono": "^4.6.2",
-    "nextclaw-core": "^0.4.5",
-    "ws": "^8.18.0",
-    "nextclaw-openclaw-compat": "^0.1.0"
+    "ajv": "^8.17.1",
+    "jiti": "^1.21.7",
+    "jszip": "^3.10.1",
+    "nextclaw-core": "^0.4.7",
+    "tar": "^7.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.17.6",
-    "@types/ws": "^8.5.14",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
     "eslint": "^8.57.1",

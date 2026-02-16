@@ -1,6 +1,6 @@
-import type { Config } from "../config/schema.js";
-import { getPackageVersion } from "../utils/helpers.js";
-import { MemoryGetTool, MemorySearchTool } from "../agent/tools/memory.js";
+import type { Config } from "nextclaw-core";
+import { getPackageVersion } from "nextclaw-core";
+import { MemoryGetTool, MemorySearchTool } from "nextclaw-core";
 import type { OpenClawPluginTool, PluginRuntime } from "./types.js";
 
 function toPluginTool(tool: MemorySearchTool | MemoryGetTool): OpenClawPluginTool {

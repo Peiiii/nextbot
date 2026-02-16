@@ -23,6 +23,9 @@ importers:
       nextclaw-core:
         specifier: ^0.4.7
         version: link:../nextclaw-core
+      nextclaw-openclaw-compat:
+        specifier: ^0.1.0
+        version: link:../nextclaw-openclaw-compat
       nextclaw-server:
         specifier: ^0.3.3
         version: link:../nextclaw-server
@@ -69,9 +72,6 @@ importers:
       '@slack/web-api':
         specifier: ^7.6.0
         version: 7.13.0
-      ajv:
-        specifier: ^8.17.1
-        version: 8.18.0
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
@@ -93,12 +93,6 @@ importers:
       imapflow:
         specifier: ^1.0.214
         version: 1.2.9
-      jiti:
-        specifier: ^1.21.7
-        version: 1.21.7
-      jszip:
-        specifier: ^3.10.1
-        version: 3.10.1
       mailparser:
         specifier: ^3.7.1
         version: 3.9.3
@@ -123,9 +117,6 @@ importers:
       socket.io-msgpack-parser:
         specifier: ^3.0.2
         version: 3.0.2
-      tar:
-        specifier: ^7.4.3
-        version: 7.5.9
       undici:
         specifier: ^6.21.0
         version: 6.23.0
@@ -182,6 +173,55 @@ importers:
         specifier: ^2.1.2
         version: 2.1.9(@types/node@20.19.33)
 
+  packages/nextclaw-openclaw-compat:
+    dependencies:
+      ajv:
+        specifier: ^8.17.1
+        version: 8.18.0
+      jiti:
+        specifier: ^1.21.7
+        version: 1.21.7
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
+      nextclaw-core:
+        specifier: ^0.4.7
+        version: link:../nextclaw-core
+      tar:
+        specifier: ^7.4.3
+        version: 7.5.9
+    devDependencies:
+      '@types/node':
+        specifier: ^20.17.6
+        version: 20.19.33
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^7.18.0
+        version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^7.18.0
+        version: 7.18.0(eslint@8.57.1)(typescript@5.9.3)
+      eslint:
+        specifier: ^8.57.1
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@8.57.1)
+      prettier:
+        specifier: ^3.3.3
+        version: 3.8.1
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.6.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.2
+        version: 2.1.9(@types/node@20.19.33)
+
   packages/nextclaw-server:
     dependencies:
       '@hono/node-server':
@@ -193,6 +233,9 @@ importers:
       nextclaw-core:
         specifier: ^0.4.5
         version: link:../nextclaw-core
+      nextclaw-openclaw-compat:
+        specifier: ^0.1.0
+        version: link:../nextclaw-openclaw-compat
       ws:
         specifier: ^8.18.0
         version: 8.19.0

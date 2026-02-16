@@ -1,22 +1,22 @@
 import { Tool } from "../agent/tools/base.js";
 import type { Config } from "../config/schema.js";
 import type {
-  OpenClawPluginTool,
-  OpenClawPluginToolContext,
-  PluginDiagnostic,
-  PluginToolRegistration
+  ExtensionDiagnostic,
+  ExtensionTool,
+  ExtensionToolContext,
+  ExtensionToolRegistration
 } from "./types.js";
 
-function normalizeToolList(value: unknown): OpenClawPluginTool[] {
+function normalizeToolList(value: unknown): ExtensionTool[] {
   if (!value) {
     return [];
   }
   const list = Array.isArray(value) ? value : [value];
-  return list.filter((entry): entry is OpenClawPluginTool => {
+  return list.filter((entry): entry is ExtensionTool => {
     if (!entry || typeof entry !== "object") {
       return false;
     }
-    const tool = entry as OpenClawPluginTool;
+    const tool = entry as ExtensionTool;
     return (
       typeof tool.name === "string" &&
       tool.name.trim().length > 0 &&
@@ -59,24 +59,24 @@ function stringifyToolResult(value: unknown): string {
   }
 }
 
-export class PluginToolAdapter extends Tool {
+export class ExtensionToolAdapter extends Tool {
   private fallbackDescription: string;
   private fallbackParameters: Record<string, unknown>;
 
   constructor(
     private params: {
-      registration: PluginToolRegistration;
+      registration: ExtensionToolRegistration;
       alias: string;
       config: Config;
       workspaceDir: string;
-      contextProvider: () => OpenClawPluginToolContext;
-      diagnostics: PluginDiagnostic[];
+      contextProvider: () => ExtensionToolContext;
+      diagnostics: ExtensionDiagnostic[];
     }
   ) {
     super();
     const preview = this.resolveToolPreview();
     this.fallbackDescription =
-      preview?.description?.trim() || `Plugin tool '${params.alias}' from ${params.registration.pluginId}`;
+      preview?.description?.trim() || `Extension tool '${params.alias}' from ${params.registration.extensionId}`;
     this.fallbackParameters = normalizeSchema(preview?.parameters);
   }
 
@@ -95,7 +95,7 @@ export class PluginToolAdapter extends Tool {
   async execute(params: Record<string, unknown>, toolCallId?: string): Promise<string> {
     const resolved = this.resolveToolRuntime();
     if (!resolved) {
-      return `Error: Tool '${this.name}' not available in plugin '${this.params.registration.pluginId}'`;
+      return `Error: Tool '${this.name}' not available in extension '${this.params.registration.extensionId}'`;
     }
 
     try {
@@ -112,7 +112,7 @@ export class PluginToolAdapter extends Tool {
     }
   }
 
-  private buildContext(): OpenClawPluginToolContext {
+  private buildContext(): ExtensionToolContext {
     return {
       config: this.params.config,
       workspaceDir: this.params.workspaceDir,
@@ -120,7 +120,7 @@ export class PluginToolAdapter extends Tool {
     };
   }
 
-  private resolveToolPreview(): OpenClawPluginTool | null {
+  private resolveToolPreview(): ExtensionTool | null {
     try {
       const tools = normalizeToolList(this.params.registration.factory(this.buildContext()));
       return this.pickToolForAlias(tools);
@@ -129,14 +129,14 @@ export class PluginToolAdapter extends Tool {
     }
   }
 
-  private resolveToolRuntime(): OpenClawPluginTool | null {
+  private resolveToolRuntime(): ExtensionTool | null {
     try {
       const tools = normalizeToolList(this.params.registration.factory(this.buildContext()));
       return this.pickToolForAlias(tools);
     } catch (err) {
       this.params.diagnostics.push({
         level: "warn",
-        pluginId: this.params.registration.pluginId,
+        extensionId: this.params.registration.extensionId,
         source: this.params.registration.source,
         message: `tool factory failed for '${this.name}': ${String(err)}`
       });
@@ -144,7 +144,7 @@ export class PluginToolAdapter extends Tool {
     }
   }
 
-  private pickToolForAlias(tools: OpenClawPluginTool[]): OpenClawPluginTool | null {
+  private pickToolForAlias(tools: ExtensionTool[]): ExtensionTool | null {
     if (tools.length === 0) {
       return null;
     }

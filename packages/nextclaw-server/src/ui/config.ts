@@ -9,9 +9,9 @@ import {
   findProviderByName,
   getPackageVersion,
   type ProviderSpec,
-  loadPluginUiMetadata,
   getWorkspacePathFromConfig
 } from "nextclaw-core";
+import { loadPluginUiMetadata } from "nextclaw-openclaw-compat";
 import type {
   ConfigMetaView,
   ConfigSchemaResponse,
