@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import type { Config } from "nextclaw-core";
+import type { Config } from "@nextclaw/core";
 import { normalizePluginsConfig } from "./config-state.js";
 import { discoverOpenClawPlugins, type PluginCandidate } from "./discovery.js";
 import { loadPluginManifest, type PluginManifest } from "./manifest.js";

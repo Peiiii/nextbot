@@ -14,21 +14,21 @@ importers:
 
   packages/nextclaw:
     dependencies:
+      '@nextclaw/core':
+        specifier: ^0.4.7
+        version: link:../nextclaw-core
+      '@nextclaw/openclaw-compat':
+        specifier: ^0.1.0
+        version: link:../nextclaw-openclaw-compat
+      '@nextclaw/server':
+        specifier: ^0.3.3
+        version: link:../nextclaw-server
       chokidar:
         specifier: ^3.6.0
         version: 3.6.0
       commander:
         specifier: ^12.1.0
         version: 12.1.0
-      nextclaw-core:
-        specifier: ^0.4.7
-        version: link:../nextclaw-core
-      nextclaw-openclaw-compat:
-        specifier: ^0.1.0
-        version: link:../nextclaw-openclaw-compat
-      nextclaw-server:
-        specifier: ^0.3.3
-        version: link:../nextclaw-server
     devDependencies:
       '@types/node':
         specifier: ^20.17.6
@@ -175,6 +175,9 @@ importers:
 
   packages/nextclaw-openclaw-compat:
     dependencies:
+      '@nextclaw/core':
+        specifier: ^0.4.7
+        version: link:../nextclaw-core
       ajv:
         specifier: ^8.17.1
         version: 8.18.0
@@ -184,9 +187,6 @@ importers:
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
-      nextclaw-core:
-        specifier: ^0.4.7
-        version: link:../nextclaw-core
       tar:
         specifier: ^7.4.3
         version: 7.5.9
@@ -227,15 +227,15 @@ importers:
       '@hono/node-server':
         specifier: ^1.13.3
         version: 1.19.9(hono@4.11.9)
+      '@nextclaw/core':
+        specifier: ^0.4.7
+        version: link:../nextclaw-core
+      '@nextclaw/openclaw-compat':
+        specifier: ^0.1.0
+        version: link:../nextclaw-openclaw-compat
       hono:
         specifier: ^4.6.2
         version: 4.11.9
-      nextclaw-core:
-        specifier: ^0.4.5
-        version: link:../nextclaw-core
-      nextclaw-openclaw-compat:
-        specifier: ^0.1.0
-        version: link:../nextclaw-openclaw-compat
       ws:
         specifier: ^8.18.0
         version: 8.19.0

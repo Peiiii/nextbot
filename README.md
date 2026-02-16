@@ -30,6 +30,7 @@ Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https:/
 | **Multi-channel** | Telegram, Discord, WhatsApp, Feishu, DingTalk, Slack, Email, QQ, Mochat — enable and configure from the UI |
 | **Automation** | Cron + Heartbeat for scheduled tasks |
 | **Local tools** | Web search, command execution |
+| **OpenClaw plugin compatibility** | Supports OpenClaw plugin discovery/install/config schema & UI hints via `@nextclaw/openclaw-compat` |
 
 ---
 
@@ -117,6 +118,30 @@ nextclaw stop   # stop the service
 | `nextclaw update` | Self-update the CLI |
 | `nextclaw channels status` | Show enabled channels |
 | `nextclaw channels login` | QR login for supported channels |
+| `nextclaw plugins list` | List discovered OpenClaw-compatible plugins |
+| `nextclaw plugins install <path-or-spec>` | Install plugin from path/archive/npm |
+| `nextclaw plugins info <id>` | Show plugin details |
+| `nextclaw plugins enable <id>` / `disable <id>` | Enable or disable plugin in config |
+| `nextclaw plugins uninstall <id>` | Uninstall plugin (supports `--dry-run`, `--force`) |
+
+---
+
+## 🧩 OpenClaw plugins
+
+nextclaw includes OpenClaw plugin compatibility and keeps this layer isolated in a dedicated package:
+
+- `@nextclaw/openclaw-compat` handles discovery/loading/install/uninstall
+- `@nextclaw/core` only keeps generic extension SPI (lighter core, easier maintenance)
+
+Quick examples:
+
+```bash
+nextclaw plugins list
+nextclaw plugins install ./my-plugin
+nextclaw plugins info my-plugin
+nextclaw plugins disable my-plugin
+nextclaw plugins uninstall my-plugin --dry-run
+```
 
 ---
 
@@ -138,7 +163,8 @@ nextclaw stop   # stop the service
 
 ## 📚 Docs
 
-- [Configuration, providers, channels, cron](docs/USAGE.md)
+- [Configuration, providers, channels, plugins, cron](docs/USAGE.md)
+- [OpenClaw plugin compatibility plan](docs/designs/openclaw-plugin-compat.plan.md)
 
 ---
 

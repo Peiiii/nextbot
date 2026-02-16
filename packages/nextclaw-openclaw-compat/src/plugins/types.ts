@@ -1,4 +1,4 @@
-import type { Config } from "nextclaw-core";
+import type { Config } from "@nextclaw/core";
 
 export type PluginConfigUiHint = {
   label?: string;

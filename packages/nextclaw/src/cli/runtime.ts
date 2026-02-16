@@ -25,7 +25,7 @@ import {
   APP_NAME,
   DEFAULT_WORKSPACE_DIR,
   DEFAULT_WORKSPACE_PATH
-} from "nextclaw-core";
+} from "@nextclaw/core";
 import {
   loadOpenClawPlugins,
   buildPluginStatusReport,
@@ -39,8 +39,8 @@ import {
   resolveUninstallDirectoryTarget,
   loadPluginUiMetadata,
   type PluginRegistry
-} from "nextclaw-openclaw-compat";
-import { startUiServer } from "nextclaw-server";
+} from "@nextclaw/openclaw-compat";
+import { startUiServer } from "@nextclaw/server";
 import {
   closeSync,
   cpSync,
@@ -1664,7 +1664,7 @@ export class CliRuntime {
   private resolveBuiltinSkillsDir(): string | null {
     try {
       const require = createRequire(import.meta.url);
-      const entry = require.resolve("nextclaw-core");
+      const entry = require.resolve("@nextclaw/core");
       const pkgRoot = resolve(dirname(entry), "..");
       const distSkills = join(pkgRoot, "dist", "skills");
       if (existsSync(distSkills)) {

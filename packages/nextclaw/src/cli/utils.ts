@@ -4,8 +4,8 @@ import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import type { Interface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import type { Config } from "nextclaw-core";
-import { getDataDir, getPackageVersion } from "nextclaw-core";
+import type { Config } from "@nextclaw/core";
+import { getDataDir, getPackageVersion } from "@nextclaw/core";
 
 export type ServiceState = {
   pid: number;

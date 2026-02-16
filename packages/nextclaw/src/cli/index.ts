@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { APP_NAME, APP_TAGLINE } from "nextclaw-core";
+import { APP_NAME, APP_TAGLINE } from "@nextclaw/core";
 import { CliRuntime, LOGO } from "./runtime.js";
 import { getPackageVersion } from "./utils.js";
 

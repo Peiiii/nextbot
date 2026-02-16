@@ -1,5 +1,14 @@
 # nextclaw-core
 
+## 0.4.8
+
+### Patch Changes
+
+- Unify internal package names under the `@nextclaw` scope while keeping the CLI package name as `nextclaw`.
+  - Rename packages to `@nextclaw/core`, `@nextclaw/server`, and `@nextclaw/openclaw-compat`.
+  - Update all workspace imports, dependency declarations, and TypeScript path aliases.
+  - Keep plugin compatibility behavior and CLI user experience unchanged.
+
 ## 0.4.7
 
 ### Patch Changes

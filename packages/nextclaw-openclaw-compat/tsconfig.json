@@ -2,11 +2,17 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "baseUrl": ".",
     "paths": {
-      "nextclaw-core": ["../nextclaw-core/src/index.ts"]
+      "@nextclaw/core": [
+        "../nextclaw-core/src/index.ts"
+      ]
     }
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }

@@ -8,7 +8,7 @@ import {
   updateModel,
   updateProvider
 } from "./config.js";
-import { probeFeishu } from "nextclaw-core";
+import { probeFeishu } from "@nextclaw/core";
 import type { ProviderConfigUpdate, UiServerEvent } from "./types.js";
 
 type UiRouterOptions = {

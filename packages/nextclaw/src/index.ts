@@ -1,1 +1,1 @@
-export * from "nextclaw-core";
+export * from "@nextclaw/core";

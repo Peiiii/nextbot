@@ -10,6 +10,7 @@ This guide covers installation, configuration, channels, tools, automation, and 
 - [Configuration](#configuration)
 - [Workspace](#workspace)
 - [Commands](#commands)
+- [Plugins (OpenClaw compatibility)](#plugins-openclaw-compatibility)
 - [Channels](#channels)
 - [Tools](#tools)
 - [Cron & Heartbeat](#cron--heartbeat)
@@ -169,12 +170,52 @@ Created under the workspace:
 | `nextclaw cron run <jobId>` | Run a job once (optionally with `--force` if disabled) |
 | `nextclaw skills install <slug>` | Install a skill from ClawHub |
 | `nextclaw clawhub install <slug>` | Same as `skills install` |
+| `nextclaw plugins list` | List discovered OpenClaw-compatible plugins |
+| `nextclaw plugins info <id>` | Show details of a plugin |
+| `nextclaw plugins install <path-or-spec>` | Install from local path, archive, or npm package |
+| `nextclaw plugins enable <id>` | Enable a plugin in config |
+| `nextclaw plugins disable <id>` | Disable a plugin in config |
+| `nextclaw plugins uninstall <id>` | Remove plugin config/install record (supports `--dry-run`, `--force`, `--keep-files`) |
+| `nextclaw plugins doctor` | Diagnose plugin load conflicts/errors |
 
 Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 
 - `--ui` — enable the UI server with the gateway
 - `--ui-port <port>` — UI port (default 18791 for start)
 - `--ui-open` — open the browser when the UI starts
+
+---
+
+## Plugins (OpenClaw compatibility)
+
+nextclaw supports OpenClaw-compatible plugins while keeping compatibility logic isolated in `@nextclaw/openclaw-compat`.
+
+Typical flow:
+
+```bash
+# 1) Inspect discovered plugins
+nextclaw plugins list
+
+# 2) Install (path/archive/npm)
+nextclaw plugins install ./my-plugin
+nextclaw plugins install ./my-plugin.tgz
+nextclaw plugins install @scope/openclaw-plugin
+
+# 3) Inspect and toggle
+nextclaw plugins info my-plugin
+nextclaw plugins disable my-plugin
+nextclaw plugins enable my-plugin
+
+# 4) Uninstall
+nextclaw plugins uninstall my-plugin --dry-run
+nextclaw plugins uninstall my-plugin --force
+```
+
+Notes:
+
+- Plugin config is merged under `plugins.entries.<id>.config`.
+- `plugins uninstall --keep-config` is accepted as a backward-compatible alias of `--keep-files`.
+- If a plugin tool/channel/provider conflicts with a built-in capability, nextclaw rejects the conflicting registration and reports diagnostics.
 
 ---
 

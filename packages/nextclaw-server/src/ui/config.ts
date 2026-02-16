@@ -10,8 +10,8 @@ import {
   getPackageVersion,
   type ProviderSpec,
   getWorkspacePathFromConfig
-} from "nextclaw-core";
-import { loadPluginUiMetadata } from "nextclaw-openclaw-compat";
+} from "@nextclaw/core";
+import { loadPluginUiMetadata } from "@nextclaw/openclaw-compat";
 import type {
   ConfigMetaView,
   ConfigSchemaResponse,

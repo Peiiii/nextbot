@@ -1,5 +1,5 @@
-import type { Config } from "nextclaw-core";
-import { getWorkspacePathFromConfig } from "nextclaw-core";
+import type { Config } from "@nextclaw/core";
+import { getWorkspacePathFromConfig } from "@nextclaw/core";
 import type { PluginLogger, PluginRegistry } from "./types.js";
 import { loadOpenClawPlugins } from "./loader.js";
 

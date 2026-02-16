@@ -9,7 +9,7 @@ import {
   type CronService,
   type ChannelManager,
   type PluginUiMetadata
-} from "nextclaw-core";
+} from "@nextclaw/core";
 import { getPackageVersion } from "../utils.js";
 import { runSelfUpdate } from "../update/runner.js";
 
