@@ -34,29 +34,31 @@
 - 负责：把 NextClaw 的运行时能力（工具、通道、日志、存储等）映射为 OpenClaw 期望的 runtime 接口。
 - 禁止：暴露不受控的系统能力；必须遵守安全/权限/资源约束。
 
-## 兼容矩阵（目标态 + 约束）
-兼容级别：
-- A = 完整兼容（行为与 OpenClaw 对齐）
-- B = 部分兼容（核心功能可用，少量限制）
-- C = 不兼容（明确拒绝 + 诊断）
+## 兼容矩阵（长期最佳 + 约束）
+支持级别：
+- Must = 长期必须支持（生态与产品核心价值）
+- Should = 建议支持（生态完整性与体验提升）
+- Optional = 可选支持（扩展能力，需谨慎）
+- Deferred = 可延后（先解析或占位，不阻断核心）
+- No = 不支持（显式拒绝 + 诊断）
 
-| 能力域 | OpenClaw 机制 | NextClaw 目标实现 | 兼容级别 | 备注/限制 |
+| 能力域 | OpenClaw 机制 | NextClaw 目标实现 | 支持级别 | 备注/限制 |
 | --- | --- | --- | --- | --- |
-| 插件发现 | `.openclaw/extensions` + `plugins.load.paths` | 兼容同路径 + NextClaw 扩展目录 | B→A | 需支持 workspace/global/config 三种来源 |
-| Manifest | `openclaw.plugin.json` | 完整解析 + 校验 | A | `id` + `configSchema` 必须 |
-| 插件加载 | jiti TS/ESM 动态加载 | 等价加载器 + 缓存策略 | B→A | 先支持 TS/JS 基本场景 |
-| 配置校验 | `configSchema` JSON Schema | 合并到 `plugins.entries.<id>.config` | A | 校验失败必须阻断加载 |
-| UI Hints | `uiHints` | 合并到 UI hints | B→A | 先支持 label/help/advanced/sensitive/placeholder |
-| registerTool | Tool 注册 | 映射为 NextClaw Tool | B→A | 先支持基础工具接口 |
-| registerProvider | Provider 插件 | 映射为 Provider 管理器 | B | 需定义 auth/模型/别名映射规则 |
-| registerChannel | Channel 插件 | 映射为 BaseChannel 适配器 | B→A | 需要通道生命周期与配置适配 |
-| registerCommand | 命令插件 | 映射为命令路由 | B | 支持最小命令模型 |
-| registerService | 常驻服务 | 映射为服务管理器 | B | 需要启动/停止钩子 |
-| registerCli | CLI 子命令 | 挂载到 CLI | B | 命令冲突需显式拒绝 |
-| registerHttpHandler | HTTP 处理 | 接入 Gateway | B | 需设定路径前缀与访问控制 |
-| registerGatewayMethod | 网关方法 | 接入 Gateway RPC | B | 必须可追踪、可审计 |
-| registerHook | 生命周期 Hook | 接入 Hook 总线 | C→B | 需先定义 hook 语义对齐策略 |
-| skills 字段 | manifest.skills | 兼容为提示词/技能引用 | C→B | 先只解析清单，不自动注入 |
+| 插件发现 | `.openclaw/extensions` + `plugins.load.paths` | 兼容同路径 + NextClaw 扩展目录 | Must | 需支持 workspace/global/config 三种来源 |
+| Manifest | `openclaw.plugin.json` | 完整解析 + 校验 | Must | `id` + `configSchema` 必须 |
+| 插件加载 | jiti TS/ESM 动态加载 | 等价加载器 + 缓存策略 | Must | 先支持 TS/JS 基本场景 |
+| 配置校验 | `configSchema` JSON Schema | 合并到 `plugins.entries.<id>.config` | Must | 校验失败必须阻断加载 |
+| UI Hints | `uiHints` | 合并到 UI hints | Should | 先支持 label/help/advanced/sensitive/placeholder |
+| registerTool | Tool 注册 | 映射为 NextClaw Tool | Must | 先支持基础工具接口 |
+| registerProvider | Provider 插件 | 映射为 Provider 管理器 | Must | 需定义 auth/模型/别名映射规则 |
+| registerChannel | Channel 插件 | 映射为 BaseChannel 适配器 | Must | 需要通道生命周期与配置适配 |
+| registerCommand | 命令插件 | 映射为命令路由 | Should | 支持最小命令模型 |
+| registerService | 常驻服务 | 映射为服务管理器 | Should | 需要启动/停止钩子 |
+| registerCli | CLI 子命令 | 挂载到 CLI | Optional | 命令冲突需显式拒绝 |
+| registerHttpHandler | HTTP 处理 | 接入 Gateway | Optional | 需设定路径前缀与访问控制 |
+| registerGatewayMethod | 网关方法 | 接入 Gateway RPC | Optional | 必须可追踪、可审计 |
+| registerHook | 生命周期 Hook | 接入 Hook 总线 | Optional | 仅在语义对齐与安全隔离后开放 |
+| skills 字段 | manifest.skills | 兼容为提示词/技能引用 | Deferred | 先只解析清单，不自动注入 |
 
 ## 阶段里程碑与验收标准
 ### 阶段 P0：基础兼容骨架
@@ -87,10 +89,10 @@
 ### 阶段 P3：高级能力扩展
 交付物：
 - `registerService` / `registerHttpHandler` / `registerGatewayMethod` / `registerCli`
-- Hook 语义对齐方案与试点支持
+- Hook 语义对齐方案与（可选）试点支持
 验收标准：
 - 每个能力域至少 1 个插件跑通
-- Hook 事件可追踪与回放（至少日志层面）
+- Hook 若启用则事件可追踪与回放（至少日志层面）
 
 ## 风险与应对
 - 风险：SDK 兼容面过大导致维护成本上升
