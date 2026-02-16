@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import { findProviderByName, PROVIDERS } from "../providers/registry.js";
 import { DEFAULT_WORKSPACE_PATH } from "./brand.js";
-import { expandHome } from "../utils/helpers.js";
+import { expandHome, getPackageVersion } from "../utils/helpers.js";
+import { buildBaseHints, mapSensitivePaths, type ConfigUiHints } from "./schema.hints.js";
 
 const allowFrom = z.array(z.string()).default([]);
 
@@ -241,6 +243,15 @@ export const ConfigSchema = z.object({
   tools: ToolsConfigSchema.default({})
 });
 
+export type ConfigSchemaJson = Record<string, unknown>;
+
+export type ConfigSchemaResponse = {
+  schema: ConfigSchemaJson;
+  uiHints: ConfigUiHints;
+  version: string;
+  generatedAt: string;
+};
+
 export type Config = z.infer<typeof ConfigSchema>;
 export type ProviderConfig = z.infer<typeof ProviderConfigSchema>;
 
@@ -290,4 +301,21 @@ export function getApiBase(config: Config, model?: string): string | null {
     }
   }
   return null;
+}
+
+export function buildConfigSchema(options?: { version?: string }): ConfigSchemaResponse {
+  const schema = zodToJsonSchema(ConfigSchema, {
+    name: "NextClawConfig",
+    target: "jsonSchema7"
+  }) as ConfigSchemaJson;
+  if (schema && typeof schema === "object") {
+    schema.title = "NextClawConfig";
+  }
+  const hints = mapSensitivePaths(ConfigSchema, "", buildBaseHints());
+  return {
+    schema,
+    uiHints: hints,
+    version: options?.version ?? getPackageVersion(),
+    generatedAt: new Date().toISOString()
+  };
 }

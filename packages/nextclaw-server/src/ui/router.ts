@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import {
+  buildConfigSchemaView,
   buildConfigMeta,
   buildConfigView,
   loadConfigOrDefault,
@@ -48,6 +49,8 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     const config = loadConfigOrDefault(options.configPath);
     return c.json(ok(buildConfigMeta(config)));
   });
+
+  app.get("/api/config/schema", (c) => c.json(ok(buildConfigSchemaView())));
 
   app.put("/api/config/model", async (c) => {
     const body = await readJson<{ model?: string }>(c.req.raw);

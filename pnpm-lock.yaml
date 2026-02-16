@@ -21,10 +21,10 @@ importers:
         specifier: ^12.1.0
         version: 12.1.0
       nextclaw-core:
-        specifier: ^0.2.8
+        specifier: ^0.4.4
         version: link:../nextclaw-core
       nextclaw-server:
-        specifier: ^0.2.8
+        specifier: ^0.3.2
         version: link:../nextclaw-server
     devDependencies:
       '@types/node':
@@ -123,6 +123,9 @@ importers:
       zod:
         specifier: ^3.23.8
         version: 3.25.76
+      zod-to-json-schema:
+        specifier: ^3.23.5
+        version: 3.25.1(zod@3.25.76)
     devDependencies:
       '@types/mailparser':
         specifier: ^3.4.6
@@ -176,7 +179,7 @@ importers:
         specifier: ^4.6.2
         version: 4.11.9
       nextclaw-core:
-        specifier: ^0.2.8
+        specifier: ^0.4.1
         version: link:../nextclaw-core
       ws:
         specifier: ^8.18.0
@@ -4098,6 +4101,11 @@ packages:
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
+
+  zod-to-json-schema@3.25.1:
+    resolution: {integrity: sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA==}
+    peerDependencies:
+      zod: ^3.25 || ^4
 
   zod-validation-error@4.0.2:
     resolution: {integrity: sha512-Q6/nZLe6jxuU80qb/4uJ4t5v2VEZ44lzQjPDhYJNztRQ4wyWc6VF3D3Kb/fAuPetZQnhS3hnajCf9CsWesghLQ==}
@@ -8078,6 +8086,10 @@ snapshots:
   yallist@3.1.1: {}
 
   yocto-queue@0.1.0: {}
+
+  zod-to-json-schema@3.25.1(zod@3.25.76):
+    dependencies:
+      zod: 3.25.76
 
   zod-validation-error@4.0.2(zod@3.25.76):
     dependencies:

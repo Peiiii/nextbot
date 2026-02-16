@@ -40,7 +40,8 @@
     "socket.io-msgpack-parser": "^3.0.2",
     "undici": "^6.21.0",
     "ws": "^8.18.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.23.5"
   },
   "devDependencies": {
     "@types/mailparser": "^3.4.6",

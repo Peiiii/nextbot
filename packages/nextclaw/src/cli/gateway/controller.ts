@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import {
+  buildConfigSchema,
   ConfigSchema,
+  redactConfigObject,
   type Config,
   type GatewayController,
   type CronService,
@@ -23,25 +25,6 @@ type ControllerDeps = {
 };
 
 const hashRaw = (raw: string): string => createHash("sha256").update(raw).digest("hex");
-
-const redactConfig = (value: unknown): unknown => {
-  if (Array.isArray(value)) {
-    return value.map((entry) => redactConfig(entry));
-  }
-  if (!value || typeof value !== "object") {
-    return value;
-  }
-  const entries = value as Record<string, unknown>;
-  const output: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(entries)) {
-    if (/apiKey|token|secret|password|appId|clientSecret|accessKey/i.test(key)) {
-      output[key] = val ? "***" : val;
-      continue;
-    }
-    output[key] = redactConfig(val);
-  }
-  return output;
-};
 
 const readConfigSnapshot = (getConfigPath: () => string): {
   raw: string | null;
@@ -73,8 +56,14 @@ const readConfigSnapshot = (getConfigPath: () => string): {
     raw = JSON.stringify(config, null, 2);
   }
   const hash = hashRaw(raw);
-  const redacted = redactConfig(config) as Record<string, unknown>;
+  const schema = buildConfigSchema({ version: getPackageVersion() });
+  const redacted = redactConfigObject(config, schema.uiHints) as Record<string, unknown>;
   return { raw: valid ? JSON.stringify(redacted, null, 2) : null, hash: valid ? hash : null, config, redacted, valid };
+};
+
+const redactValue = (value: Config): Record<string, unknown> => {
+  const schema = buildConfigSchema({ version: getPackageVersion() });
+  return redactConfigObject(value, schema.uiHints) as Record<string, unknown>;
 };
 
 const mergeDeep = (base: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> => {
@@ -92,30 +81,6 @@ const mergeDeep = (base: Record<string, unknown>, patch: Record<string, unknown>
     }
   }
   return next;
-};
-
-const buildSchemaFromValue = (value: unknown): Record<string, unknown> => {
-  if (Array.isArray(value)) {
-    const item = value.length ? buildSchemaFromValue(value[0]) : { type: "string" };
-    return { type: "array", items: item };
-  }
-  if (value && typeof value === "object") {
-    const props: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-      props[key] = buildSchemaFromValue(val);
-    }
-    return { type: "object", properties: props };
-  }
-  if (typeof value === "number") {
-    return { type: "number" };
-  }
-  if (typeof value === "boolean") {
-    return { type: "boolean" };
-  }
-  if (value === null) {
-    return { type: ["null", "string"] };
-  }
-  return { type: "string" };
 };
 
 const scheduleRestart = (delayMs?: number, reason?: string): void => {
@@ -160,17 +125,7 @@ export class GatewayControllerImpl implements GatewayController {
   }
 
   async getConfigSchema(): Promise<Record<string, unknown>> {
-    const base = ConfigSchema.parse({});
-    return {
-      schema: {
-        ...buildSchemaFromValue(base),
-        title: "NextClawConfig",
-        description: "NextClaw config schema (simplified)"
-      },
-      uiHints: {},
-      version: getPackageVersion(),
-      generatedAt: new Date().toISOString()
-    };
+    return buildConfigSchema({ version: getPackageVersion() });
   }
 
   async applyConfig(params: {
@@ -209,7 +164,7 @@ export class GatewayControllerImpl implements GatewayController {
       ok: true,
       note: params.note ?? null,
       path: this.deps.getConfigPath(),
-      config: redactConfig(validated),
+      config: redactValue(validated),
       restart: { scheduled: true, delayMs }
     };
   }
@@ -251,7 +206,7 @@ export class GatewayControllerImpl implements GatewayController {
       ok: true,
       note: params.note ?? null,
       path: this.deps.getConfigPath(),
-      config: redactConfig(validated),
+      config: redactValue(validated),
       restart: { scheduled: true, delayMs }
     };
   }

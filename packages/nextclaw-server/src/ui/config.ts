@@ -5,11 +5,14 @@ import {
   type Config,
   type ProviderConfig,
   PROVIDERS,
+  buildConfigSchema,
   findProviderByName,
+  getPackageVersion,
   type ProviderSpec
 } from "nextclaw-core";
 import type {
   ConfigMetaView,
+  ConfigSchemaResponse,
   ConfigView,
   ProviderConfigUpdate,
   ProviderConfigView
@@ -78,6 +81,10 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
     enabled: Boolean((config.channels as Record<string, { enabled?: boolean }>)[name]?.enabled)
   }));
   return { providers, channels };
+}
+
+export function buildConfigSchemaView(): ConfigSchemaResponse {
+  return buildConfigSchema({ version: getPackageVersion() });
 }
 
 export function loadConfigOrDefault(configPath: string): Config {

@@ -1,6 +1,7 @@
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { DEFAULT_HOME_DIR, ENV_HOME_KEY } from "../config/brand.js";
 
 export function ensureDir(path: string): string {
@@ -70,4 +71,16 @@ export function expandHome(value: string): string {
     return resolve(homedir(), value.slice(2));
   }
   return value;
+}
+
+export function getPackageVersion(): string {
+  try {
+    const dir = resolve(fileURLToPath(new URL(".", import.meta.url)));
+    const pkgPath = resolve(dir, "..", "..", "package.json");
+    const raw = readFileSync(pkgPath, "utf-8");
+    const parsed = JSON.parse(raw) as { version?: string };
+    return typeof parsed.version === "string" ? parsed.version : "0.0.0";
+  } catch {
+    return "0.0.0";
+  }
 }

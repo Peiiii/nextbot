@@ -5,7 +5,7 @@ import { createServer } from "node:net";
 import type { Interface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import type { Config } from "nextclaw-core";
-import { getDataDir } from "nextclaw-core";
+import { getDataDir, getPackageVersion } from "nextclaw-core";
 
 export type ServiceState = {
   pid: number;
@@ -180,18 +180,6 @@ export function openBrowser(url: string): void {
   child.unref();
 }
 
-export function getPackageVersion(): string {
-  try {
-    const cliDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
-    const pkgPath = resolve(cliDir, "..", "..", "package.json");
-    const raw = readFileSync(pkgPath, "utf-8");
-    const parsed = JSON.parse(raw) as { version?: string };
-    return typeof parsed.version === "string" ? parsed.version : "0.0.0";
-  } catch {
-    return "0.0.0";
-  }
-}
-
 export function which(binary: string): boolean {
   const paths = (process.env.PATH ?? "").split(":");
   for (const dir of paths) {
@@ -202,6 +190,8 @@ export function which(binary: string): boolean {
   }
   return false;
 }
+
+export { getPackageVersion };
 
 export function startUiFrontend(options: { apiBase: string; port: number; dir?: string }): { url: string; dir: string } | null {
   const uiDir = options.dir ?? resolveUiFrontendDir();
