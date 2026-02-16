@@ -1,5 +1,14 @@
 # nextclaw
 
+## 0.4.7
+
+### Patch Changes
+
+- Align config schema + uiHints pipeline with OpenClaw-style mechanism, add schema API, and unify config redaction.
+- Updated dependencies
+  - nextclaw-core@0.4.5
+  - nextclaw-server@0.3.3
+
 ## 0.4.6
 
 ### Patch Changes
