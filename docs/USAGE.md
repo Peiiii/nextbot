@@ -1,16 +1,57 @@
-# nextclaw Usage
+# nextclaw User Guide
 
-This guide covers configuration, providers, channels, cron, heartbeat, and common workflows.
+This guide covers installation, configuration, channels, tools, automation, and troubleshooting for nextclaw.
+
+---
+
+## Table of contents
+
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Workspace](#workspace)
+- [Commands](#commands)
+- [Channels](#channels)
+- [Tools](#tools)
+- [Cron & Heartbeat](#cron--heartbeat)
+- [Troubleshooting](#troubleshooting)
+- [Running from source](#running-from-source)
+
+---
+
+## Quick Start
+
+1. Install:
+
+   ```bash
+   npm i -g nextclaw
+   ```
+
+2. Start the service (gateway + config UI in the background):
+
+   ```bash
+   nextclaw start
+   ```
+
+3. Open **http://127.0.0.1:18791** in your browser. Set a provider (e.g. OpenRouter) and model in the UI.
+
+4. Optionally run `nextclaw init` to create a workspace with agent templates, or chat from the CLI:
+
+   ```bash
+   nextclaw agent -m "Hello!"
+   ```
+
+5. Stop the service when done:
+
+   ```bash
+   nextclaw stop
+   ```
+
+---
 
 ## Configuration
 
-Default config path:
-
-- `~/.nextclaw/config.json`
-
-Override data directory:
-
-- `NEXTCLAW_HOME=/path/to/dir`
+- **Config file:** `~/.nextclaw/config.json`
+- **Data directory:** Override with `NEXTCLAW_HOME=/path/to/dir` (config path becomes `$NEXTCLAW_HOME/config.json`).
 
 ### Minimal config
 
@@ -20,12 +61,23 @@ Override data directory:
     "openrouter": { "apiKey": "sk-or-v1-xxx" }
   },
   "agents": {
-    "defaults": { "model": "anthropic/claude-opus-4-5" }
+    "defaults": { "model": "minimax/MiniMax-M2.5" }
   }
 }
 ```
 
-### MiniMax (China)
+### Provider examples
+
+**OpenRouter (recommended)**
+
+```json
+{
+  "providers": { "openrouter": { "apiKey": "sk-or-v1-xxx" } },
+  "agents": { "defaults": { "model": "minimax/MiniMax-M2.5" } }
+}
+```
+
+**MiniMax (Mainland China)**
 
 ```json
 {
@@ -35,13 +87,11 @@ Override data directory:
       "apiBase": "https://api.minimaxi.com/v1"
     }
   },
-  "agents": {
-    "defaults": { "model": "minimax/MiniMax-M2.1" }
-  }
+  "agents": { "defaults": { "model": "minimax/MiniMax-M2.5" } }
 }
 ```
 
-### Local models (vLLM or any OpenAI-compatible server)
+**Local vLLM (or any OpenAI-compatible server)**
 
 ```json
 {
@@ -51,122 +101,98 @@ Override data directory:
       "apiBase": "http://localhost:8000/v1"
     }
   },
-  "agents": {
-    "defaults": { "model": "meta-llama/Llama-3.1-8B-Instruct" }
-  }
+  "agents": { "defaults": { "model": "meta-llama/Llama-3.1-8B-Instruct" } }
 }
 ```
+
+Supported providers include OpenRouter, OpenAI, Anthropic, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and AiHubMix. You can configure them in the UI or by editing `config.json`.
+
+---
 
 ## Workspace
 
-Default workspace path:
+- **Default path:** `~/.nextclaw/workspace`
+- Override in config:
 
-- `~/.nextclaw/workspace`
-
-You can override this in config:
-
-```json
-{
-  "agents": {
-    "defaults": { "workspace": "~/my-nextclaw" }
+  ```json
+  {
+    "agents": { "defaults": { "workspace": "~/my-nextclaw" } }
   }
-}
-```
+  ```
 
-Created by `onboard`:
-
-- `AGENTS.md`: system instructions for the agent
-- `SOUL.md`: personality and values
-- `USER.md`: user profile hints
-- `memory/MEMORY.md`: long-term notes
-- `skills/`: custom skills
-
-Heartbeat:
-
-- `HEARTBEAT.md` in the workspace is checked every 30 minutes when `gateway` runs.
-- If the file contains actionable tasks, the agent will process it.
-
-## Running
-
-Initialize:
+Initialize the workspace (creates template files if missing):
 
 ```bash
-pnpm -C packages/nextclaw dev onboard
+nextclaw init
 ```
 
-CLI (dev):
+Use `nextclaw init --force` to overwrite existing template files.
 
-```bash
-pnpm -C packages/nextclaw dev agent -m "Hello"
-```
+Created under the workspace:
 
-Gateway (for channels):
+| File / folder   | Purpose                          |
+|-----------------|----------------------------------|
+| `AGENTS.md`     | System instructions for the agent |
+| `SOUL.md`       | Personality and values            |
+| `USER.md`       | User profile hints                |
+| `IDENTITY.md`   | Identity context                  |
+| `TOOLS.md`      | Tool usage guidelines             |
+| `BOOT.md` / `BOOTSTRAP.md` | Boot context               |
+| `HEARTBEAT.md`  | Tasks checked periodically        |
+| `memory/MEMORY.md` | Long-term notes                |
+| `skills/`       | Custom skills                     |
 
-```bash
-pnpm -C packages/nextclaw dev gateway
-```
+**Heartbeat:** When the gateway is running, `HEARTBEAT.md` in the workspace is checked every 30 minutes. If it contains actionable tasks, the agent will process them.
 
-Status:
+---
 
-```bash
-pnpm -C packages/nextclaw dev status
-```
+## Commands
 
-UI (gateway + config UI):
+| Command | Description |
+|---------|-------------|
+| `nextclaw start` | Start gateway + UI in the background |
+| `nextclaw stop` | Stop the background service |
+| `nextclaw ui` | Start UI and gateway in the foreground |
+| `nextclaw gateway` | Start gateway only (for channels) |
+| `nextclaw serve` | Run gateway + UI in the foreground (no background) |
+| `nextclaw agent -m "message"` | Send a one-off message to the agent |
+| `nextclaw agent` | Interactive chat in the terminal |
+| `nextclaw status` | Show config path and provider status |
+| `nextclaw init` | Initialize workspace and template files |
+| `nextclaw init --force` | Re-run init and overwrite templates |
+| `nextclaw update` | Self-update the CLI |
+| `nextclaw channels status` | Show enabled channels and status |
+| `nextclaw channels login` | Open QR login for supported channels |
+| `nextclaw cron list` | List scheduled jobs |
+| `nextclaw cron add ...` | Add a cron job (see [Cron](#cron--heartbeat)) |
+| `nextclaw cron remove <jobId>` | Remove a job |
+| `nextclaw cron enable <jobId>` | Enable a job (use `--disable` to disable) |
+| `nextclaw cron run <jobId>` | Run a job once (optionally with `--force` if disabled) |
+| `nextclaw skills install <slug>` | Install a skill from ClawHub |
+| `nextclaw clawhub install <slug>` | Same as `skills install` |
 
-```bash
-pnpm -C packages/nextclaw dev ui
-```
+Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 
-All-in-one (dev foreground):
+- `--ui` — enable the UI server with the gateway
+- `--ui-port <port>` — UI port (default 18791 for start)
+- `--ui-open` — open the browser when the UI starts
 
-```bash
-pnpm -C packages/nextclaw dev start
-```
-
-Stop the service (background only):
-
-```bash
-pnpm -C packages/nextclaw dev stop
-```
-
-Notes:
-
-- In dev, `start` runs in the foreground (Ctrl+C to stop) and starts the UI frontend dev server by default.
-- If UI static assets are bundled, `start` serves them from the UI backend when the dev frontend is not running.
-- For foreground mode without frontend, use `pnpm -C packages/nextclaw dev serve`.
-- Dev defaults: UI `18792`, frontend `5174` (to avoid conflicts with app ports).
-- If a dev port is already in use, the CLI will switch to the next available port and print it.
-
-UI config (optional):
-
-```json
-{
-  "ui": {
-    "enabled": true,
-    "host": "127.0.0.1",
-    "port": 18791,
-    "open": false
-  }
-}
-```
-
-Background (nohup):
-
-```bash
-nohup pnpm -C packages/nextclaw dev gateway > ~/.nextclaw/logs/gateway.log 2>&1 &
-```
+---
 
 ## Channels
 
-### allowFrom behavior
+All message channels use a common **allowFrom** rule:
 
-- Empty `allowFrom` means allow all senders.
-- If set, only user IDs in the list are allowed.
+- **Empty `allowFrom`** (`[]`): allow all senders.
+- **Non-empty `allowFrom`**: only messages from the listed user IDs are accepted.
+
+Configure channels in the UI at http://127.0.0.1:18791 or in `~/.nextclaw/config.json` under `channels`.
 
 ### Discord
 
-Config:
+1. Create a bot in the [Discord Developer Portal](https://discord.com/developers/applications) and get the bot token.
+2. Enable **MESSAGE CONTENT INTENT** for the bot.
+3. Invite the bot to your server with permissions to read and send messages.
 
 ```json
 {
@@ -180,14 +206,11 @@ Config:
 }
 ```
 
-Notes:
-
-- In the Discord Developer Portal, enable MESSAGE CONTENT intent.
-- Invite the bot with permissions to read and send messages.
-
 ### Telegram
 
-Config:
+1. Create a bot via [@BotFather](https://t.me/BotFather) and get the token.
+2. Get your user ID (e.g. from [@userinfobot](https://t.me/userinfobot)).
+3. Add your user ID to `allowFrom` to restrict who can use the bot.
 
 ```json
 {
@@ -201,9 +224,11 @@ Config:
 }
 ```
 
+Optional: set `"proxy": "http://localhost:7890"` (or your proxy URL) for network access.
+
 ### Slack
 
-Config (socket mode):
+Socket mode is the typical setup. You need a **Bot Token** and an **App-Level Token** (with `connections:write`).
 
 ```json
 {
@@ -219,9 +244,143 @@ Config (socket mode):
 }
 ```
 
+- `dm.enabled`: allow DMs to the bot.
+- `dm.allowFrom`: restrict DMs to these user IDs; empty means allow all.
+
+### Feishu (Lark)
+
+Create an app in the [Feishu open platform](https://open.feishu.com/), obtain App ID, App Secret, and (if using encryption) Encrypt Key and Verification Token.
+
+```json
+{
+  "channels": {
+    "feishu": {
+      "enabled": true,
+      "appId": "YOUR_APP_ID",
+      "appSecret": "YOUR_APP_SECRET",
+      "encryptKey": "",
+      "verificationToken": "",
+      "allowFrom": []
+    }
+  }
+}
+```
+
+### DingTalk
+
+Create an app in the [DingTalk open platform](https://open.dingtalk.com/) and get Client ID and Client Secret.
+
+```json
+{
+  "channels": {
+    "dingtalk": {
+      "enabled": true,
+      "clientId": "YOUR_CLIENT_ID",
+      "clientSecret": "YOUR_CLIENT_SECRET",
+      "allowFrom": []
+    }
+  }
+}
+```
+
+### WhatsApp
+
+WhatsApp typically requires a bridge (e.g. a companion service). Configure the bridge URL and optional allowlist:
+
+```json
+{
+  "channels": {
+    "whatsapp": {
+      "enabled": true,
+      "bridgeUrl": "ws://localhost:3001",
+      "allowFrom": []
+    }
+  }
+}
+```
+
+Use `nextclaw channels login` when the bridge supports QR-based linking.
+
+### Email
+
+Configure IMAP (inbox) and SMTP (sending). The agent can read and reply to emails.
+
+```json
+{
+  "channels": {
+    "email": {
+      "enabled": true,
+      "consentGranted": true,
+      "imapHost": "imap.example.com",
+      "imapPort": 993,
+      "imapUsername": "you@example.com",
+      "imapPassword": "YOUR_PASSWORD",
+      "imapMailbox": "INBOX",
+      "imapUseSsl": true,
+      "smtpHost": "smtp.example.com",
+      "smtpPort": 587,
+      "smtpUsername": "you@example.com",
+      "smtpPassword": "YOUR_PASSWORD",
+      "smtpUseTls": true,
+      "fromAddress": "you@example.com",
+      "autoReplyEnabled": true,
+      "pollIntervalSeconds": 30,
+      "allowFrom": []
+    }
+  }
+}
+```
+
+Set `consentGranted` to `true` after you understand that the agent will read and send mail. Use `allowFrom` to restrict to certain sender addresses if desired.
+
+### QQ
+
+Use the QQ open platform app credentials.
+
+```json
+{
+  "channels": {
+    "qq": {
+      "enabled": true,
+      "appId": "YOUR_APP_ID",
+      "secret": "YOUR_SECRET",
+      "markdownSupport": false,
+      "allowFrom": []
+    }
+  }
+}
+```
+
+### Mochat
+
+Mochat uses a claw token and optional socket URL. Configure base URL, socket, and (optionally) sessions/panels and group rules.
+
+```json
+{
+  "channels": {
+    "mochat": {
+      "enabled": true,
+      "baseUrl": "https://mochat.io",
+      "socketUrl": "",
+      "clawToken": "YOUR_CLAW_TOKEN",
+      "agentUserId": "",
+      "sessions": [],
+      "panels": [],
+      "allowFrom": []
+    }
+  }
+}
+```
+
+After changing channel config, restart the gateway (e.g. `nextclaw stop` then `nextclaw start`) or use the UI if it supports reload.
+
+---
+
 ## Tools
 
-Web search (Brave):
+### Web search (Brave)
+
+Add a Brave Search API key to enable web search for the agent:
 
 ```json
 {
@@ -233,45 +392,133 @@ Web search (Brave):
 }
 ```
 
-Exec tool:
+### Command execution (exec)
+
+Allow the agent to run shell commands:
 
 ```json
 {
   "tools": {
-    "exec": { "timeout": 60 },
-    "restrictToWorkspace": false
-  }
+    "exec": { "timeout": 60 }
+  },
+  "restrictToWorkspace": false
 }
 ```
 
-## Cron
+- `timeout`: max seconds per command.
+- `restrictToWorkspace`: if `true`, commands are restricted to the agent workspace directory; if `false`, the agent can run commands in other paths (use with care).
+
+---
+
+## Cron & Heartbeat
+
+### Cron
+
+Schedule one-off or recurring tasks. The agent receives the message at the scheduled time.
 
 List jobs:
 
 ```bash
-pnpm -C packages/nextclaw dev cron list
+nextclaw cron list
 ```
 
-Add a one-time job:
+Add a one-time job (run at a specific time, ISO format):
 
 ```bash
-pnpm -C packages/nextclaw dev cron add \
-  --name "reminder" \
-  --message "Stand up and stretch" \
-  --at "2026-02-12T09:00:00"
+nextclaw cron add -n "reminder" -m "Stand up and stretch" --at "2026-02-15T09:00:00"
 ```
 
-Add a recurring job:
+Add a recurring job (cron expression):
 
 ```bash
-pnpm -C packages/nextclaw dev cron add \
-  --name "daily-summary" \
-  --message "Summarize yesterday" \
-  --cron "0 9 * * *"
+nextclaw cron add -n "daily-summary" -m "Summarize yesterday" -c "0 9 * * *"
 ```
+
+Add a job that runs every N seconds:
+
+```bash
+nextclaw cron add -n "ping" -m "Ping" -e 3600
+```
+
+Optional: deliver the agent’s reply to a channel:
+
+```bash
+nextclaw cron add -n "daily" -m "Daily briefing" -c "0 9 * * *" --deliver --to <recipient> --channel <channel>
+```
+
+Remove, enable, or disable a job:
+
+```bash
+nextclaw cron remove <jobId>
+nextclaw cron enable <jobId>
+nextclaw cron enable <jobId> --disable
+```
+
+Run a job once (e.g. for testing):
+
+```bash
+nextclaw cron run <jobId>
+```
+
+### Heartbeat
+
+When the gateway is running, it checks the workspace file `HEARTBEAT.md` periodically (e.g. every 30 minutes). If the file contains actionable tasks, the agent processes them. Edit `HEARTBEAT.md` in your workspace to add or change tasks.
+
+---
+
+## UI (optional)
+
+You can tune the UI server in config:
+
+```json
+{
+  "ui": {
+    "enabled": true,
+    "host": "127.0.0.1",
+    "port": 18791,
+    "open": false
+  }
+}
+```
+
+- `enabled`: whether the UI server is started with the gateway (e.g. when using `nextclaw start`).
+- `host` / `port`: bind address and port.
+- `open`: open the default browser when the UI starts.
+
+Default URL when using `nextclaw start`: **http://127.0.0.1:18791**.
+
+---
 
 ## Troubleshooting
 
-- 401 invalid api key: verify the provider key and the target apiBase.
-- Unknown model: confirm the model name is supported by your provider.
-- No channel replies: confirm `allowFrom` and gateway is running.
+| Issue | What to check |
+|-------|----------------|
+| **401 / invalid API key** | Verify the provider `apiKey` and `apiBase` in config or UI. Ensure no extra spaces or wrong key. |
+| **Unknown model** | Confirm the model ID is supported by your provider (e.g. OpenRouter model list). |
+| **No replies on a channel** | Ensure the channel is `enabled`, `allowFrom` includes your user ID if set, and the gateway is running (`nextclaw start` or `nextclaw gateway`). Run `nextclaw channels status` to see channel status. |
+| **Port already in use** | Change `ui.port` in config or use `--ui-port` when starting. Default UI port is 18791, gateway 18790. |
+| **Config not loading** | Ensure `NEXTCLAW_HOME` (if set) points to the directory that contains `config.json`. Run `nextclaw status` to see which config file is used. |
+| **Agent not responding in CLI** | Run `nextclaw init` if you have not yet; ensure a provider and model are set and the provider key is valid. |
+
+---
+
+## Running from source
+
+If you develop or run from the repository:
+
+```bash
+git clone https://github.com/Peiiii/nextclaw.git
+cd nextclaw
+pnpm install
+pnpm nextclaw start
+```
+
+Development mode runs in the foreground (Ctrl+C to stop). Default dev ports: UI **18792**, frontend dev server **5174**. If a port is in use, the CLI will try the next available port and print it.
+
+Other commands from repo root (same as global `nextclaw`):
+
+- `pnpm nextclaw agent -m "Hello"` — CLI agent
+- `pnpm nextclaw status` — status
+- `pnpm nextclaw cron list` — cron list
+
+When running from source, use `pnpm nextclaw <command>` instead of `nextclaw <command>`; the rest of this guide applies the same way.

@@ -68,7 +68,7 @@ nextclaw stop   # stop the service
 ```json
 {
   "providers": { "openrouter": { "apiKey": "sk-or-v1-xxx" } },
-  "agents": { "defaults": { "model": "anthropic/claude-opus-4-5" } }
+  "agents": { "defaults": { "model": "minimax/MiniMax-M2.5" } }
 }
 ```
 
@@ -82,7 +82,7 @@ nextclaw stop   # stop the service
   "providers": {
     "minimax": { "apiKey": "sk-api-xxx", "apiBase": "https://api.minimaxi.com/v1" }
   },
-  "agents": { "defaults": { "model": "minimax/MiniMax-M2.1" } }
+  "agents": { "defaults": { "model": "minimax/MiniMax-M2.5" } }
 }
 ```
 

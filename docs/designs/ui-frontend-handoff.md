@@ -113,7 +113,7 @@
 {
   "ok": true,
   "data": {
-    "agents": { "defaults": { "model": "minimax/MiniMax-M2.1" } },
+    "agents": { "defaults": { "model": "minimax/MiniMax-M2.5" } },
     "providers": {
       "minimax": {
         "apiKeySet": true,

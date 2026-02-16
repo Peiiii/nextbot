@@ -45,6 +45,7 @@ import { fileURLToPath } from "node:url";
 import chokidar from "chokidar";
 import { GatewayControllerImpl } from "./gateway/controller.js";
 import { installClawHubSkill } from "./skills/clawhub.js";
+import { runSelfUpdate } from "./update/runner.js";
 import type { ServiceState } from "./utils.js";
 import {
   buildServeArgs,
@@ -97,6 +98,10 @@ type AgentCommandOptions = {
   message?: string;
   session?: string;
   markdown?: boolean;
+};
+
+type UpdateCommandOptions = {
+  timeout?: string | number;
 };
 
 type CronAddOptions = {
@@ -481,6 +486,47 @@ export class CliRuntime {
         sessionKey: opts.session ?? "cli:default"
       });
       printAgentResponse(response);
+    }
+  }
+
+  async update(opts: UpdateCommandOptions): Promise<void> {
+    let timeoutMs: number | undefined;
+    if (opts.timeout !== undefined) {
+      const parsed = Number(opts.timeout);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        console.error("Invalid --timeout value. Provide milliseconds (e.g. 1200000).");
+        process.exit(1);
+      }
+      timeoutMs = parsed;
+    }
+
+    const result = runSelfUpdate({ timeoutMs, cwd: process.cwd() });
+
+    const printSteps = () => {
+      for (const step of result.steps) {
+        console.log(`- ${step.cmd} ${step.args.join(" ")} (code ${step.code ?? "?"})`);
+        if (step.stderr) {
+          console.log(`  stderr: ${step.stderr}`);
+        }
+        if (step.stdout) {
+          console.log(`  stdout: ${step.stdout}`);
+        }
+      }
+    };
+
+    if (!result.ok) {
+      console.error(`Update failed: ${result.error ?? "unknown error"}`);
+      if (result.steps.length > 0) {
+        printSteps();
+      }
+      process.exit(1);
+    }
+
+    console.log(`✓ Update complete (${result.strategy})`);
+
+    const state = readServiceState();
+    if (state && isProcessRunning(state.pid)) {
+      console.log(`Tip: restart ${APP_NAME} to apply the update.`);
     }
   }
 

@@ -259,7 +259,7 @@ ApiResponse<ConfigMetaView>
 `PUT /api/config/model`
 
 ```json
-{ "model": "minimax/MiniMax-M2.1" }
+{ "model": "minimax/MiniMax-M2.5" }
 ```
 
 响应：

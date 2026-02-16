@@ -1,8 +1,5 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { spawnSync } from "node:child_process";
-import { fileURLToPath } from "node:url";
-import { join, resolve } from "node:path";
 import {
   ConfigSchema,
   type Config,
@@ -10,7 +7,8 @@ import {
   type CronService,
   type ChannelManager
 } from "nextclaw-core";
-import { getPackageVersion, which } from "../utils.js";
+import { getPackageVersion } from "../utils.js";
+import { runSelfUpdate } from "../update/runner.js";
 
 type ConfigReloaderLike = {
   getChannels: () => ChannelManager;
@@ -264,64 +262,9 @@ export class GatewayControllerImpl implements GatewayController {
     timeoutMs?: number;
     sessionKey?: string;
   }): Promise<Record<string, unknown>> {
-    const timeoutMs = params.timeoutMs ?? 20 * 60_000;
-    const gatewayDir = resolve(fileURLToPath(new URL(".", import.meta.url)));
-    const cliDir = resolve(gatewayDir, "..");
-    const pkgRoot = resolve(cliDir, "..", "..");
-    const repoRoot = existsSync(join(pkgRoot, ".git")) ? pkgRoot : resolve(pkgRoot, "..", "..");
-    const steps: Array<Record<string, unknown>> = [];
-
-    const runStep = (cmd: string, args: string[], cwd: string): { ok: boolean; code: number | null } => {
-      const result = spawnSync(cmd, args, {
-        cwd,
-        encoding: "utf-8",
-        timeout: timeoutMs,
-        stdio: "pipe"
-      });
-      const step = {
-        cmd,
-        args,
-        cwd,
-        code: result.status,
-        stdout: (result.stdout ?? "").toString().slice(0, 4000),
-        stderr: (result.stderr ?? "").toString().slice(0, 4000)
-      };
-      steps.push(step);
-      return { ok: result.status === 0, code: result.status };
-    };
-
-    const updateCommand = process.env.NEXTCLAW_UPDATE_COMMAND?.trim();
-    if (updateCommand) {
-      const ok = runStep("sh", ["-c", updateCommand], process.cwd());
-      if (!ok.ok) {
-        return { ok: false, error: "update command failed", steps };
-      }
-    } else if (existsSync(join(repoRoot, ".git"))) {
-      if (!which("git")) {
-        return { ok: false, error: "git not found for repo update", steps };
-      }
-      const ok = runStep("git", ["-C", repoRoot, "pull", "--rebase"], repoRoot);
-      if (!ok.ok) {
-        return { ok: false, error: "git pull failed", steps };
-      }
-      if (existsSync(join(repoRoot, "pnpm-lock.yaml")) && which("pnpm")) {
-        const installOk = runStep("pnpm", ["install"], repoRoot);
-        if (!installOk.ok) {
-          return { ok: false, error: "pnpm install failed", steps };
-        }
-      } else if (existsSync(join(repoRoot, "package.json")) && which("npm")) {
-        const installOk = runStep("npm", ["install"], repoRoot);
-        if (!installOk.ok) {
-          return { ok: false, error: "npm install failed", steps };
-        }
-      }
-    } else if (which("npm")) {
-      const ok = runStep("npm", ["i", "-g", "nextclaw"], process.cwd());
-      if (!ok.ok) {
-        return { ok: false, error: "npm install -g nextclaw failed", steps };
-      }
-    } else {
-      return { ok: false, error: "no update strategy available", steps };
+    const result = runSelfUpdate({ timeoutMs: params.timeoutMs });
+    if (!result.ok) {
+      return { ok: false, error: result.error ?? "update failed", steps: result.steps };
     }
 
     const delayMs = params.restartDelayMs ?? 0;
@@ -330,7 +273,8 @@ export class GatewayControllerImpl implements GatewayController {
       ok: true,
       note: params.note ?? null,
       restart: { scheduled: true, delayMs },
-      steps
+      strategy: result.strategy,
+      steps: result.steps
     };
   }
 }

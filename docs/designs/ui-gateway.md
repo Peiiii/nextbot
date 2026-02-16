@@ -79,7 +79,7 @@ CLI 参数建议：
 #### 更新模型与 Provider
 
 - `PUT /api/config/model`
-  - body: `{ "model": "minimax/MiniMax-M2.1" }`
+  - body: `{ "model": "minimax/MiniMax-M2.5" }`
   - 行为：更新 `agents.defaults.model`
 
 - `PUT /api/config/providers/<provider>`

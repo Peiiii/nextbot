@@ -75,6 +75,12 @@ program
   .option("--no-markdown", "Disable Markdown rendering")
   .action(async (opts) => runtime.agent(opts));
 
+program
+  .command("update")
+  .description(`Update ${APP_NAME}`)
+  .option("--timeout <ms>", "Update command timeout in milliseconds")
+  .action(async (opts) => runtime.update(opts));
+
 const registerClawHubInstall = (cmd: Command) => {
   cmd
     .command("install <slug>")

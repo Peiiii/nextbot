@@ -53,7 +53,7 @@ No login/auth, no chat interface, no message history, no status/monitoring dashb
 
 **Data shown and editable:**
 
-- **model** (string) — **Persisted.** Default model name, e.g. `minimax/MiniMax-M2.1`, `anthropic/claude-opus-4-5`.  
+- **model** (string) — **Persisted.** Default model name, e.g. `minimax/MiniMax-M2.5`.  
 - **workspace** (string) — Shown and editable in UI but **not persisted** in this app (backend may have its own default).  
 - **maxTokens** (number) — Shown and editable (e.g. slider 1000–32000). **Not persisted** from this UI.  
 - **temperature** (number) — Shown and editable (e.g. slider 0–2). **Not persisted** from this UI.
