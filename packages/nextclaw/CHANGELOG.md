@@ -1,5 +1,11 @@
 # nextclaw
 
+## 0.4.13
+
+### Patch Changes
+
+- Align CLI config management with OpenClaw style by adding `config get|set|unset` commands and removing plugin config output options from `plugins info`.
+
 ## 0.4.12
 
 ### Patch Changes
