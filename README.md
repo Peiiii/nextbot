@@ -8,7 +8,7 @@
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Channels](#-channels) · [Docs](docs/USAGE.md)
+[Why nextclaw?](#why-nextclaw) · [Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Channels](#-channels) · [Docs](docs/USAGE.md)
 
 </div>
 
@@ -17,6 +17,14 @@
 Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https://github.com/HKUDS/nanobot), **nextclaw** is a **lighter, UI-first** personal AI gateway: install once, run `nextclaw start`, then configure providers and channels in the browser. No onboarding wizard, no daemon setup — just one command and you're in.
 
 **Best for:** quick trials, secondary machines, or anyone who wants OpenClaw-style multi-channel + multi-provider without the full platform.
+
+### Why nextclaw?
+
+| | |
+|---|---|
+| **Easier to use** | No complex CLI workflows — one command (`nextclaw start`), then configure everything in the built-in UI. |
+| **OpenClaw-compatible** | Works with the OpenClaw plugin ecosystem: discover, install, and use the same plugins and channel setups. |
+| **Lightweight** | Evolved from [nanobot](https://github.com/HKUDS/nanobot); minimal codebase, fast to run and maintain. |
 
 ---
 
