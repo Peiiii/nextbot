@@ -20,8 +20,8 @@ Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https:/
 
 ### Why nextclaw?
 
-| | |
-|---|---|
+| Advantage | Description |
+|-----------|-------------|
 | **Easier to use** | No complex CLI workflows — one command (`nextclaw start`), then configure everything in the built-in UI. |
 | **OpenClaw-compatible** | Works with the OpenClaw plugin ecosystem: discover, install, and use the same plugins and channel setups. |
 | **Lightweight** | Evolved from [nanobot](https://github.com/HKUDS/nanobot); minimal codebase, fast to run and maintain. |
