@@ -178,6 +178,7 @@ nextclaw plugins uninstall my-plugin --dry-run
 ## 📚 Docs
 
 - [Configuration, providers, channels, plugins, cron](docs/USAGE.md)
+- [OpenClaw plugin compatibility guide](docs/openclaw-plugin-compat.md)
 - [OpenClaw plugin compatibility plan](docs/designs/openclaw-plugin-compat.plan.md)
 
 ---

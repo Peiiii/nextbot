@@ -193,6 +193,7 @@ Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 ## Plugins (OpenClaw compatibility)
 
 NextClaw supports OpenClaw-compatible plugins while keeping compatibility logic isolated in `@nextclaw/openclaw-compat`.
+For architecture boundaries and capability matrix, see [OpenClaw plugin compatibility guide](./openclaw-plugin-compat.md).
 
 Typical flow:
 
