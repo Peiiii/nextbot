@@ -1,4 +1,4 @@
-# nextclaw UI API 设计（Phase 1）
+# NextClaw UI API 设计（Phase 1）
 
 本文件提供 UI 与后端协作的详细接口定义与类型约定。
 

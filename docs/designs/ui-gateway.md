@@ -1,4 +1,4 @@
-# nextclaw UI（网关复用）设计文档
+# NextClaw UI（网关复用）设计文档
 
 ## 目标
 

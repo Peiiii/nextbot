@@ -1,6 +1,6 @@
-# nextclaw User Guide
+# NextClaw User Guide
 
-This guide covers installation, configuration, channels, tools, automation, and troubleshooting for nextclaw.
+This guide covers installation, configuration, channels, tools, automation, and troubleshooting for NextClaw.
 
 ---
 
@@ -192,7 +192,7 @@ Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 
 ## Plugins (OpenClaw compatibility)
 
-nextclaw supports OpenClaw-compatible plugins while keeping compatibility logic isolated in `@nextclaw/openclaw-compat`.
+NextClaw supports OpenClaw-compatible plugins while keeping compatibility logic isolated in `@nextclaw/openclaw-compat`.
 
 Typical flow:
 
@@ -220,7 +220,7 @@ Notes:
 
 - Plugin config is merged under `plugins.entries.<id>.config`.
 - `plugins uninstall --keep-config` is accepted as a backward-compatible alias of `--keep-files`.
-- If a plugin tool/channel/provider conflicts with a built-in capability, nextclaw rejects the conflicting registration and reports diagnostics.
+- If a plugin tool/channel/provider conflicts with a built-in capability, NextClaw rejects the conflicting registration and reports diagnostics.
 
 ---
 

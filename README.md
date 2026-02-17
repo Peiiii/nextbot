@@ -1,24 +1,24 @@
 <div align="center">
 
-# nextclaw
+# NextClaw
 
-**One command. Built-in UI. Same channels & models — no wizard, no extra setup.**
+**UI-first, lightweight personal AI assistant — OpenClaw-compatible.**
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-[Why nextclaw?](#why-nextclaw) · [Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Channels](#-channels) · [Docs](docs/USAGE.md)
+[Why NextClaw?](#why-nextclaw) · [Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Commands](#-commands) · [Channels](#-channels) · [Docs](docs/USAGE.md)
 
 </div>
 
 ---
 
-Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https://github.com/HKUDS/nanobot), **nextclaw** is a **lighter, UI-first** personal AI gateway: install once, run `nextclaw start`, then configure providers and channels in the browser. No onboarding wizard, no daemon setup — just one command and you're in.
+Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https://github.com/HKUDS/nanobot), **NextClaw** is a **lighter, UI-first** personal AI gateway: install once, run `nextclaw start`, then configure providers and channels in the browser. No onboarding wizard, no daemon setup — just one command and you're in.
 
 **Best for:** quick trials, secondary machines, or anyone who wants OpenClaw-style multi-channel + multi-provider without the full platform.
 
-### Why nextclaw?
+### Why NextClaw?
 
 | Advantage | Description |
 |-----------|-------------|
@@ -140,7 +140,7 @@ nextclaw stop   # stop the service
 
 ## 🧩 OpenClaw plugins
 
-nextclaw includes OpenClaw plugin compatibility and keeps this layer isolated in a dedicated package:
+NextClaw includes OpenClaw plugin compatibility and keeps this layer isolated in a dedicated package:
 
 - `@nextclaw/openclaw-compat` handles discovery/loading/install/uninstall
 - `@nextclaw/core` only keeps generic extension SPI (lighter core, easier maintenance)

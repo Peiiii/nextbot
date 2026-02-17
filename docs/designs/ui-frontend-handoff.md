@@ -1,4 +1,4 @@
-# nextclaw UI 前端交接文档（Phase 1）
+# NextClaw UI 前端交接文档（Phase 1）
 
 目标：让前端团队/模型直接据此实现“系统配置界面”。
 
