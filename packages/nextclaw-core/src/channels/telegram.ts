@@ -86,6 +86,16 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       await this.handleIncoming(msg);
     });
 
+    this.bot.on("channel_post", async (msg: Message) => {
+      if (!msg.text && !msg.caption && !msg.photo && !msg.voice && !msg.audio && !msg.document) {
+        return;
+      }
+      if (msg.text?.startsWith("/")) {
+        return;
+      }
+      await this.handleIncoming(msg);
+    });
+
     await this.bot.setMyCommands(BOT_COMMANDS);
   }
 
@@ -125,13 +135,17 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
   }
 
   private async handleIncoming(message: Message): Promise<void> {
-    if (!this.bot || !message.from) {
+    if (!this.bot) {
+      return;
+    }
+    const sender = resolveSender(message);
+    if (!sender) {
       return;
     }
     const chatId = String(message.chat.id);
-    let senderId = String(message.from.id);
-    if (message.from.username) {
-      senderId = `${senderId}|${message.from.username}`;
+    let senderId = String(sender.id);
+    if (sender.username) {
+      senderId = `${senderId}|${sender.username}`;
     }
 
     const contentParts: string[] = [];
@@ -170,9 +184,11 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
 
     await this.dispatchToBus(senderId, chatId, content, mediaPaths, {
       message_id: message.message_id,
-      user_id: message.from.id,
-      username: message.from.username,
-      first_name: message.from.first_name,
+      user_id: sender.id,
+      username: sender.username,
+      first_name: sender.firstName,
+      sender_type: sender.type,
+      is_bot: sender.isBot,
       is_group: message.chat.type !== "private"
     });
   }
@@ -205,6 +221,34 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       this.typingTasks.delete(chatId);
     }
   }
+}
+
+function resolveSender(message: Message): {
+  id: number;
+  username?: string;
+  firstName?: string;
+  isBot: boolean;
+  type: "user" | "sender_chat";
+} | null {
+  if (message.from) {
+    return {
+      id: message.from.id,
+      username: message.from.username,
+      firstName: message.from.first_name,
+      isBot: Boolean(message.from.is_bot),
+      type: "user"
+    };
+  }
+  if (message.sender_chat) {
+    return {
+      id: message.sender_chat.id,
+      username: message.sender_chat.username,
+      firstName: message.sender_chat.title,
+      isBot: true,
+      type: "sender_chat"
+    };
+  }
+  return null;
 }
 
 function resolveMedia(message: Message): { fileId?: string; mediaType?: string; mimeType?: string } {

@@ -10,6 +10,7 @@ export class SlackChannel extends BaseChannel<Config["channels"]["slack"]> {
   private webClient: WebClient | null = null;
   private socketClient: SocketModeClient | null = null;
   private botUserId: string | null = null;
+  private botId: string | null = null;
 
   constructor(config: Config["channels"]["slack"], bus: MessageBus) {
     super(config, bus);
@@ -37,8 +38,10 @@ export class SlackChannel extends BaseChannel<Config["channels"]["slack"]> {
     try {
       const auth = await this.webClient.auth.test();
       this.botUserId = auth.user_id ?? null;
+      this.botId = (auth as { bot_id?: string }).bot_id ?? null;
     } catch {
       this.botUserId = null;
+      this.botId = null;
     }
 
     await this.socketClient.start();
@@ -50,6 +53,8 @@ export class SlackChannel extends BaseChannel<Config["channels"]["slack"]> {
       await this.socketClient.disconnect();
       this.socketClient = null;
     }
+    this.botUserId = null;
+    this.botId = null;
   }
 
   async send(msg: OutboundMessage): Promise<void> {
@@ -76,11 +81,18 @@ export class SlackChannel extends BaseChannel<Config["channels"]["slack"]> {
       return;
     }
 
-    if (event.subtype) {
+    const subtype = event.subtype as string | undefined;
+    const botId = event.bot_id as string | undefined;
+    const isBotMessage = subtype === "bot_message" || Boolean(botId);
+
+    if (subtype && subtype !== "bot_message") {
+      return;
+    }
+    if (isBotMessage && !this.config.allowBots) {
       return;
     }
 
-    const senderId = event.user as string | undefined;
+    const senderId = (event.user as string | undefined) ?? (isBotMessage ? botId : undefined);
     const chatId = event.channel as string | undefined;
     const channelType = (event.channel_type as string | undefined) ?? "";
     const text = (event.text as string | undefined) ?? "";
@@ -88,10 +100,13 @@ export class SlackChannel extends BaseChannel<Config["channels"]["slack"]> {
     if (!senderId || !chatId) {
       return;
     }
-    if (this.botUserId && senderId === this.botUserId) {
+    if (this.botUserId && event.user === this.botUserId) {
       return;
     }
-    if (eventType === "message" && this.botUserId && text.includes(`<@${this.botUserId}>`)) {
+    if (this.botId && botId && botId === this.botId) {
+      return;
+    }
+    if (eventType === "message" && !isBotMessage && this.botUserId && text.includes(`<@${this.botUserId}>`)) {
       return;
     }
 

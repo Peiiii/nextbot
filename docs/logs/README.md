@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.6.0-release-v0.6.0/README.md`
 - `docs/logs/v0.5.39-remove-openclaw-plugin-system/README.md`
 - `docs/logs/v0.5.38-release-v0.5.6/README.md`
 - `docs/logs/v0.5.37-runtime-god-class-refactor/README.md`

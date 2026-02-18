@@ -1,5 +1,13 @@
 # nextclaw-core
 
+## 0.6.0
+
+### Minor Changes
+
+- Remove the OpenClaw plugin compatibility system from runtime/CLI/config flows,
+  and harden UI config API responses by redacting sensitive fields
+  (token/secret/password/apiKey and authorization-like headers).
+
 ## 0.5.3
 
 ### Patch Changes

@@ -39,6 +39,7 @@ export const DingTalkConfigSchema = z.object({
 export const DiscordConfigSchema = z.object({
   enabled: z.boolean().default(false),
   token: z.string().default(""),
+  allowBots: z.boolean().default(false),
   allowFrom: allowFrom,
   gatewayUrl: z.string().default("wss://gateway.discord.gg/?v=10&encoding=json"),
   intents: z.number().int().default(37377)
@@ -114,6 +115,7 @@ export const SlackConfigSchema = z.object({
   botToken: z.string().default(""),
   appToken: z.string().default(""),
   userTokenReadOnly: z.boolean().default(true),
+  allowBots: z.boolean().default(false),
   groupPolicy: z.string().default("mention"),
   groupAllowFrom: allowFrom,
   dm: SlackDMSchema.default({})

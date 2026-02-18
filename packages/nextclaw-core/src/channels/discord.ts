@@ -88,7 +88,11 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
   }
 
   private async handleIncoming(message: DiscordMessage): Promise<void> {
-    if (message.author.bot) {
+    const selfUserId = this.client?.user?.id;
+    if (selfUserId && message.author.id === selfUserId) {
+      return;
+    }
+    if (message.author.bot && !this.config.allowBots) {
       return;
     }
     const senderId = message.author.id;

@@ -267,11 +267,14 @@ Configure channels in the UI at http://127.0.0.1:18791 or in `~/.nextclaw/config
     "discord": {
       "enabled": true,
       "token": "YOUR_BOT_TOKEN",
+      "allowBots": false,
       "allowFrom": []
     }
   }
 }
 ```
+
+- `allowBots` (default `false`): whether to accept bot-authored messages. Keep it `false` unless you explicitly need bot-to-bot flows.
 
 ### Telegram
 
@@ -293,6 +296,11 @@ Configure channels in the UI at http://127.0.0.1:18791 or in `~/.nextclaw/config
 
 Optional: set `"proxy": "http://localhost:7890"` (or your proxy URL) for network access.
 
+Telegram Bot API behavior note:
+
+- In **groups**, bots generally do **not** receive messages from other bots.
+- For bot-to-bot scenarios, prefer **Telegram channels**. NextClaw now processes `channel_post` updates as inbound messages.
+
 ### Slack
 
 Socket mode is the typical setup. You need a **Bot Token** and an **App-Level Token** (with `connections:write`).
@@ -305,6 +313,7 @@ Socket mode is the typical setup. You need a **Bot Token** and an **App-Level To
       "mode": "socket",
       "botToken": "xoxb-...",
       "appToken": "xapp-...",
+      "allowBots": false,
       "dm": { "enabled": true, "allowFrom": [] }
     }
   }
@@ -313,6 +322,7 @@ Socket mode is the typical setup. You need a **Bot Token** and an **App-Level To
 
 - `dm.enabled`: allow DMs to the bot.
 - `dm.allowFrom`: restrict DMs to these user IDs; empty means allow all.
+- `allowBots` (default `false`): whether bot-authored Slack messages can trigger replies.
 
 ### Feishu (Lark)
 
