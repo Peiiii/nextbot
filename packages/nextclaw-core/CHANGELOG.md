@@ -1,5 +1,14 @@
 # nextclaw-core
 
+## 0.6.1
+
+### Patch Changes
+
+- Align channel inbound behavior with OpenClaw for bot-aware flows and improve release docs consistency.
+  - add `channels.discord.allowBots` and `channels.slack.allowBots` (default `false`) to safely allow bot-authored inbound messages when explicitly enabled
+  - process Telegram `channel_post` updates and normalize `sender_chat` metadata for channel bot-to-bot scenarios
+  - refresh user guides/templates and channel command surfaces to match current runtime behavior
+
 ## 0.6.0
 
 ### Minor Changes
