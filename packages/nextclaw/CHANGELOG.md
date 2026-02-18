@@ -1,5 +1,19 @@
 # nextclaw
 
+## 0.5.3
+
+### Patch Changes
+
+- Upgrade `nextclaw status` to runtime-aware diagnostics:
+  - process/runtime health/state coherence checks
+  - `--json`, `--verbose`, `--fix` support
+  - meaningful exit codes for automation (`0/1/2`)
+
+  Add top-level `nextclaw doctor` command for operational diagnostics:
+  - config/workspace/service-state/service-health checks
+  - UI port availability checks
+  - provider readiness checks
+
 ## 0.5.2
 
 ### Patch Changes

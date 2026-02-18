@@ -125,9 +125,10 @@ nextclaw stop   # stop the service
 | `nextclaw ui` | Start UI backend + gateway (foreground) |
 | `nextclaw gateway` | Start gateway only (for channels) |
 | `nextclaw agent -m "hello"` | Chat in CLI |
-| `nextclaw status` | Show config + provider status |
+| `nextclaw status` | Show runtime process/health/config status (`--json`, `--verbose`, `--fix`) |
 | `nextclaw update` | Self-update the CLI |
 | `nextclaw channels status` | Show enabled channels |
+| `nextclaw doctor` | Run runtime diagnostics (health, state coherence, port checks) |
 | `nextclaw channels login` | QR login for supported channels |
 | `nextclaw channels add --channel <id> [--code/--token/...]` | Configure plugin channels with OpenClaw-style setup |
 | `nextclaw plugins list` | List discovered OpenClaw-compatible plugins |

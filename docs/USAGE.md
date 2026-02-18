@@ -178,11 +178,12 @@ Created under the workspace:
 | `nextclaw serve` | Run gateway + UI in the foreground (no background) |
 | `nextclaw agent -m "message"` | Send a one-off message to the agent |
 | `nextclaw agent` | Interactive chat in the terminal |
-| `nextclaw status` | Show config path and provider status |
+| `nextclaw status` | Show runtime process/health/config status (`--json`, `--verbose`, `--fix`) |
 | `nextclaw init` | Initialize workspace and template files |
 | `nextclaw init --force` | Re-run init and overwrite templates |
 | `nextclaw update` | Self-update the CLI |
 | `nextclaw channels status` | Show enabled channels and status |
+| `nextclaw doctor` | Run runtime diagnostics (`--json`, `--verbose`, `--fix`) |
 | `nextclaw channels login` | Open QR login for supported channels |
 | `nextclaw channels add --channel <id> [--code/--token/...]` | Run plugin channel setup (OpenClaw-compatible) and write config |
 | `nextclaw cron list` | List scheduled jobs |
@@ -210,6 +211,13 @@ Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 - `--ui-open` — open the browser when the UI starts
 
 If service is already running, new UI port flags do not hot-apply; use `nextclaw restart ...` to apply them.
+
+Status/diagnostics tips:
+
+- `nextclaw status` shows runtime truth (process + health + config summary).
+- `nextclaw status --json` outputs machine-readable status and sets exit code (`0` healthy, `1` degraded, `2` stopped).
+- `nextclaw status --fix` safely clears stale service state if PID is dead.
+- `nextclaw doctor` runs additional checks (state coherence, health, port availability, provider readiness).
 
 ---
 

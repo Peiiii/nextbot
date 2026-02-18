@@ -222,6 +222,17 @@ cron
 program
   .command("status")
   .description(`Show ${APP_NAME} status`)
-  .action(() => runtime.status());
+  .option("--json", "Output JSON", false)
+  .option("--verbose", "Show extra diagnostics", false)
+  .option("--fix", "Fix stale service state when safe", false)
+  .action(async (opts) => runtime.status(opts));
+
+program
+  .command("doctor")
+  .description(`Run ${APP_NAME} diagnostics`)
+  .option("--json", "Output JSON", false)
+  .option("--verbose", "Show extra diagnostics", false)
+  .option("--fix", "Fix stale service state when safe", false)
+  .action(async (opts) => runtime.doctor(opts));
 
 program.parseAsync(process.argv);
