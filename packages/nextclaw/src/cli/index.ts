@@ -29,46 +29,36 @@ program
   .option("-p, --port <port>", "Gateway port", "18790")
   .option("-v, --verbose", "Verbose output", false)
   .option("--ui", "Enable UI server", false)
-  .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
   .option("--ui-open", "Open browser when UI starts", false)
-  .option("--public", "Expose UI on 0.0.0.0 and print public URL", false)
   .action(async (opts) => runtime.gateway(opts));
 
 program
   .command("ui")
   .description(`Start the ${APP_NAME} UI with gateway`)
-  .option("--host <host>", "UI host")
   .option("--port <port>", "UI port")
   .option("--no-open", "Disable opening browser")
-  .option("--public", "Expose UI on 0.0.0.0 and print public URL", false)
   .action(async (opts) => runtime.ui(opts));
 
 program
   .command("start")
   .description(`Start the ${APP_NAME} gateway + UI in the background`)
-  .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
   .option("--open", "Open browser after start", false)
-  .option("--public", "Expose UI on 0.0.0.0 and print public URL", false)
   .action(async (opts) => runtime.start(opts));
 
 program
   .command("restart")
   .description(`Restart the ${APP_NAME} background service`)
-  .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
   .option("--open", "Open browser after restart", false)
-  .option("--public", "Expose UI on 0.0.0.0 and print public URL", false)
   .action(async (opts) => runtime.restart(opts));
 
 program
   .command("serve")
   .description(`Run the ${APP_NAME} gateway + UI in the foreground`)
-  .option("--ui-host <host>", "UI host")
   .option("--ui-port <port>", "UI port")
   .option("--open", "Open browser after start", false)
-  .option("--public", "Expose UI on 0.0.0.0 and print public URL", false)
   .action(async (opts) => runtime.serve(opts));
 
 program

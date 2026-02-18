@@ -1,5 +1,10 @@
 # Logs
 
+- `docs/logs/v0.5.30-start-service-readiness-guard/README.md`
+- `docs/logs/v0.5.30-ui-host-readonly-semantics/README.md`
+- `docs/logs/v0.5.29-release-v0.5.0/README.md`
+- `docs/logs/v0.5.28-public-ui-default/README.md`
+- `docs/logs/v0.5.28-agent-tools-hot-apply/README.md`
 - `docs/logs/v0.5.27-restart-coordinator-auto-restart/README.md`
 - `docs/logs/v0.5.27-dev-runtime-decouple/README.md`
 - `docs/logs/v0.5.26-config-live-apply/README.md`

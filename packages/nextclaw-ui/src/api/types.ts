@@ -88,6 +88,7 @@ export type ConfigUiHint = {
   advanced?: boolean;
   sensitive?: boolean;
   placeholder?: string;
+  readOnly?: boolean;
 };
 
 export type ConfigUiHints = Record<string, ConfigUiHint>;

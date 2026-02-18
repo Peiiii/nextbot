@@ -1,5 +1,29 @@
 # nextclaw-core
 
+## 0.5.1
+
+### Patch Changes
+
+- Align UI host semantics with always-public runtime behavior.
+  - Treat `ui.host` as read-only in config metadata/hints.
+  - Set UI host schema default/placeholder to `0.0.0.0`.
+  - Add `readOnly` field to UI hint typings in core/server/ui packages.
+  - Clarify docs that CLI start paths enforce public UI host.
+
+## 0.5.0
+
+### Minor Changes
+
+- Add live apply support for `agents.defaults.maxTokens`, `agents.defaults.temperature`, and `tools.*` without gateway restart.
+
+  Improve runtime restart boundaries:
+  - `config set/unset` now triggers restart only for `restart-required` paths.
+  - Keep `plugins.*` as restart-required for maintainability.
+
+  Refine CLI/UI startup behavior and docs:
+  - Default UI host behavior is public (`0.0.0.0`) on start/restart/serve/ui/gateway UI mode.
+  - Remove redundant `--public`/`--ui-host` options from relevant commands and update usage docs.
+
 ## 0.4.14
 
 ### Patch Changes

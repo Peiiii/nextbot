@@ -10,6 +10,7 @@ export type ConfigUiHint = {
   advanced?: boolean;
   sensitive?: boolean;
   placeholder?: string;
+  readOnly?: boolean;
 };
 
 export type ConfigUiHints = Record<string, ConfigUiHint>;
@@ -37,11 +38,13 @@ const GROUP_ORDER: Record<string, number> = {
 const FIELD_PLACEHOLDERS: Record<string, string> = {
   "gateway.host": "0.0.0.0",
   "gateway.port": "18790",
-  "ui.host": "127.0.0.1",
+  "ui.host": "0.0.0.0",
   "ui.port": "18791",
   "providers.*.apiBase": "https://api.example.com",
   "providers.minimax.apiBase": "CN: https://api.minimaxi.com/v1; Global: https://api.minimax.io/v1"
 };
+
+const READ_ONLY_FIELDS = new Set<string>(["ui.host"]);
 
 const SENSITIVE_KEY_WHITELIST_SUFFIXES = [
   "maxtokens",
@@ -94,6 +97,10 @@ export function buildBaseHints(): ConfigUiHints {
   for (const [path, placeholder] of Object.entries(FIELD_PLACEHOLDERS)) {
     const current = hints[path];
     hints[path] = current ? { ...current, placeholder } : { placeholder };
+  }
+  for (const path of READ_ONLY_FIELDS) {
+    const current = hints[path];
+    hints[path] = current ? { ...current, readOnly: true } : { readOnly: true };
   }
   return hints;
 }

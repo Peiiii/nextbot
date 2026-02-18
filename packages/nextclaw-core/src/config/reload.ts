@@ -29,9 +29,9 @@ const RELOAD_RULES: ReloadRule[] = [
   { prefix: "agents.defaults.model", kind: "reload-agent" },
   { prefix: "agents.defaults.maxToolIterations", kind: "reload-agent" },
   { prefix: "agents.context", kind: "reload-agent" },
-  { prefix: "agents.defaults.maxTokens", kind: "restart-required" },
-  { prefix: "agents.defaults.temperature", kind: "restart-required" },
-  { prefix: "tools", kind: "restart-required" },
+  { prefix: "agents.defaults.maxTokens", kind: "reload-agent" },
+  { prefix: "agents.defaults.temperature", kind: "reload-agent" },
+  { prefix: "tools", kind: "reload-agent" },
   { prefix: "plugins", kind: "restart-required" },
   { prefix: "gateway", kind: "none" },
   { prefix: "ui", kind: "none" }

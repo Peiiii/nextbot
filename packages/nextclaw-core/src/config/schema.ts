@@ -237,7 +237,7 @@ export const GatewayConfigSchema = z.object({
 
 export const UiConfigSchema = z.object({
   enabled: z.boolean().default(false),
-  host: z.string().default("127.0.0.1"),
+  host: z.string().default("0.0.0.0"),
   port: z.number().int().default(18791),
   open: z.boolean().default(false)
 });

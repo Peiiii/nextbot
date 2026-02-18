@@ -1,5 +1,15 @@
 # @nextclaw/ui
 
+## 0.3.8
+
+### Patch Changes
+
+- Align UI host semantics with always-public runtime behavior.
+  - Treat `ui.host` as read-only in config metadata/hints.
+  - Set UI host schema default/placeholder to `0.0.0.0`.
+  - Add `readOnly` field to UI hint typings in core/server/ui packages.
+  - Clarify docs that CLI start paths enforce public UI host.
+
 ## 0.3.7
 
 ### Patch Changes

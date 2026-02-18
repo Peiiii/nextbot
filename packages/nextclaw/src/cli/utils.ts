@@ -66,9 +66,9 @@ export async function resolvePublicIp(timeoutMs = 1500): Promise<string | null> 
   return null;
 }
 
-export function buildServeArgs(options: { uiHost: string; uiPort: number }): string[] {
+export function buildServeArgs(options: { uiPort: number }): string[] {
   const cliPath = fileURLToPath(new URL("./index.js", import.meta.url));
-  return [cliPath, "serve", "--ui-host", options.uiHost, "--ui-port", String(options.uiPort)];
+  return [cliPath, "serve", "--ui-port", String(options.uiPort)];
 }
 
 export function readServiceState(): ServiceState | null {

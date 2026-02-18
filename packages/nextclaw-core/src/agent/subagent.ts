@@ -30,6 +30,8 @@ export class SubagentManager {
       workspace: string;
       bus: MessageBus;
       model?: string;
+      maxTokens?: number;
+      temperature?: number;
       braveApiKey?: string | null;
       execConfig?: { timeout: number };
       restrictToWorkspace?: boolean;
@@ -38,12 +40,20 @@ export class SubagentManager {
 
   updateRuntimeOptions(options: {
     model?: string;
+    maxTokens?: number;
+    temperature?: number;
     braveApiKey?: string | null;
     execConfig?: { timeout: number };
     restrictToWorkspace?: boolean;
   }): void {
     if (Object.prototype.hasOwnProperty.call(options, "model")) {
       this.options.model = options.model;
+    }
+    if (Object.prototype.hasOwnProperty.call(options, "maxTokens")) {
+      this.options.maxTokens = options.maxTokens;
+    }
+    if (Object.prototype.hasOwnProperty.call(options, "temperature")) {
+      this.options.temperature = options.temperature;
     }
     if (Object.prototype.hasOwnProperty.call(options, "braveApiKey")) {
       this.options.braveApiKey = options.braveApiKey;
@@ -145,7 +155,9 @@ export class SubagentManager {
         const response = await this.options.providerManager.get().chat({
           messages,
           tools: tools.getDefinitions(),
-          model: this.options.model
+          model: this.options.model,
+          maxTokens: this.options.maxTokens,
+          temperature: this.options.temperature
         });
 
         if (response.toolCalls.length) {

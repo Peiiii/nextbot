@@ -21,7 +21,7 @@ export const FIELD_HELP: Record<string, string> = {
   "gateway.host": "Bind address for the gateway server.",
   "gateway.port": "Port for the gateway server.",
   "ui.enabled": "Enable the built-in UI server.",
-  "ui.host": "Bind address for the UI server.",
+  "ui.host": "UI host is runtime-managed and treated as read-only (always 0.0.0.0 on CLI start/restart/serve/ui/gateway).",
   "ui.port": "Port for the UI server.",
   "ui.open": "Open the browser when UI starts.",
   "tools.web.search.apiKey": "API key for the configured web search provider.",

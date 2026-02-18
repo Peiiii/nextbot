@@ -115,15 +115,15 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 - `channels.*`
 - `agents.defaults.model`
 - `agents.defaults.maxToolIterations`
+- `agents.defaults.maxTokens`
+- `agents.defaults.temperature`
 - `agents.context.*`
+- `tools.*`
 
 Restart is still required for:
 
-- `tools.*`
 - `plugins.*`
-- `agents.defaults.maxTokens`
-- `agents.defaults.temperature`
-- UI bind flags (`--host`, `--port`, `--ui-host`, `--ui-port`, `--public`)
+- UI bind port (`--port` / `--ui-port`)
 
 To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: ... applied.`
 
@@ -208,9 +208,8 @@ Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 - `--ui` — enable the UI server with the gateway
 - `--ui-port <port>` — UI port (default 18791 for start)
 - `--ui-open` — open the browser when the UI starts
-- `--public` — bind UI to `0.0.0.0` and print detected public URLs
 
-If service is already running, new host/port flags do not hot-apply; use `nextclaw restart ...` to apply them.
+If service is already running, new UI port flags do not hot-apply; use `nextclaw restart ...` to apply them.
 
 ---
 
@@ -562,7 +561,7 @@ You can tune the UI server in config:
 {
   "ui": {
     "enabled": true,
-    "host": "127.0.0.1",
+    "host": "0.0.0.0",
     "port": 18791,
     "open": false
   }
@@ -570,13 +569,12 @@ You can tune the UI server in config:
 ```
 
 - `enabled`: whether the UI server is started with the gateway (e.g. when using `nextclaw start`).
-- `host` / `port`: bind address and port.
+- `host` / `port`: bind address and port; `ui.host` is read-only in practice (CLI start paths always enforce `0.0.0.0`).
 - `open`: open the default browser when the UI starts.
 
 Default URL when using `nextclaw start`: **http://127.0.0.1:18791**.
 
-If you need public access, run `nextclaw start --public` (or set `ui.host` to `0.0.0.0`).
-NextClaw will also attempt to detect and print a public IP-based URL at startup.
+NextClaw binds UI to `0.0.0.0` by default and attempts to detect/print a public IP-based URL at startup.
 
 ---
 

@@ -27,7 +27,7 @@ export const FIELD_LABELS: Record<string, string> = {
   "gateway.port": "Gateway Port",
   ui: "UI",
   "ui.enabled": "Enable UI",
-  "ui.host": "UI Host",
+  "ui.host": "UI Host (Read-only)",
   "ui.port": "UI Port",
   "ui.open": "Open Browser",
   tools: "Tools",

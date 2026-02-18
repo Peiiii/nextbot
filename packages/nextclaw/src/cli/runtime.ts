@@ -93,27 +93,22 @@ import {
 export const LOGO = "🤖";
 
 const EXIT_COMMANDS = new Set(["exit", "quit", "/exit", "/quit", ":q"]);
+const FORCED_PUBLIC_UI_HOST = "0.0.0.0";
 
 type GatewayCommandOptions = {
   ui?: boolean;
-  uiHost?: string;
   uiPort?: string | number;
   uiOpen?: boolean;
-  public?: boolean;
 };
 
 type UiCommandOptions = {
-  host?: string;
   port?: string | number;
   open?: boolean;
-  public?: boolean;
 };
 
 type StartCommandOptions = {
-  uiHost?: string;
   uiPort?: string | number;
   open?: boolean;
-  public?: boolean;
 };
 
 type AgentCommandOptions = {
@@ -586,7 +581,7 @@ export class CliRuntime {
         return false;
       }
 
-      const uiHost = state.uiHost ?? "127.0.0.1";
+      const uiHost = FORCED_PUBLIC_UI_HOST;
       const uiPort = typeof state.uiPort === "number" && Number.isFinite(state.uiPort) ? state.uiPort : 18791;
 
       console.log(`Applying changes (${reason}): restarting ${APP_NAME} background service...`);
@@ -690,12 +685,11 @@ export class CliRuntime {
   }
 
   async gateway(opts: GatewayCommandOptions): Promise<void> {
-    const uiOverrides: Partial<Config["ui"]> = {};
+    const uiOverrides: Partial<Config["ui"]> = {
+      host: FORCED_PUBLIC_UI_HOST
+    };
     if (opts.ui) {
       uiOverrides.enabled = true;
-    }
-    if (opts.uiHost) {
-      uiOverrides.host = String(opts.uiHost);
     }
     if (opts.uiPort) {
       uiOverrides.port = Number(opts.uiPort);
@@ -703,28 +697,17 @@ export class CliRuntime {
     if (opts.uiOpen) {
       uiOverrides.open = true;
     }
-    if (opts.public) {
-      uiOverrides.enabled = true;
-      if (!opts.uiHost) {
-        uiOverrides.host = "0.0.0.0";
-      }
-    }
     await this.startGateway({ uiOverrides });
   }
 
   async ui(opts: UiCommandOptions): Promise<void> {
     const uiOverrides: Partial<Config["ui"]> = {
       enabled: true,
+      host: FORCED_PUBLIC_UI_HOST,
       open: Boolean(opts.open)
     };
-    if (opts.host) {
-      uiOverrides.host = String(opts.host);
-    }
     if (opts.port) {
       uiOverrides.port = Number(opts.port);
-    }
-    if (opts.public && !opts.host) {
-      uiOverrides.host = "0.0.0.0";
     }
     await this.startGateway({ uiOverrides, allowMissingProvider: true });
   }
@@ -733,16 +716,11 @@ export class CliRuntime {
     await this.init({ source: "start", auto: true });
     const uiOverrides: Partial<Config["ui"]> = {
       enabled: true,
+      host: FORCED_PUBLIC_UI_HOST,
       open: false
     };
-    if (opts.uiHost) {
-      uiOverrides.host = String(opts.uiHost);
-    }
     if (opts.uiPort) {
       uiOverrides.port = Number(opts.uiPort);
-    }
-    if (opts.public && !opts.uiHost) {
-      uiOverrides.host = "0.0.0.0";
     }
 
     await this.startService({
@@ -769,16 +747,11 @@ export class CliRuntime {
   async serve(opts: StartCommandOptions): Promise<void> {
     const uiOverrides: Partial<Config["ui"]> = {
       enabled: true,
+      host: FORCED_PUBLIC_UI_HOST,
       open: false
     };
-    if (opts.uiHost) {
-      uiOverrides.host = String(opts.uiHost);
-    }
     if (opts.uiPort) {
       uiOverrides.port = Number(opts.uiPort);
-    }
-    if (opts.public && !opts.uiHost) {
-      uiOverrides.host = "0.0.0.0";
     }
 
     await this.runForeground({
@@ -805,6 +778,10 @@ export class CliRuntime {
       bus,
       providerManager,
       workspace,
+      model: config.agents.defaults.model,
+      maxIterations: config.agents.defaults.maxToolIterations,
+      maxTokens: config.agents.defaults.maxTokens,
+      temperature: config.agents.defaults.temperature,
       braveApiKey: config.tools.web.search.apiKey || undefined,
       execConfig: config.tools.exec,
       restrictToWorkspace: config.tools.restrictToWorkspace,
@@ -1100,17 +1077,20 @@ export class CliRuntime {
       return;
     }
 
-    const config = loadConfig() as unknown as Record<string, unknown>;
+    const prevConfig = loadConfig();
+    const nextConfig = structuredClone(prevConfig) as unknown as Record<string, unknown>;
     try {
-      setAtConfigPath(config, parsedPath, parsedValue);
+      setAtConfigPath(nextConfig, parsedPath, parsedValue);
     } catch (error) {
       console.error(String(error));
       process.exit(1);
       return;
     }
 
-    saveConfig(config as Config);
-    await this.requestRestart({
+    saveConfig(nextConfig as Config);
+    await this.requestRestartForConfigDiff({
+      prevConfig,
+      nextConfig: nextConfig as Config,
       reason: `config.set ${pathExpr}`,
       manualMessage: `Updated ${pathExpr}. Restart the gateway to apply.`
     });
@@ -1126,18 +1106,41 @@ export class CliRuntime {
       return;
     }
 
-    const config = loadConfig() as unknown as Record<string, unknown>;
-    const removed = unsetAtConfigPath(config, parsedPath);
+    const prevConfig = loadConfig();
+    const nextConfig = structuredClone(prevConfig) as unknown as Record<string, unknown>;
+    const removed = unsetAtConfigPath(nextConfig, parsedPath);
     if (!removed) {
       console.error(`Config path not found: ${pathExpr}`);
       process.exit(1);
       return;
     }
 
-    saveConfig(config as Config);
-    await this.requestRestart({
+    saveConfig(nextConfig as Config);
+    await this.requestRestartForConfigDiff({
+      prevConfig,
+      nextConfig: nextConfig as Config,
       reason: `config.unset ${pathExpr}`,
       manualMessage: `Removed ${pathExpr}. Restart the gateway to apply.`
+    });
+  }
+
+  private async requestRestartForConfigDiff(params: {
+    prevConfig: Config;
+    nextConfig: Config;
+    reason: string;
+    manualMessage: string;
+  }): Promise<void> {
+    const changedPaths = diffConfigPaths(params.prevConfig, params.nextConfig);
+    if (!changedPaths.length) {
+      return;
+    }
+    const plan = buildReloadPlan(changedPaths);
+    if (plan.restartRequired.length === 0) {
+      return;
+    }
+    await this.requestRestart({
+      reason: `${params.reason} (${plan.restartRequired.join(", ")})`,
+      manualMessage: params.manualMessage
     });
   }
 
@@ -1849,6 +1852,8 @@ export class CliRuntime {
       workspace,
       model: config.agents.defaults.model,
       maxIterations: config.agents.defaults.maxToolIterations,
+      maxTokens: config.agents.defaults.maxTokens,
+      temperature: config.agents.defaults.temperature,
       braveApiKey: config.tools.web.search.apiKey || undefined,
       execConfig: config.tools.exec,
       cronService: cron,
@@ -2007,7 +2012,7 @@ export class CliRuntime {
 
   private async printPublicUiUrls(host: string, port: number): Promise<void> {
     if (isLoopbackHost(host)) {
-      console.log('Public URL: disabled (UI host is loopback). Use "--public" or "--ui-host 0.0.0.0" to expose it.');
+      console.log("Public URL: disabled (UI host is loopback). Current release expects public exposure; run nextclaw restart.");
       return;
     }
 
@@ -2094,14 +2099,22 @@ export class CliRuntime {
         }
       })();
 
-      await this.printPublicUiUrls(parsedUi.host, parsedUi.port);
       if (parsedUi.host !== uiConfig.host || parsedUi.port !== uiConfig.port) {
         console.log(
-          `Note: requested UI bind (${uiConfig.host}:${uiConfig.port}) differs from running service (${parsedUi.host}:${parsedUi.port}).`
+          `Detected running service UI bind (${parsedUi.host}:${parsedUi.port}); enforcing (${uiConfig.host}:${uiConfig.port})...`
         );
-        console.log(`Run: ${APP_NAME} restart${uiConfig.host === "0.0.0.0" ? " --public" : ""}`);
+        await this.stopService();
+
+        const stateAfterStop = readServiceState();
+        if (stateAfterStop && isProcessRunning(stateAfterStop.pid)) {
+          console.error("Error: Failed to stop running service while enforcing public UI exposure.");
+          return;
+        }
+
+        return this.startService(options);
       }
 
+      await this.printPublicUiUrls(parsedUi.host, parsedUi.port);
       console.log(`Logs: ${existing.logPath}`);
       console.log(`Stop: ${APP_NAME} stop`);
       return;
@@ -2120,7 +2133,6 @@ export class CliRuntime {
     const logFd = openSync(logPath, "a");
 
     const serveArgs = buildServeArgs({
-      uiHost: uiConfig.host,
       uiPort: uiConfig.port,
     });
     const child = spawn(process.execPath, [...process.execArgv, ...serveArgs], {
@@ -2133,6 +2145,28 @@ export class CliRuntime {
       console.error("Error: Failed to start background service.");
       return;
     }
+
+    const healthUrl = `${apiUrl}/health`;
+    const started = await this.waitForBackgroundServiceReady({
+      pid: child.pid,
+      healthUrl,
+      timeoutMs: 8000
+    });
+
+    if (!started) {
+      if (isProcessRunning(child.pid)) {
+        try {
+          process.kill(child.pid, "SIGTERM");
+          await waitForExit(child.pid, 2000);
+        } catch {
+          // Ignore and continue cleanup; process may have already exited.
+        }
+      }
+      clearServiceState();
+      console.error(`Error: Failed to start background service. Check logs: ${logPath}`);
+      return;
+    }
+
     child.unref();
 
     const state: ServiceState = {
@@ -2156,6 +2190,40 @@ export class CliRuntime {
     if (options.open) {
       openBrowser(uiUrl);
     }
+  }
+
+  private async waitForBackgroundServiceReady(params: {
+    pid: number;
+    healthUrl: string;
+    timeoutMs: number;
+  }): Promise<boolean> {
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < params.timeoutMs) {
+      if (!isProcessRunning(params.pid)) {
+        return false;
+      }
+      try {
+        const response = await fetch(params.healthUrl, { method: "GET" });
+        if (!response.ok) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          continue;
+        }
+        const payload = (await response.json()) as { ok?: boolean; data?: { status?: string } };
+        const healthy = payload?.ok === true && payload?.data?.status === "ok";
+        if (!healthy) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
+          continue;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        if (isProcessRunning(params.pid)) {
+          return true;
+        }
+      } catch {
+        // Ignore readiness probe errors until timeout.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+    return false;
   }
 
   private async stopService(): Promise<void> {

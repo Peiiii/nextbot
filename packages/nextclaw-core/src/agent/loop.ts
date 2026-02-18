@@ -43,6 +43,8 @@ export class AgentLoop {
       workspace: string;
       model?: string | null;
       maxIterations?: number;
+      maxTokens?: number;
+      temperature?: number;
       braveApiKey?: string | null;
       execConfig?: { timeout: number };
       cronService?: CronService | null;
@@ -63,6 +65,8 @@ export class AgentLoop {
       workspace: options.workspace,
       bus: options.bus,
       model: options.model ?? options.providerManager.get().getDefaultModel(),
+      maxTokens: options.maxTokens,
+      temperature: options.temperature,
       braveApiKey: options.braveApiKey ?? undefined,
       execConfig: options.execConfig ?? { timeout: 60 },
       restrictToWorkspace: options.restrictToWorkspace ?? false
@@ -180,6 +184,8 @@ export class AgentLoop {
     this.options.config = config;
     this.options.model = config.agents.defaults.model;
     this.options.maxIterations = config.agents.defaults.maxToolIterations;
+    this.options.maxTokens = config.agents.defaults.maxTokens;
+    this.options.temperature = config.agents.defaults.temperature;
     this.options.contextConfig = config.agents.context;
     this.options.braveApiKey = config.tools.web.search.apiKey || undefined;
     this.options.execConfig = config.tools.exec;
@@ -188,10 +194,19 @@ export class AgentLoop {
     this.context.setContextConfig(config.agents.context);
     this.subagents.updateRuntimeOptions({
       model: config.agents.defaults.model,
+      maxTokens: config.agents.defaults.maxTokens,
+      temperature: config.agents.defaults.temperature,
       braveApiKey: config.tools.web.search.apiKey || undefined,
       execConfig: config.tools.exec,
       restrictToWorkspace: config.tools.restrictToWorkspace
     });
+    this.refreshRuntimeTools();
+  }
+
+  private refreshRuntimeTools(): void {
+    this.tools = new ToolRegistry();
+    this.registerDefaultTools();
+    this.registerExtensionTools();
   }
 
   async processDirect(params: {
@@ -285,7 +300,9 @@ export class AgentLoop {
       const response = await this.options.providerManager.get().chat({
         messages,
         tools: this.tools.getDefinitions(),
-        model: this.options.model ?? undefined
+        model: this.options.model ?? undefined,
+        maxTokens: this.options.maxTokens,
+        temperature: this.options.temperature
       });
 
       if (response.toolCalls.length) {
@@ -396,7 +413,9 @@ export class AgentLoop {
       const response = await this.options.providerManager.get().chat({
         messages,
         tools: this.tools.getDefinitions(),
-        model: this.options.model ?? undefined
+        model: this.options.model ?? undefined,
+        maxTokens: this.options.maxTokens,
+        temperature: this.options.temperature
       });
 
       if (response.toolCalls.length) {
