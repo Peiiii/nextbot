@@ -72,38 +72,24 @@
 - Email
 - QQ
 - Mochat
-- 插件渠道适配（`ExtensionChannelAdapter`）
 
 ## 7. 渠道运维命令
 
 - `nextclaw channels status`
 - `nextclaw channels login`
-- `nextclaw channels add --channel <id> ...`
 
 ## 8. 自动化能力
 
 - Cron 任务：`list` / `add` / `remove` / `enable` / `run`
 - Heartbeat 周期任务检查
 
-## 9. 插件生态（OpenClaw 兼容）
-
-- `nextclaw plugins list`
-- `nextclaw plugins info <id>`
-- `nextclaw plugins install <path-or-spec>`
-- `nextclaw plugins enable <id>`
-- `nextclaw plugins disable <id>`
-- `nextclaw plugins doctor`
-- `nextclaw plugins uninstall <id>`
-- 兼容安装源：本地目录 / 压缩包（`.zip/.tgz/.tar`）/ npm
-- 兼容注册：`registerTool` / `registerProvider` / `registerChannel`
-
-## 10. Skills 能力
+## 9. Skills 能力
 
 - `nextclaw skills install <slug>`
 - `nextclaw clawhub install <slug>`
 - 内置 skills 模板注入（init 时种子）
 
-## 11. 当前已知生效边界
+## 10. 当前已知生效边界
 
 - `providers.*`：运行时应用
 - `channels.*`：运行时应用
@@ -113,5 +99,3 @@
 - `agents.defaults.temperature`：运行时应用
 - `agents.context.*`：运行时应用
 - `tools.*`：运行时应用
-- `plugins.*`：当前为重启生效
-

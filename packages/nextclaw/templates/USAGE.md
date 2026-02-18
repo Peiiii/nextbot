@@ -8,7 +8,7 @@ This guide covers installation, configuration, channels, tools, automation, and 
 
 ## AI Self-Management Contract
 
-When NextClaw AI needs to operate the product itself (status/doctor/plugins/channels/config/cron), follow these rules:
+When NextClaw AI needs to operate the product itself (status/doctor/channels/config/cron), follow these rules:
 
 1. **Read this guide first** (`USAGE.md`) before executing management commands.
 2. **Prefer machine-readable output** (`--json`) whenever available.
@@ -25,7 +25,6 @@ When NextClaw AI needs to operate the product itself (status/doctor/plugins/chan
 - [Configuration](#configuration)
 - [Workspace](#workspace)
 - [Commands](#commands)
-- [Plugins (OpenClaw compatibility)](#plugins-openclaw-compatibility)
 - [Channels](#channels)
 - [Tools](#tools)
 - [Cron & Heartbeat](#cron--heartbeat)
@@ -137,7 +136,6 @@ When the gateway is already running, config changes from the UI or `nextclaw con
 
 Restart is still required for:
 
-- `plugins.*`
 - UI bind port (`--port` / `--ui-port`)
 
 To confirm hot reload succeeded, check gateway console logs or `${NEXTCLAW_HOME:-~/.nextclaw}/logs/service.log` for messages like `Config reload: ... applied.`
@@ -201,7 +199,6 @@ Created under the workspace:
 | `nextclaw channels status` | Show enabled channels and status |
 | `nextclaw doctor` | Run runtime diagnostics (`--json`, `--verbose`, `--fix`) |
 | `nextclaw channels login` | Open QR login for supported channels |
-| `nextclaw channels add --channel <id> [--code/--token/...]` | Run plugin channel setup (OpenClaw-compatible) and write config |
 | `nextclaw cron list` | List scheduled jobs |
 | `nextclaw cron add ...` | Add a cron job (see [Cron](#cron--heartbeat)) |
 | `nextclaw cron remove <jobId>` | Remove a job |
@@ -209,16 +206,9 @@ Created under the workspace:
 | `nextclaw cron run <jobId>` | Run a job once (optionally with `--force` if disabled) |
 | `nextclaw skills install <slug>` | Install a skill from ClawHub |
 | `nextclaw clawhub install <slug>` | Same as `skills install` |
-| `nextclaw plugins list` | List discovered OpenClaw-compatible plugins |
-| `nextclaw plugins info <id>` | Show details of a plugin |
 | `nextclaw config get <path>` | Get config value by path (use `--json` for structured output) |
 | `nextclaw config set <path> <value>` | Set config value by path (use `--json` to parse value as JSON) |
 | `nextclaw config unset <path>` | Remove config value by path |
-| `nextclaw plugins install <path-or-spec>` | Install from local path, archive, or npm package |
-| `nextclaw plugins enable <id>` | Enable a plugin in config |
-| `nextclaw plugins disable <id>` | Disable a plugin in config |
-| `nextclaw plugins uninstall <id>` | Remove plugin config/install record (supports `--dry-run`, `--force`, `--keep-files`) |
-| `nextclaw plugins doctor` | Diagnose plugin load conflicts/errors |
 
 Gateway options (when running `nextclaw gateway` or `nextclaw start`):
 
@@ -234,41 +224,6 @@ Status/diagnostics tips:
 - `nextclaw status --json` outputs machine-readable status and sets exit code (`0` healthy, `1` degraded, `2` stopped).
 - `nextclaw status --fix` safely clears stale service state if PID is dead.
 - `nextclaw doctor` runs additional checks (state coherence, health, port availability, provider readiness).
-
----
-
-## Plugins (OpenClaw compatibility)
-
-NextClaw supports OpenClaw-compatible plugins while keeping compatibility logic isolated in `@nextclaw/openclaw-compat`.
-For architecture boundaries and capability matrix, see [OpenClaw plugin compatibility guide](./openclaw-plugin-compat.md).
-
-Typical flow:
-
-```bash
-# 1) Inspect discovered plugins
-nextclaw plugins list
-
-# 2) Install (path/archive/npm)
-nextclaw plugins install ./my-plugin
-nextclaw plugins install ./my-plugin.tgz
-nextclaw plugins install @scope/openclaw-plugin
-
-# 3) Inspect and toggle
-nextclaw plugins info my-plugin
-nextclaw config get plugins.entries.my-plugin.config --json
-nextclaw plugins disable my-plugin
-nextclaw plugins enable my-plugin
-
-# 4) Uninstall
-nextclaw plugins uninstall my-plugin --dry-run
-nextclaw plugins uninstall my-plugin --force
-```
-
-Notes:
-
-- Plugin config is merged under `plugins.entries.<id>.config`.
-- `plugins uninstall --keep-config` is accepted as a backward-compatible alias of `--keep-files`.
-- If a plugin tool/channel/provider conflicts with a built-in capability, NextClaw rejects the conflicting registration and reports diagnostics.
 
 ---
 

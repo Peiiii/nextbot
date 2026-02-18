@@ -4,7 +4,7 @@
 
 ## 1. 产品一句话
 
-**NextClaw 是一个 UI-first、轻量化、OpenClaw 生态兼容的个人 AI 助手网关。**
+**NextClaw 是一个 UI-first、轻量化、可维护优先的个人 AI 助手网关。**
 
 核心体验是：安装后执行一次 `nextclaw start`，其余配置（模型、Provider、渠道）主要在浏览器中完成。
 
@@ -58,7 +58,7 @@
 - 内置渠道：Telegram、Discord、WhatsApp、Feishu、DingTalk、Slack、Email、QQ、Mochat
 - 渠道启停与参数集中在 `channels.*`
 - `allowFrom` 白名单机制（渠道级访问控制）
-- `channels status` / `channels login` / `channels add` 形成基本运维闭环
+- `channels status` / `channels login` 形成基础运维闭环
 
 **用户价值**：同一助手可服务多个沟通入口，减少工具切换。
 
@@ -69,44 +69,43 @@
 
 **用户价值**：从“被动问答”升级为“定时与主动执行”。
 
-### G. OpenClaw 插件生态兼容
+### G. 架构简化（插件兼容层已移除）
 
-- 已支持：插件发现、安装（本地/压缩包/npm）、启用/禁用、信息查看、诊断、卸载
-- 已支持插件注册面：`registerTool`、`registerProvider`、`registerChannel`
-- 兼容层隔离：OpenClaw 兼容逻辑位于 `@nextclaw/openclaw-compat`，核心保持轻量
+- 已移除 OpenClaw 插件兼容加载链路与相关 CLI 命令
+- 运行时仅保留内置能力，配置与诊断路径更收敛
+- 减少跨模块耦合点，降低长期维护复杂度
 
-**用户价值**：可复用既有 OpenClaw 插件生态，扩展成本更低。
+**用户价值**：行为更确定、故障面更小、升级风险更低。
 
 ## 3. 当前边界与限制（如实说明）
 
-### 3.1 插件变更仍以“重启生效”为主
+### 3.1 无外部插件扩展入口
 
-- 当前 `plugins.*` 配置变更仍归类为 `restart-required`
-- 安装/卸载/启停插件后，需重启网关应用变更
+- 不再提供 `nextclaw plugins *` 命令
+- 不再加载 OpenClaw 插件与插件渠道适配逻辑
 
-### 3.2 真热插拔处于设计阶段
+### 3.2 扩展策略以内建能力演进为主
 
-- 已有“插件真热插拔最小生命周期（Phase 1）”设计稿
-- 目标是将 `enable/disable/config patch` 升级为运行时生效
+- 新能力通过核心模块迭代交付
+- 优先保证可维护性、一致性与测试可控性
 
 ## 4. 对外传播建议口径（可直接复用）
 
 ### 口径 1（简版）
 
-**NextClaw：一条命令启动、一个 UI 完成配置、兼容 OpenClaw 插件生态的轻量 AI 助手网关。**
+**NextClaw：一条命令启动、一个 UI 完成配置、可维护优先的轻量 AI 助手网关。**
 
 ### 口径 2（场景版）
 
-如果你想要 OpenClaw 的多渠道与插件扩展能力，但不想引入重平台复杂度，NextClaw 是更快上手、更易维护的选择。
+如果你想要多渠道与多模型能力，但不想引入复杂插件系统，NextClaw 是更快上手、更易维护的选择。
 
 ## 5. 典型使用场景
 
 - **个人 AI 中枢**：同一助手接入 Telegram/Slack/Email，统一处理消息与任务。
 - **快速试验台**：在 UI 中快速切换 Provider/模型，验证效果后再固化配置。
-- **插件驱动扩展**：复用 OpenClaw 插件生态扩展渠道、工具与能力。
 - **轻自动化运维**：用 Cron + Heartbeat 将固定提醒/巡检任务自动化。
 
 ## 6. 版本说明
 
 - 本文档基于当前仓库实现与文档状态整理（2026-02-18）。
-- 本文档属于“概览层”，不替代详细使用文档（`docs/USAGE.md`）与兼容性细则（`docs/openclaw-plugin-compat.md`）。
+- 本文档属于“概览层”，不替代详细使用文档（`docs/USAGE.md`）。

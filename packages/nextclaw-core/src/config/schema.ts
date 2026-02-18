@@ -203,33 +203,6 @@ export const ProvidersConfigSchema = z.object({
   aihubmix: ProviderConfigSchema.default({})
 });
 
-export const PluginEntrySchema = z.object({
-  enabled: z.boolean().optional(),
-  config: z.record(z.unknown()).optional()
-});
-
-export const PluginsLoadSchema = z.object({
-  paths: z.array(z.string()).optional()
-});
-
-export const PluginInstallRecordSchema = z.object({
-  source: z.enum(["npm", "archive", "path"]),
-  spec: z.string().optional(),
-  sourcePath: z.string().optional(),
-  installPath: z.string().optional(),
-  version: z.string().optional(),
-  installedAt: z.string().optional()
-});
-
-export const PluginsConfigSchema = z.object({
-  enabled: z.boolean().optional(),
-  allow: z.array(z.string()).optional(),
-  deny: z.array(z.string()).optional(),
-  load: PluginsLoadSchema.optional(),
-  entries: z.record(PluginEntrySchema).optional(),
-  installs: z.record(PluginInstallRecordSchema).optional()
-});
-
 export const GatewayConfigSchema = z.object({
   host: z.string().default("0.0.0.0"),
   port: z.number().int().default(18790)
@@ -265,7 +238,6 @@ export const ConfigSchema = z.object({
   agents: AgentsConfigSchema.default({}),
   channels: ChannelsConfigSchema.default({}),
   providers: ProvidersConfigSchema.default({}),
-  plugins: PluginsConfigSchema.default({}),
   gateway: GatewayConfigSchema.default({}),
   ui: UiConfigSchema.default({}),
   tools: ToolsConfigSchema.default({})
@@ -283,174 +255,6 @@ export type ConfigSchemaResponse = {
 export type Config = z.infer<typeof ConfigSchema>;
 export type ProviderConfig = z.infer<typeof ProviderConfigSchema>;
 
-export type PluginUiMetadata = {
-  id: string;
-  configSchema?: Record<string, unknown>;
-  configUiHints?: Record<
-    string,
-    {
-      label?: string;
-      help?: string;
-      advanced?: boolean;
-      sensitive?: boolean;
-      placeholder?: string;
-    }
-  >;
-};
-
-
-type JsonSchemaNode = Record<string, unknown>;
-
-type JsonSchemaObject = JsonSchemaNode & {
-  type?: string | string[];
-  properties?: Record<string, JsonSchemaObject>;
-  required?: string[];
-  additionalProperties?: JsonSchemaObject | boolean;
-};
-
-function cloneSchema<T>(value: T): T {
-  if (typeof structuredClone === "function") {
-    return structuredClone(value);
-  }
-  return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function asSchemaObject(value: unknown): JsonSchemaObject | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  return value as JsonSchemaObject;
-}
-
-
-
-function resolveSchemaRoot(schema: ConfigSchemaJson): JsonSchemaObject | null {
-  const root = asSchemaObject(schema);
-  if (!root) {
-    return null;
-  }
-  if (root.properties) {
-    return root;
-  }
-  const ref = (root as Record<string, unknown>).$ref;
-  if (typeof ref === "string" && ref.startsWith("#/definitions/")) {
-    const definitionName = ref.slice("#/definitions/".length);
-    const definitions = (root as Record<string, unknown>).definitions as Record<string, unknown> | undefined;
-    if (definitions && definitionName in definitions) {
-      return asSchemaObject(definitions[definitionName]);
-    }
-  }
-  return root;
-}
-function isObjectSchema(schema: JsonSchemaObject): boolean {
-  const type = schema.type;
-  if (type === "object") {
-    return true;
-  }
-  if (Array.isArray(type) && type.includes("object")) {
-    return true;
-  }
-  return Boolean(schema.properties || schema.additionalProperties);
-}
-
-function mergeObjectSchema(base: JsonSchemaObject, extension: JsonSchemaObject): JsonSchemaObject {
-  const mergedRequired = new Set<string>([...(base.required ?? []), ...(extension.required ?? [])]);
-  const merged: JsonSchemaObject = {
-    ...base,
-    ...extension,
-    properties: {
-      ...base.properties,
-      ...extension.properties
-    }
-  };
-  if (mergedRequired.size > 0) {
-    merged.required = Array.from(mergedRequired);
-  }
-  const additional = extension.additionalProperties ?? base.additionalProperties;
-  if (additional !== undefined) {
-    merged.additionalProperties = additional;
-  }
-  return merged;
-}
-
-function applyPluginHints(hints: ConfigUiHints, plugins: PluginUiMetadata[]): ConfigUiHints {
-  const next: ConfigUiHints = { ...hints };
-  for (const plugin of plugins) {
-    const id = plugin.id.trim();
-    if (!id) {
-      continue;
-    }
-    const name = id;
-    const basePath = `plugins.entries.${id}`;
-
-    next[basePath] = {
-      ...next[basePath],
-      label: name,
-      help: `Plugin entry for ${id}.`
-    };
-    next[`${basePath}.enabled`] = {
-      ...next[`${basePath}.enabled`],
-      label: `Enable ${name}`
-    };
-    next[`${basePath}.config`] = {
-      ...next[`${basePath}.config`],
-      label: `${name} Config`,
-      help: `Plugin-defined config payload for ${id}.`
-    };
-
-    const uiHints = plugin.configUiHints ?? {};
-    for (const [relPathRaw, hint] of Object.entries(uiHints)) {
-      const relPath = relPathRaw.trim().replace(/^\./, "");
-      if (!relPath) {
-        continue;
-      }
-      const key = `${basePath}.config.${relPath}`;
-      next[key] = {
-        ...next[key],
-        ...hint
-      };
-    }
-  }
-  return next;
-}
-
-function applyPluginSchemas(schema: ConfigSchemaJson, plugins: PluginUiMetadata[]): ConfigSchemaJson {
-  const next = cloneSchema(schema);
-  const root = resolveSchemaRoot(next);
-  const pluginsNode = asSchemaObject(root?.properties?.plugins);
-  const entriesNode = asSchemaObject(pluginsNode?.properties?.entries);
-  if (!entriesNode) {
-    return next;
-  }
-
-  const entryBase = asSchemaObject(entriesNode.additionalProperties);
-  const entryProps = entriesNode.properties ?? {};
-  entriesNode.properties = entryProps;
-
-  for (const plugin of plugins) {
-    if (!plugin.configSchema) {
-      continue;
-    }
-
-    const entrySchema = entryBase ? cloneSchema(entryBase) : ({ type: "object" } as JsonSchemaObject);
-    const entryObject = asSchemaObject(entrySchema) ?? ({ type: "object" } as JsonSchemaObject);
-    const baseConfig = asSchemaObject(entryObject.properties?.config);
-    const pluginConfig = asSchemaObject(plugin.configSchema);
-    const nextConfig =
-      baseConfig && pluginConfig && isObjectSchema(baseConfig) && isObjectSchema(pluginConfig)
-        ? mergeObjectSchema(baseConfig, pluginConfig)
-        : cloneSchema(plugin.configSchema);
-
-    entryObject.properties = {
-      ...entryObject.properties,
-      config: nextConfig
-    };
-
-    entryProps[plugin.id] = entryObject;
-  }
-
-  return next;
-}
 export function getWorkspacePathFromConfig(config: Config): string {
   return expandHome(config.agents.defaults.workspace);
 }
@@ -499,7 +303,7 @@ export function getApiBase(config: Config, model?: string): string | null {
   return null;
 }
 
-export function buildConfigSchema(options?: { version?: string; plugins?: PluginUiMetadata[] }): ConfigSchemaResponse {
+export function buildConfigSchema(options?: { version?: string }): ConfigSchemaResponse {
   const baseSchema = zodToJsonSchema(ConfigSchema, {
     name: "NextClawConfig",
     target: "jsonSchema7"
@@ -508,13 +312,11 @@ export function buildConfigSchema(options?: { version?: string; plugins?: Plugin
     baseSchema.title = "NextClawConfig";
   }
 
-  const plugins = options?.plugins ?? [];
   const baseHints = mapSensitivePaths(ConfigSchema, "", buildBaseHints());
-  const mergedHints = applySensitiveHints(applyPluginHints(baseHints, plugins));
-  const mergedSchema = applyPluginSchemas(baseSchema, plugins);
+  const mergedHints = applySensitiveHints(baseHints);
 
   return {
-    schema: mergedSchema,
+    schema: baseSchema,
     uiHints: mergedHints,
     version: options?.version ?? getPackageVersion(),
     generatedAt: new Date().toISOString()

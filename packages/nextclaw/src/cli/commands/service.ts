@@ -19,14 +19,6 @@ import {
   SessionManager,
   type Config
 } from "@nextclaw/core";
-import {
-  getPluginChannelBindings,
-  getPluginUiMetadataFromRegistry,
-  resolvePluginChannelMessageToolHints,
-  setPluginRuntimeBridge,
-  startPluginChannelGateways,
-  stopPluginChannelGateways
-} from "@nextclaw/openclaw-compat";
 import { startUiServer } from "@nextclaw/server";
 import { closeSync, mkdirSync, openSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -51,13 +43,6 @@ import {
   writeServiceState,
   type ServiceState
 } from "../utils.js";
-import {
-  loadPluginRegistry,
-  logPluginDiagnostics,
-  mergePluginConfigView,
-  toExtensionRegistry,
-  toPluginConfigView
-} from "./plugins.js";
 import type { RequestRestartParams } from "../types.js";
 
 export class ServiceCommands {
@@ -72,9 +57,6 @@ export class ServiceCommands {
   ): Promise<void> {
     const config = loadConfig();
     const workspace = getWorkspacePath(config.agents.defaults.workspace);
-    const pluginRegistry = loadPluginRegistry(config, workspace);
-    const extensionRegistry = toExtensionRegistry(pluginRegistry);
-    logPluginDiagnostics(pluginRegistry);
 
     const bus = new MessageBus();
     const provider =
@@ -85,14 +67,13 @@ export class ServiceCommands {
     const cronStorePath = join(getDataDir(), "cron", "jobs.json");
     const cron = new CronService(cronStorePath);
 
-    const pluginUiMetadata = getPluginUiMetadataFromRegistry(pluginRegistry);
     const uiConfig = resolveUiConfig(config, options.uiOverrides);
     const uiStaticDir = options.uiStaticDir === undefined ? resolveUiStaticDir() : options.uiStaticDir;
     if (!provider) {
       console.warn("Warning: No API key configured. The gateway is running, but agent replies are disabled until provider config is set.");
     }
 
-    const channels = new ChannelManager(config, bus, sessionManager, extensionRegistry.channels);
+    const channels = new ChannelManager(config, bus, sessionManager, []);
     const reloader = new ConfigReloader({
       initialConfig: config,
       channels,
@@ -101,7 +82,6 @@ export class ServiceCommands {
       providerManager,
       makeProvider: (nextConfig) => this.makeProvider(nextConfig, { allowMissing: true }) ?? this.makeMissingProvider(nextConfig),
       loadConfig,
-      getExtensionChannels: () => extensionRegistry.channels,
       onRestartRequired: (paths) => {
         void this.deps.requestRestart({
           reason: `config reload requires restart: ${paths.join(", ")}`,
@@ -115,7 +95,6 @@ export class ServiceCommands {
       cron,
       getConfigPath,
       saveConfig,
-      getPluginUiMetadata: () => pluginUiMetadata,
       requestRestart: async (options) => {
         await this.deps.requestRestart({
           reason: options?.reason ?? "gateway tool restart",
@@ -142,74 +121,10 @@ export class ServiceCommands {
       sessionManager,
       contextConfig: config.agents.context,
       gatewayController,
-      config,
-      extensionRegistry,
-      resolveMessageToolHints: ({ channel, accountId }) =>
-        resolvePluginChannelMessageToolHints({
-          registry: pluginRegistry,
-          channel,
-          cfg: loadConfig(),
-          accountId
-        })
+      config
     });
 
     reloader.setApplyAgentRuntimeConfig((nextConfig) => agent.applyRuntimeConfig(nextConfig));
-
-    const pluginChannelBindings = getPluginChannelBindings(pluginRegistry);
-    setPluginRuntimeBridge({
-      loadConfig: () => toPluginConfigView(loadConfig(), pluginChannelBindings),
-      writeConfigFile: async (nextConfigView) => {
-        if (!nextConfigView || typeof nextConfigView !== "object" || Array.isArray(nextConfigView)) {
-          throw new Error("plugin runtime writeConfigFile expects an object config");
-        }
-        const current = loadConfig();
-        const next = mergePluginConfigView(current, nextConfigView, pluginChannelBindings);
-        saveConfig(next);
-      },
-      dispatchReplyWithBufferedBlockDispatcher: async ({ ctx, dispatcherOptions }) => {
-        const bodyForAgent = typeof ctx.BodyForAgent === "string" ? ctx.BodyForAgent : "";
-        const body = typeof ctx.Body === "string" ? ctx.Body : "";
-        const content = (bodyForAgent || body).trim();
-        if (!content) {
-          return;
-        }
-
-        const sessionKey =
-          typeof ctx.SessionKey === "string" && ctx.SessionKey.trim().length > 0
-            ? ctx.SessionKey
-            : `plugin:${typeof ctx.OriginatingChannel === "string" ? ctx.OriginatingChannel : "channel"}:${typeof ctx.SenderId === "string" ? ctx.SenderId : "unknown"}`;
-        const channel =
-          typeof ctx.OriginatingChannel === "string" && ctx.OriginatingChannel.trim().length > 0
-            ? ctx.OriginatingChannel
-            : "cli";
-        const chatId =
-          typeof ctx.OriginatingTo === "string" && ctx.OriginatingTo.trim().length > 0
-            ? ctx.OriginatingTo
-            : typeof ctx.SenderId === "string" && ctx.SenderId.trim().length > 0
-              ? ctx.SenderId
-              : "direct";
-
-        try {
-          const response = await agent.processDirect({
-            content,
-            sessionKey,
-            channel,
-            chatId,
-            metadata:
-              typeof ctx.AccountId === "string" && ctx.AccountId.trim().length > 0
-                ? { account_id: ctx.AccountId }
-                : {}
-          });
-          const replyText = typeof response === "string" ? response : String(response ?? "");
-          if (replyText.trim()) {
-            await dispatcherOptions.deliver({ text: replyText }, { kind: "final" });
-          }
-        } catch (error) {
-          dispatcherOptions.onError?.(error);
-          throw error;
-        }
-      }
-    });
 
     cron.onJob = async (job) => {
       const response = await agent.processDirect({
@@ -262,33 +177,7 @@ export class ServiceCommands {
     await cron.start();
     await heartbeat.start();
 
-    let pluginGatewayHandles: Awaited<ReturnType<typeof startPluginChannelGateways>>["handles"] = [];
-    try {
-      const startedPluginGateways = await startPluginChannelGateways({
-        registry: pluginRegistry,
-        logger: {
-          info: (message) => console.log(`[plugins] ${message}`),
-          warn: (message) => console.warn(`[plugins] ${message}`),
-          error: (message) => console.error(`[plugins] ${message}`),
-          debug: (message) => console.debug(`[plugins] ${message}`)
-        }
-      });
-      pluginGatewayHandles = startedPluginGateways.handles;
-      for (const diag of startedPluginGateways.diagnostics) {
-        const prefix = diag.pluginId ? `${diag.pluginId}: ` : "";
-        const text = `${prefix}${diag.message}`;
-        if (diag.level === "error") {
-          console.error(`[plugins] ${text}`);
-        } else {
-          console.warn(`[plugins] ${text}`);
-        }
-      }
-
-      await Promise.allSettled([agent.run(), reloader.getChannels().startAll()]);
-    } finally {
-      await stopPluginChannelGateways(pluginGatewayHandles);
-      setPluginRuntimeBridge(null);
-    }
+    await Promise.allSettled([agent.run(), reloader.getChannels().startAll()]);
   }
 
   async runForeground(options: {

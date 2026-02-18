@@ -1,12 +1,12 @@
 ---
 name: nextclaw-self-manage
-description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/plugins/channels/cron operations.
+description: Self-manage NextClaw runtime via CLI guide. For install/start/status/doctor/channels/config/cron operations.
 metadata: {"nextclaw":{"always":true,"emoji":"🛠️"}}
 ---
 
 # NextClaw Self-Management
 
-Use this skill whenever the user asks to manage NextClaw itself (service status, diagnostics, plugins, channels, config, cron, update).
+Use this skill whenever the user asks to manage NextClaw itself (service status, diagnostics, channels, config, cron, update).
 
 ## Source of Truth
 
@@ -22,7 +22,7 @@ Always use `USAGE.md` as the operation guide.
 - Prefer diagnostic closure after mutating operations:
   - run `nextclaw status --json`
   - and if needed `nextclaw doctor --json`
-- For plugin/config changes that require restart, clearly state whether restart was auto-applied or still needed.
+- For config changes that require restart, clearly state whether restart was auto-applied or still needed.
 - Do not invent commands; only use commands listed in `USAGE.md` or CLI help.
 
 ## Minimal Self-Management Flow
@@ -45,7 +45,6 @@ When user explicitly asks to update NextClaw:
 
 - Service health: `nextclaw status --json` / `nextclaw doctor --json`
 - Lifecycle: `nextclaw start|restart|stop`
-- Plugins: `nextclaw plugins list|info|install|enable|disable|doctor|uninstall`
-- Channels: `nextclaw channels status|add|login`
+- Channels: `nextclaw channels status|login`
 - Config: `nextclaw config get|set|unset`
 - Automation: `nextclaw cron list|add|remove|enable|run`

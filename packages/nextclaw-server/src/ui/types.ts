@@ -51,7 +51,6 @@ export type ConfigView = {
   tools?: Record<string, unknown>;
   gateway?: Record<string, unknown>;
   ui?: Record<string, unknown>;
-  plugins?: Record<string, unknown>;
 };
 
 export type ProviderSpecView = {
