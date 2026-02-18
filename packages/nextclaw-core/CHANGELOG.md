@@ -1,5 +1,13 @@
 # nextclaw-core
 
+## 0.5.3
+
+### Patch Changes
+
+- - Improve gateway self-restart behavior after in-process update flow.
+  - Refine self-management prompts/docs for update and runtime guidance.
+  - Disable OpenClaw plugin loading by default unless `NEXTCLAW_ENABLE_OPENCLAW_PLUGINS=1` is explicitly set.
+
 ## 0.5.2
 
 ### Patch Changes

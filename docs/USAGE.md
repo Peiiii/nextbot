@@ -283,8 +283,9 @@ Behavior:
 - If `NEXTCLAW_UPDATE_COMMAND` is set, the CLI executes it (useful for custom update flows).
 - Otherwise it falls back to `npm i -g nextclaw`.
 - If the background service is running, restart it after the update to apply changes.
+- When update is triggered from the running gateway (agent `update.run`), NextClaw arms a self-relaunch helper before exiting, so the service comes back automatically (like an OS reboot flow).
 
-If the gateway is running, you can also ask the agent to update; the agent will call the gateway update tool only when you explicitly request it, and a restart will be scheduled afterward.
+If the gateway is running, you can also ask the agent to update; the agent will call the gateway update tool only when you explicitly request it, and restart/relaunch will be scheduled afterward.
 
 ---
 

@@ -603,6 +603,7 @@ export class CliRuntime {
   private logo: string;
   private restartCoordinator: RestartCoordinator;
   private serviceRestartTask: Promise<boolean> | null = null;
+  private selfRelaunchArmed = false;
 
   constructor(options: { logo?: string } = {}) {
     this.logo = options.logo ?? LOGO;
@@ -660,6 +661,102 @@ export class CliRuntime {
     }
   }
 
+  private armManagedServiceRelaunch(params: {
+    reason: string;
+    strategy?: RestartStrategy;
+    delayMs?: number;
+  }): void {
+    const strategy = params.strategy ?? "background-service-or-manual";
+    if (strategy !== "background-service-or-exit" && strategy !== "exit-process") {
+      return;
+    }
+    if (this.selfRelaunchArmed) {
+      return;
+    }
+
+    const state = readServiceState();
+    if (!state || state.pid !== process.pid) {
+      return;
+    }
+
+    const uiPort = typeof state.uiPort === "number" && Number.isFinite(state.uiPort) ? state.uiPort : 18791;
+    const delayMs =
+      typeof params.delayMs === "number" && Number.isFinite(params.delayMs) ? Math.max(0, Math.floor(params.delayMs)) : 100;
+    const cliPath = process.env.NEXTCLAW_SELF_RELAUNCH_CLI?.trim() || fileURLToPath(new URL("./index.js", import.meta.url));
+    const startArgs = [cliPath, "start", "--ui-port", String(uiPort)];
+    const serviceStatePath = resolve(getDataDir(), "run", "service.json");
+    const helperScript = [
+      'const { spawnSync } = require("node:child_process");',
+      'const { readFileSync } = require("node:fs");',
+      `const parentPid = ${process.pid};`,
+      `const delayMs = ${delayMs};`,
+      "const maxWaitMs = 120000;",
+      "const retryIntervalMs = 1000;",
+      "const startTimeoutMs = 60000;",
+      `const nodePath = ${JSON.stringify(process.execPath)};`,
+      `const startArgs = ${JSON.stringify(startArgs)};`,
+      `const serviceStatePath = ${JSON.stringify(serviceStatePath)};`,
+      "function isRunning(pid) {",
+      "  try {",
+      "    process.kill(pid, 0);",
+      "    return true;",
+      "  } catch {",
+      "    return false;",
+      "  }",
+      "}",
+      "function hasReplacementService() {",
+      "  try {",
+      "    const raw = readFileSync(serviceStatePath, \"utf-8\");",
+      "    const state = JSON.parse(raw);",
+      "    const pid = Number(state?.pid);",
+      "    return Number.isFinite(pid) && pid > 0 && pid !== parentPid && isRunning(pid);",
+      "  } catch {",
+      "    return false;",
+      "  }",
+      "}",
+      "function tryStart() {",
+      "  spawnSync(nodePath, startArgs, {",
+      "    stdio: \"ignore\",",
+      "    env: process.env,",
+      "    timeout: startTimeoutMs",
+      "  });",
+      "}",
+      "setTimeout(() => {",
+      "  const startedAt = Date.now();",
+      "  const tick = () => {",
+      "    if (hasReplacementService()) {",
+      "      process.exit(0);",
+      "      return;",
+      "    }",
+      "    if (Date.now() - startedAt >= maxWaitMs) {",
+      "      process.exit(0);",
+      "      return;",
+      "    }",
+      "    tryStart();",
+      "    if (hasReplacementService()) {",
+      "      process.exit(0);",
+      "      return;",
+      "    }",
+      "    setTimeout(tick, retryIntervalMs);",
+      "  };",
+      "  tick();",
+      "}, delayMs);"
+    ].join("\n");
+
+    try {
+      const helper = spawn(process.execPath, ["-e", helperScript], {
+        detached: true,
+        stdio: "ignore",
+        env: process.env
+      });
+      helper.unref();
+      this.selfRelaunchArmed = true;
+      console.warn(`Gateway self-restart armed (${params.reason}).`);
+    } catch (error) {
+      console.error(`Failed to arm gateway self-restart: ${String(error)}`);
+    }
+  }
+
   private async requestRestart(params: {
     reason: string;
     manualMessage: string;
@@ -667,6 +764,12 @@ export class CliRuntime {
     delayMs?: number;
     silentOnServiceRestart?: boolean;
   }): Promise<void> {
+    this.armManagedServiceRelaunch({
+      reason: params.reason,
+      strategy: params.strategy,
+      delayMs: params.delayMs
+    });
+
     const result = await this.restartCoordinator.requestRestart({
       reason: params.reason,
       strategy: params.strategy,

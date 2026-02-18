@@ -247,7 +247,19 @@ function validatePluginConfig(params: {
 }
 
 export function loadOpenClawPlugins(options: PluginLoadOptions): PluginRegistry {
+  if (process.env.NEXTCLAW_ENABLE_OPENCLAW_PLUGINS !== "1") {
+    return {
+      plugins: [],
+      tools: [],
+      channels: [],
+      providers: [],
+      diagnostics: [],
+      resolvedTools: []
+    };
+  }
+
   const logger = options.logger ?? defaultLogger;
+
   const workspaceDir = options.workspaceDir?.trim() || getWorkspacePathFromConfig(options.config);
   const normalized = normalizePluginsConfig(options.config.plugins);
   const mode = options.mode ?? "full";

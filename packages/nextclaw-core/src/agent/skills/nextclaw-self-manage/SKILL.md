@@ -32,6 +32,15 @@ Always use `USAGE.md` as the operation guide.
 3. Verify with status/doctor.
 4. Report outcome + next action (if any).
 
+## Update Flow
+
+When user explicitly asks to update NextClaw:
+
+1. Trigger `gateway(action="update.run")` (or CLI `nextclaw update` when gateway tool is unavailable).
+2. Expect a short restart window while service relaunches.
+3. Verify recovery with `nextclaw status --json` and `nextclaw doctor --json` when needed.
+4. If channels do not resume immediately, ask user to send one retry message after a few seconds.
+
 ## High-frequency Intents
 
 - Service health: `nextclaw status --json` / `nextclaw doctor --json`
