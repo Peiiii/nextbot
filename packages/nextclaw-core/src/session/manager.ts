@@ -72,7 +72,8 @@ export class SessionManager {
 
   getHistory(session: Session, maxMessages = 50): Array<Record<string, unknown>> {
     const recent = session.messages.length > maxMessages ? session.messages.slice(-maxMessages) : session.messages;
-    return recent.map((msg) => {
+    const normalized = this.normalizeHistoryWindow(recent);
+    return normalized.map((msg) => {
       const entry: Record<string, unknown> = {
         role: msg.role,
         content: msg.content
@@ -91,6 +92,68 @@ export class SessionManager {
       }
       return entry;
     });
+  }
+
+  private normalizeHistoryWindow(messages: SessionMessage[]): SessionMessage[] {
+    const normalized: SessionMessage[] = [];
+    let pendingToolCalls: { expectedIds: Set<string>; blockStart: number } | null = null;
+
+    for (const msg of messages) {
+      const role = typeof msg.role === "string" ? msg.role : "";
+
+      if (pendingToolCalls && role !== "tool") {
+        if (pendingToolCalls.expectedIds.size > 0) {
+          normalized.splice(pendingToolCalls.blockStart);
+        }
+        pendingToolCalls = null;
+      }
+
+      if (role === "assistant") {
+        normalized.push(msg);
+
+        const expectedIds = new Set<string>();
+        if (Array.isArray(msg.tool_calls)) {
+          for (const call of msg.tool_calls as Array<Record<string, unknown>>) {
+            const callId = typeof call.id === "string" ? call.id.trim() : "";
+            if (callId) {
+              expectedIds.add(callId);
+            }
+          }
+        }
+
+        if (expectedIds.size > 0) {
+          pendingToolCalls = {
+            expectedIds,
+            blockStart: normalized.length - 1
+          };
+        }
+        continue;
+      }
+
+      if (role === "tool") {
+        if (!pendingToolCalls) {
+          continue;
+        }
+        const callId = typeof msg.tool_call_id === "string" ? msg.tool_call_id.trim() : "";
+        if (!callId || !pendingToolCalls.expectedIds.has(callId)) {
+          continue;
+        }
+        normalized.push(msg);
+        pendingToolCalls.expectedIds.delete(callId);
+        if (pendingToolCalls.expectedIds.size === 0) {
+          pendingToolCalls = null;
+        }
+        continue;
+      }
+
+      normalized.push(msg);
+    }
+
+    if (pendingToolCalls && pendingToolCalls.expectedIds.size > 0) {
+      normalized.splice(pendingToolCalls.blockStart);
+    }
+
+    return normalized;
   }
 
   clear(session: Session): void {
