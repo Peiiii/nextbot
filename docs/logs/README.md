@@ -1,5 +1,7 @@
 # Logs
 
+- `docs/logs/v0.6.13-release-v0.6.13/README.md`
+- `docs/logs/v0.6.13-ai-generated-restart-reply/README.md`
 - `docs/logs/v0.6.12-release-v0.6.12/README.md`
 - `docs/logs/v0.6.12-restart-self-reply-fix/README.md`
 - `docs/logs/v0.6.11-release-v0.6.11/README.md`

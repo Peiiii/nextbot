@@ -1,5 +1,14 @@
 # nextclaw-core
 
+## 0.6.11
+
+### Patch Changes
+
+- Switch restart completion notice from fixed text to AI-generated reply:
+  - on startup, consume restart sentinel and publish a system inbound message to wake the agent;
+  - keep routing via sentinel/session delivery context and let the model generate the final user-facing confirmation;
+  - remove direct fixed-message delivery path for restart wake.
+
 ## 0.6.10
 
 ### Patch Changes

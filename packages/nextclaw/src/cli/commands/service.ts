@@ -60,7 +60,6 @@ import {
 import type { RequestRestartParams } from "../types.js";
 import {
   consumeRestartSentinel,
-  enqueuePendingSystemEvent,
   formatRestartSentinelMessage,
   parseSessionKey
 } from "../restart-sentinel.js";
@@ -301,7 +300,7 @@ export class ServiceCommands {
       }
 
       await reloader.getChannels().startAll();
-      await this.wakeFromRestartSentinel({ channels: reloader.getChannels(), sessionManager });
+      await this.wakeFromRestartSentinel({ bus, sessionManager });
       await agent.run();
     } finally {
       await stopPluginChannelGateways(pluginGatewayHandles);
@@ -315,10 +314,6 @@ export class ServiceCommands {
     }
     const trimmed = value.trim();
     return trimmed || undefined;
-  }
-
-  private async sleep(ms: number): Promise<void> {
-    await new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private resolveMostRecentRoutableSessionKey(sessionManager: SessionManager): string | undefined {
@@ -360,59 +355,40 @@ export class ServiceCommands {
     return best?.key;
   }
 
-  private async sendRestartSentinelNotice(params: {
-    channels: ChannelManager;
-    channel: string;
-    chatId: string;
-    content: string;
+  private buildRestartWakePrompt(params: {
+    summary: string;
+    reason?: string;
+    note?: string;
     replyTo?: string;
-    metadata: Record<string, unknown>;
-  }): Promise<boolean> {
-    const outboundBase = {
-      channel: params.channel,
-      chatId: params.chatId,
-      content: params.content,
-      media: [],
-      metadata: params.metadata
-    };
-    const variants = params.replyTo
-      ? [
-          { ...outboundBase, replyTo: params.replyTo },
-          { ...outboundBase }
-        ]
-      : [{ ...outboundBase }];
+  }): string {
+    const lines = [
+      "System event: the gateway has restarted successfully.",
+      "Please send one short confirmation to the user that you are back online.",
+      "Do not call any tools.",
+      "Use the same language as the user's recent conversation.",
+      `Reference summary: ${params.summary}`
+    ];
 
-    for (let variantIndex = 0; variantIndex < variants.length; variantIndex += 1) {
-      const outbound = variants[variantIndex];
-      const isLastVariant = variantIndex === variants.length - 1;
-      for (let attempt = 1; attempt <= 3; attempt += 1) {
-        try {
-          const delivered = await params.channels.deliver(outbound);
-          if (delivered) {
-            return true;
-          }
-          return false;
-        } catch (error) {
-          if (attempt < 3) {
-            await this.sleep(attempt * 500);
-            continue;
-          }
-          if (isLastVariant) {
-            console.warn(
-              "Warning: restart sentinel notify failed for " +
-                `${params.channel}:${params.chatId}` +
-                ` (attempt ${attempt}): ${String(error)}`
-            );
-          }
-        }
-      }
+    const reason = this.normalizeOptionalString(params.reason);
+    if (reason) {
+      lines.push(`Restart reason: ${reason}`);
     }
 
-    return false;
+    const note = this.normalizeOptionalString(params.note);
+    if (note) {
+      lines.push(`Extra note: ${note}`);
+    }
+
+    const replyTo = this.normalizeOptionalString(params.replyTo);
+    if (replyTo) {
+      lines.push(`Reply target message id: ${replyTo}. If suitable, include [[reply_to:${replyTo}]].`);
+    }
+
+    return lines.join("\n");
   }
 
   private async wakeFromRestartSentinel(params: {
-    channels: ChannelManager;
+    bus: MessageBus;
     sessionManager: SessionManager;
   }): Promise<void> {
     const sentinel = await consumeRestartSentinel();
@@ -423,7 +399,7 @@ export class ServiceCommands {
     await new Promise((resolve) => setTimeout(resolve, 750));
 
     const payload = sentinel.payload;
-    const message = formatRestartSentinelMessage(payload);
+    const summary = formatRestartSentinelMessage(payload);
     const sentinelSessionKey = this.normalizeOptionalString(payload.sessionKey);
     const fallbackSessionKey = sentinelSessionKey ? undefined : this.resolveMostRecentRoutableSessionKey(params.sessionManager);
     if (!sentinelSessionKey && fallbackSessionKey) {
@@ -443,31 +419,35 @@ export class ServiceCommands {
       this.normalizeOptionalString((params.sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_to);
     const replyTo = this.normalizeOptionalString(context?.replyTo);
     const accountId = this.normalizeOptionalString(context?.accountId);
-    const metadataRaw = context?.metadata;
-    const metadata =
-      metadataRaw && typeof metadataRaw === "object" && !Array.isArray(metadataRaw)
-        ? ({ ...(metadataRaw as Record<string, unknown>) } as Record<string, unknown>)
-        : {};
-    if (accountId && !this.normalizeOptionalString(metadata.accountId)) {
-      metadata.accountId = accountId;
-    }
 
     if (!channel || !chatId) {
-      enqueuePendingSystemEvent(params.sessionManager, sessionKey, message);
+      console.warn(`Warning: restart sentinel cannot resolve route for session ${sessionKey}.`);
       return;
     }
 
-    const delivered = await this.sendRestartSentinelNotice({
-      channels: params.channels,
-      channel,
-      chatId,
-      content: message,
-      ...(replyTo ? { replyTo } : {}),
+    const prompt = this.buildRestartWakePrompt({
+      summary,
+      reason: this.normalizeOptionalString(payload.stats?.reason),
+      note: this.normalizeOptionalString(payload.message),
+      ...(replyTo ? { replyTo } : {})
+    });
+
+    const metadata: Record<string, unknown> = {
+      source: "restart-sentinel",
+      restart_summary: summary,
+      ...(replyTo ? { reply_to: replyTo } : {}),
+      ...(accountId ? { account_id: accountId, accountId } : {})
+    };
+
+    await params.bus.publishInbound({
+      channel: "system",
+      senderId: "restart-sentinel",
+      chatId: `${channel}:${chatId}`,
+      content: prompt,
+      timestamp: new Date(),
+      attachments: [],
       metadata
     });
-    if (!delivered) {
-      enqueuePendingSystemEvent(params.sessionManager, sessionKey, message);
-    }
   }
 
   async runForeground(options: {
