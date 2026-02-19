@@ -16,9 +16,12 @@ import { ProxyAgent, fetch } from "undici";
 import { join } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { getDataPath } from "../utils/helpers.js";
+import { ChannelTypingController } from "./typing-controller.js";
 
 const DEFAULT_MEDIA_MAX_MB = 8;
 const MEDIA_FETCH_TIMEOUT_MS = 15000;
+const TYPING_HEARTBEAT_MS = 8000;
+const TYPING_AUTO_STOP_MS = 45000;
 
 type AttachmentIssue = {
   id?: string;
@@ -31,10 +34,25 @@ type AttachmentIssue = {
 export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
   name = "discord";
   private client: Client | null = null;
-  private typingTasks: Map<string, NodeJS.Timeout> = new Map();
+  private readonly typingController: ChannelTypingController;
 
   constructor(config: Config["channels"]["discord"], bus: MessageBus) {
     super(config, bus);
+    this.typingController = new ChannelTypingController({
+      heartbeatMs: TYPING_HEARTBEAT_MS,
+      autoStopMs: TYPING_AUTO_STOP_MS,
+      sendTyping: async (channelId) => {
+        if (!this.client) {
+          return;
+        }
+        const channel = this.client.channels.cache.get(channelId);
+        if (!channel || !channel.isTextBased()) {
+          return;
+        }
+        const textChannel = channel as TextBasedChannel & TextBasedChannelFields;
+        await textChannel.sendTyping();
+      }
+    });
   }
 
   async start(): Promise<void> {
@@ -61,10 +79,7 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
 
   async stop(): Promise<void> {
     this.running = false;
-    for (const task of this.typingTasks.values()) {
-      clearInterval(task);
-    }
-    this.typingTasks.clear();
+    this.typingController.stopAll();
     if (this.client) {
       await this.client.destroy();
       this.client = null;
@@ -147,18 +162,23 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     const replyTo = message.reference?.messageId ?? null;
     this.startTyping(channelId);
 
-    await this.handleMessage({
-      senderId,
-      chatId: channelId,
-      content: contentParts.length ? contentParts.join("\n") : "[empty message]",
-      attachments,
-      metadata: {
-        message_id: message.id,
-        guild_id: message.guildId,
-        reply_to: replyTo,
-        ...(attachmentIssues.length ? { attachment_issues: attachmentIssues } : {})
-      }
-    });
+    try {
+      await this.handleMessage({
+        senderId,
+        chatId: channelId,
+        content: contentParts.length ? contentParts.join("\n") : "[empty message]",
+        attachments,
+        metadata: {
+          message_id: message.id,
+          guild_id: message.guildId,
+          reply_to: replyTo,
+          ...(attachmentIssues.length ? { attachment_issues: attachmentIssues } : {})
+        }
+      });
+    } catch (err) {
+      this.stopTyping(channelId);
+      throw err;
+    }
   }
 
   private resolveProxyAgent(): ProxyAgent | null {
@@ -313,27 +333,11 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
   }
 
   private startTyping(channelId: string): void {
-    this.stopTyping(channelId);
-    if (!this.client) {
-      return;
-    }
-    const channel = this.client.channels.cache.get(channelId);
-    if (!channel || !channel.isTextBased()) {
-      return;
-    }
-    const textChannel = channel as TextBasedChannel & TextBasedChannelFields;
-    const task = setInterval(() => {
-      void textChannel.sendTyping();
-    }, 8000);
-    this.typingTasks.set(channelId, task);
+    this.typingController.start(channelId);
   }
 
   private stopTyping(channelId: string): void {
-    const task = this.typingTasks.get(channelId);
-    if (task) {
-      clearInterval(task);
-      this.typingTasks.delete(channelId);
-    }
+    this.typingController.stop(channelId);
   }
 }
 

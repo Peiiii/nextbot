@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.6.27-typing-controller-class-align/README.md`
 - `docs/logs/v0.6.26-openclaw-final-oneshot-complete/README.md`
 - `docs/logs/v0.6.25-channel-runtime-hard-split/README.md`
 - `docs/logs/v0.6.24-openclaw-final-align-public-release/README.md`

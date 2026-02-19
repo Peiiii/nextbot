@@ -9,6 +9,10 @@ import { getDataPath } from "../utils/helpers.js";
 import { APP_NAME } from "../config/brand.js";
 import { join } from "node:path";
 import { mkdirSync } from "node:fs";
+import { ChannelTypingController } from "./typing-controller.js";
+
+const TYPING_HEARTBEAT_MS = 4000;
+const TYPING_AUTO_STOP_MS = 45000;
 
 const BOT_COMMANDS: BotCommand[] = [
   { command: "start", description: "Start the bot" },
@@ -20,7 +24,7 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
   name = "telegram";
 
   private bot: TelegramBot | null = null;
-  private typingTasks: Map<string, NodeJS.Timeout> = new Map();
+  private readonly typingController: ChannelTypingController;
   private transcriber: GroqTranscriptionProvider;
 
   constructor(
@@ -31,6 +35,13 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
   ) {
     super(config, bus);
     this.transcriber = new GroqTranscriptionProvider(groqApiKey ?? null);
+    this.typingController = new ChannelTypingController({
+      heartbeatMs: TYPING_HEARTBEAT_MS,
+      autoStopMs: TYPING_AUTO_STOP_MS,
+      sendTyping: async (chatId) => {
+        await this.bot?.sendChatAction(Number(chatId), "typing");
+      }
+    });
   }
 
   async start(): Promise<void> {
@@ -101,10 +112,7 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
 
   async stop(): Promise<void> {
     this.running = false;
-    for (const task of this.typingTasks.values()) {
-      clearInterval(task);
-    }
-    this.typingTasks.clear();
+    this.typingController.stopAll();
     if (this.bot) {
       await this.bot.stopPolling();
       this.bot = null;
@@ -189,15 +197,20 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     const content = contentParts.length ? contentParts.join("\n") : "[empty message]";
     this.startTyping(chatId);
 
-    await this.dispatchToBus(senderId, chatId, content, attachments, {
-      message_id: message.message_id,
-      user_id: sender.id,
-      username: sender.username,
-      first_name: sender.firstName,
-      sender_type: sender.type,
-      is_bot: sender.isBot,
-      is_group: message.chat.type !== "private"
-    });
+    try {
+      await this.dispatchToBus(senderId, chatId, content, attachments, {
+        message_id: message.message_id,
+        user_id: sender.id,
+        username: sender.username,
+        first_name: sender.firstName,
+        sender_type: sender.type,
+        is_bot: sender.isBot,
+        is_group: message.chat.type !== "private"
+      });
+    } catch (err) {
+      this.stopTyping(chatId);
+      throw err;
+    }
   }
 
   private async dispatchToBus(
@@ -211,22 +224,11 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
   }
 
   private startTyping(chatId: string): void {
-    this.stopTyping(chatId);
-    if (!this.bot) {
-      return;
-    }
-    const task = setInterval(() => {
-      void this.bot?.sendChatAction(Number(chatId), "typing");
-    }, 4000);
-    this.typingTasks.set(chatId, task);
+    this.typingController.start(chatId);
   }
 
   private stopTyping(chatId: string): void {
-    const task = this.typingTasks.get(chatId);
-    if (task) {
-      clearInterval(task);
-      this.typingTasks.delete(chatId);
-    }
+    this.typingController.stop(chatId);
   }
 }
 
