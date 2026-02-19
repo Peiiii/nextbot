@@ -193,9 +193,8 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
           ...(attachmentIssues.length ? { attachment_issues: attachmentIssues } : {})
         }
       });
-    } catch (err) {
+    } finally {
       this.stopTyping(channelId);
-      throw err;
     }
   }
 

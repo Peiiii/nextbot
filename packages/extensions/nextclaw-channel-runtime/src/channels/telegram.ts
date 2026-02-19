@@ -207,9 +207,8 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
         is_bot: sender.isBot,
         is_group: message.chat.type !== "private"
       });
-    } catch (err) {
+    } finally {
       this.stopTyping(chatId);
-      throw err;
     }
   }
 

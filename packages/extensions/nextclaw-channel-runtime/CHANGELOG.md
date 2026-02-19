@@ -1,5 +1,11 @@
 # @nextclaw/channel-runtime
 
+## 0.1.6
+
+### Patch Changes
+
+- Stop channel typing indicators immediately after inbound processing completes (including no-reply paths like <noreply/>), instead of waiting for auto-stop timeout.
+
 ## 0.1.5
 
 ### Patch Changes

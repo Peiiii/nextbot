@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.6.21
+
+### Patch Changes
+
+- Stop channel typing indicators immediately after inbound processing completes (including no-reply paths like <noreply/>), instead of waiting for auto-stop timeout.
+- Updated dependencies
+  - @nextclaw/openclaw-compat@0.1.13
+
 ## 0.6.20
 
 ### Patch Changes
