@@ -21,6 +21,7 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import { RestartCoordinator, type RestartStrategy } from "./restart-coordinator.js";
+import { writeRestartSentinel } from "./restart-sentinel.js";
 import { installClawHubSkill } from "./skills/clawhub.js";
 import { runSelfUpdate } from "./update/runner.js";
 import {
@@ -281,6 +282,29 @@ export class CliRuntime {
     console.warn(result.message);
   }
 
+  private async writeRestartSentinelFromExecContext(reason: string): Promise<void> {
+    const sessionKeyRaw = process.env.NEXTCLAW_RUNTIME_SESSION_KEY;
+    const sessionKey = typeof sessionKeyRaw === "string" ? sessionKeyRaw.trim() : "";
+    if (!sessionKey) {
+      return;
+    }
+
+    try {
+      await writeRestartSentinel({
+        kind: "restart",
+        status: "ok",
+        ts: Date.now(),
+        sessionKey,
+        stats: {
+          reason: reason || "cli.restart",
+          strategy: "exec-tool"
+        }
+      });
+    } catch (error) {
+      console.warn(`Warning: failed to write restart sentinel from exec context: ${String(error)}`);
+    }
+  }
+
   async onboard(): Promise<void> {
     console.warn(`Warning: ${APP_NAME} onboard is deprecated. Use "${APP_NAME} init" instead.`);
     await this.init({ source: "onboard" });
@@ -378,6 +402,8 @@ export class CliRuntime {
   }
 
   async restart(opts: StartCommandOptions): Promise<void> {
+    await this.writeRestartSentinelFromExecContext("cli.restart");
+
     const state = readServiceState();
     if (state && isProcessRunning(state.pid)) {
       console.log(`Restarting ${APP_NAME}...`);

@@ -9,6 +9,7 @@ export class ExecTool extends Tool {
   private denyPatterns: RegExp[];
   private allowPatterns: RegExp[];
   private dangerousCommands: string[];
+  private context: { sessionKey?: string; channel?: string; chatId?: string } = {};
 
   constructor(
     private options: {
@@ -31,6 +32,14 @@ export class ExecTool extends Tool {
     ]).map((pattern) => new RegExp(pattern, "i"));
     this.allowPatterns = (options.allowPatterns ?? []).map((pattern) => new RegExp(pattern, "i"));
     this.dangerousCommands = ["format", "diskpart", "mkfs"];
+  }
+
+  setContext(context: { sessionKey?: string; channel?: string; chatId?: string }): void {
+    this.context = {
+      sessionKey: typeof context.sessionKey === "string" ? context.sessionKey.trim() || undefined : undefined,
+      channel: typeof context.channel === "string" ? context.channel.trim() || undefined : undefined,
+      chatId: typeof context.chatId === "string" ? context.chatId.trim() || undefined : undefined
+    };
   }
 
   get name(): string {
@@ -61,10 +70,21 @@ export class ExecTool extends Tool {
     }
 
     try {
+      const env = { ...process.env };
+      if (this.context.sessionKey) {
+        env.NEXTCLAW_RUNTIME_SESSION_KEY = this.context.sessionKey;
+      }
+      if (this.context.channel) {
+        env.NEXTCLAW_RUNTIME_CHANNEL = this.context.channel;
+      }
+      if (this.context.chatId) {
+        env.NEXTCLAW_RUNTIME_CHAT_ID = this.context.chatId;
+      }
       const { stdout, stderr } = await execAsync(command, {
         cwd,
         timeout: (this.options.timeout ?? 60) * 1000,
-        maxBuffer: 10_000_000
+        maxBuffer: 10_000_000,
+        env
       });
       const outputParts: string[] = [];
       if (stdout) {

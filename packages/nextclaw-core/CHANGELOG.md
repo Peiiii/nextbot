@@ -1,5 +1,14 @@
 # nextclaw-core
 
+## 0.6.10
+
+### Patch Changes
+
+- Fix restart self-reply reliability when the assistant restarts itself:
+  - forward runtime session context into `gateway.restart` and persist restart sentinel for restart action;
+  - propagate session/channel/chat context through `exec` tool environment;
+  - write restart sentinel in CLI restart path when invoked from agent exec context.
+
 ## 0.6.9
 
 ### Patch Changes

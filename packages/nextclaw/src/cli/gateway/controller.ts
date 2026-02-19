@@ -200,7 +200,13 @@ export class GatewayControllerImpl implements GatewayController {
     return this.deps.reloader.reloadConfig(reason);
   }
 
-  async restart(options?: { delayMs?: number; reason?: string }): Promise<string> {
+  async restart(options?: { delayMs?: number; reason?: string; sessionKey?: string }): Promise<string> {
+    await this.writeRestartSentinelPayload({
+      kind: "restart",
+      status: "ok",
+      sessionKey: options?.sessionKey,
+      reason: options?.reason ?? "gateway.restart"
+    });
     await this.requestRestart(options);
     return "Restart scheduled";
   }

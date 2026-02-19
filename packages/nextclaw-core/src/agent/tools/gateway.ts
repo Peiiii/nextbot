@@ -13,7 +13,7 @@ export type GatewayConfigSnapshot = {
 export type GatewayController = {
   status?: () => Promise<Record<string, unknown> | string> | Record<string, unknown> | string;
   reloadConfig?: (reason?: string) => Promise<string | void> | string | void;
-  restart?: (options?: { delayMs?: number; reason?: string }) => Promise<string | void> | string | void;
+  restart?: (options?: { delayMs?: number; reason?: string; sessionKey?: string }) => Promise<string | void> | string | void;
   getConfig?: () => Promise<GatewayConfigSnapshot | string> | GatewayConfigSnapshot | string;
   getConfigSchema?: () => Promise<Record<string, unknown> | string> | Record<string, unknown> | string;
   applyConfig?: (params: {
@@ -176,7 +176,8 @@ export class GatewayTool extends Tool {
           ? Math.floor(params.delayMs)
           : undefined;
       const reason = typeof params.reason === "string" ? params.reason.trim() || undefined : undefined;
-      const result = await this.controller.restart({ delayMs, reason });
+      const sessionKey = resolveSessionKey();
+      const result = await this.controller.restart({ delayMs, reason, sessionKey });
       return JSON.stringify({ ok: true, result: result ?? "Restart scheduled" }, null, 2);
     }
     if (action === "update.run") {

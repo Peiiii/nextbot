@@ -405,6 +405,10 @@ export class AgentLoop {
     if (messageTool instanceof MessageTool) {
       messageTool.setContext(msg.channel, msg.chatId);
     }
+    const execTool = this.tools.get("exec");
+    if (execTool instanceof ExecTool) {
+      execTool.setContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
+    }
     const spawnTool = this.tools.get("spawn");
     if (spawnTool instanceof SpawnTool) {
       spawnTool.setContext(msg.channel, msg.chatId);
@@ -516,6 +520,10 @@ export class AgentLoop {
     const messageTool = this.tools.get("message");
     if (messageTool instanceof MessageTool) {
       messageTool.setContext(originChannel, originChatId);
+    }
+    const execTool = this.tools.get("exec");
+    if (execTool instanceof ExecTool) {
+      execTool.setContext({ sessionKey, channel: originChannel, chatId: originChatId });
     }
     const spawnTool = this.tools.get("spawn");
     if (spawnTool instanceof SpawnTool) {
