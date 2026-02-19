@@ -1,5 +1,18 @@
 # @nextclaw/openclaw-compat
 
+## 0.1.5
+
+### Patch Changes
+
+- Restore OpenClaw-compatible plugin support in NextClaw with a NextClaw-only discovery policy.
+  - Restore plugin CLI and runtime integration (`plugins *`, `channels add`, runtime loading bridge).
+  - Restore `plugins.*` config schema and reload semantics.
+  - Keep OpenClaw plugin compatibility while only scanning NextClaw plugin directories.
+  - Do not scan legacy `.openclaw/extensions` directories by default.
+
+- Updated dependencies
+  - @nextclaw/core@0.6.2
+
 ## 0.1.4
 
 ### Patch Changes
