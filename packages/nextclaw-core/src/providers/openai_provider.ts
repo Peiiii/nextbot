@@ -86,18 +86,23 @@ export class OpenAICompatibleProvider extends LLMProvider {
         if (toolCall.type !== "function") {
           continue;
         }
-        let args: Record<string, unknown> = {};
-        try {
-          args = JSON.parse(toolCall.function.arguments ?? "{}");
-        } catch {
-          args = {};
-        }
+        const args = this.parseToolCallArguments(toolCall.function.arguments);
         toolCalls.push({
           id: toolCall.id,
           name: toolCall.function.name,
           arguments: args
         });
       }
+    }
+
+    const legacyFunctionCall = (message as { function_call?: { name?: string; arguments?: unknown } } | undefined)
+      ?.function_call;
+    if (legacyFunctionCall?.name) {
+      toolCalls.push({
+        id: `legacy-fn-${toolCalls.length}`,
+        name: legacyFunctionCall.name,
+        arguments: this.parseToolCallArguments(legacyFunctionCall.arguments)
+      });
     }
 
     const reasoningContent =
@@ -354,6 +359,43 @@ export class OpenAICompatibleProvider extends LLMProvider {
       return true;
     }
     return false;
+  }
+
+  private parseToolCallArguments(raw: unknown): Record<string, unknown> {
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      return raw as Record<string, unknown>;
+    }
+
+    if (typeof raw !== "string") {
+      return {};
+    }
+
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return {};
+    }
+
+    const candidates = [trimmed, this.stripCodeFence(trimmed), this.extractLeadingJson(trimmed)].filter(
+      (value): value is string => Boolean(value)
+    );
+
+    for (const candidate of candidates) {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          return parsed as Record<string, unknown>;
+        }
+      } catch {
+        // continue trying next candidate
+      }
+    }
+
+    return {};
+  }
+
+  private stripCodeFence(text: string): string {
+    const fence = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+    return fence?.[1]?.trim() ?? text;
   }
 
   private async withRetry<T>(operation: () => Promise<T>): Promise<T> {

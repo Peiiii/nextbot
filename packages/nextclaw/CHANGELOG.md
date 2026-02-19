@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.6.15
+
+### Patch Changes
+
+- Harden OpenRouter/Qwen tool call parsing compatibility in OpenAI-compatible provider while keeping wireApi behavior unchanged.
+- Updated dependencies
+  - @nextclaw/core@0.6.15
+
 ## 0.6.14
 
 ### Patch Changes
