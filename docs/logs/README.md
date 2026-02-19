@@ -1,5 +1,8 @@
 # Logs
 
+- `docs/logs/v0.6.9-release-v0.6.9/README.md`
+- `docs/logs/v0.6.9-restart-sentinel-auto-ping/README.md`
+- `docs/logs/v0.6.8-release-v0.6.8/README.md`
 - `docs/logs/v0.6.7-release-v0.6.7/README.md`
 - `docs/logs/v0.6.7-openclaw-no-reply-alignment/README.md`
 - `docs/logs/v0.6.6-release-v0.6.6/README.md`

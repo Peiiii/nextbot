@@ -1,5 +1,5 @@
 import type { MessageBus } from "../bus/queue.js";
-import type { InboundMessage, OutboundMessage } from "../bus/events.js";
+import type { InboundAttachment, InboundMessage, OutboundMessage } from "../bus/events.js";
 
 export abstract class BaseChannel<TConfig extends Record<string, unknown>> {
   protected running = false;
@@ -29,7 +29,7 @@ export abstract class BaseChannel<TConfig extends Record<string, unknown>> {
     senderId: string;
     chatId: string;
     content: string;
-    media?: string[];
+    attachments?: InboundAttachment[];
     metadata?: Record<string, unknown>;
   }): Promise<void> {
     if (!this.isAllowed(params.senderId)) {
@@ -41,7 +41,7 @@ export abstract class BaseChannel<TConfig extends Record<string, unknown>> {
       chatId: params.chatId,
       content: params.content,
       timestamp: new Date(),
-      media: params.media ?? [],
+      attachments: params.attachments ?? [],
       metadata: params.metadata ?? {}
     };
     await this.bus.publishInbound(msg);

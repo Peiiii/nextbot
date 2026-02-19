@@ -46,7 +46,7 @@ export class EmailChannel extends BaseChannel<Config["channels"]["email"]> {
             senderId: item.sender,
             chatId: item.sender,
             content: item.content,
-            media: [],
+            attachments: [],
             metadata: item.metadata ?? {}
           });
         }

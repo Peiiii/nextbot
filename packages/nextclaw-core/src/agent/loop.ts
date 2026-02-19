@@ -223,7 +223,7 @@ export class AgentLoop {
       chatId: params.chatId ?? "direct",
       content: params.content,
       timestamp: new Date(),
-      media: [],
+      attachments: [],
       metadata: params.metadata ?? {}
     };
     const response = await this.processMessage(msg, params.sessionKey);
@@ -264,6 +264,102 @@ export class AgentLoop {
     return null;
   }
 
+  private normalizeOptionalString(value: unknown): string | undefined {
+    if (typeof value !== "string") {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+
+  private buildDeliveryContext(params: {
+    channel: string;
+    chatId: string;
+    metadata: Record<string, unknown>;
+    accountId?: string;
+  }): Record<string, unknown> {
+    const replyTo =
+      this.normalizeOptionalString(params.metadata.reply_to) ??
+      this.normalizeOptionalString(params.metadata.message_id);
+
+    const deliveryMetadata: Record<string, unknown> = {};
+    const slackMeta = params.metadata.slack;
+    if (slackMeta && typeof slackMeta === "object" && !Array.isArray(slackMeta)) {
+      const threadTs = this.normalizeOptionalString((slackMeta as Record<string, unknown>).thread_ts);
+      const channelType = this.normalizeOptionalString((slackMeta as Record<string, unknown>).channel_type);
+      if (threadTs || channelType) {
+        deliveryMetadata.slack = {
+          ...(threadTs ? { thread_ts: threadTs } : {}),
+          ...(channelType ? { channel_type: channelType } : {})
+        };
+      }
+    }
+
+    const qqMeta = params.metadata.qq;
+    if (qqMeta && typeof qqMeta === "object" && !Array.isArray(qqMeta)) {
+      const msgId = this.normalizeOptionalString((qqMeta as Record<string, unknown>).msgId);
+      const msgSeq = this.normalizeOptionalString((qqMeta as Record<string, unknown>).msgSeq);
+      const groupId = this.normalizeOptionalString((qqMeta as Record<string, unknown>).groupId);
+      const guildId = this.normalizeOptionalString((qqMeta as Record<string, unknown>).guildId);
+      if (msgId || msgSeq || groupId || guildId) {
+        deliveryMetadata.qq = {
+          ...(msgId ? { msgId } : {}),
+          ...(msgSeq ? { msgSeq } : {}),
+          ...(groupId ? { groupId } : {}),
+          ...(guildId ? { guildId } : {})
+        };
+      }
+    }
+
+    const groupId = this.normalizeOptionalString(params.metadata.group_id) ?? this.normalizeOptionalString(params.metadata.groupId);
+    if (groupId) {
+      deliveryMetadata.group_id = groupId;
+    }
+
+    const accountId =
+      params.accountId ??
+      this.normalizeOptionalString(params.metadata.accountId) ??
+      this.normalizeOptionalString(params.metadata.account_id);
+    if (accountId) {
+      deliveryMetadata.accountId = accountId;
+    }
+
+    const context: Record<string, unknown> = {
+      channel: params.channel,
+      chatId: params.chatId,
+      ...(replyTo ? { replyTo } : {}),
+      ...(accountId ? { accountId } : {})
+    };
+
+    if (Object.keys(deliveryMetadata).length > 0) {
+      context.metadata = deliveryMetadata;
+    }
+
+    return context;
+  }
+
+  private drainPendingSystemEvents(session: { metadata: Record<string, unknown> }): string[] {
+    const key = "pending_system_events";
+    const raw = session.metadata[key];
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    const events = raw
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    delete session.metadata[key];
+    return events;
+  }
+
+  private prependSystemEvents(content: string, events: string[]): string {
+    if (!events.length) {
+      return content;
+    }
+    const block = events.map((event) => `[System Message] ${event}`).join("\n");
+    return `${block}\n\n${content}`;
+  }
+
   private async processMessage(msg: InboundMessage, sessionKeyOverride?: string): Promise<OutboundMessage | null> {
     if (msg.channel === "system") {
       return this.processSystemMessage(msg);
@@ -295,6 +391,15 @@ export class AgentLoop {
     if (accountId) {
       session.metadata.last_account_id = accountId;
     }
+    session.metadata.last_delivery_context = this.buildDeliveryContext({
+      channel: msg.channel,
+      chatId: msg.chatId,
+      metadata: msg.metadata,
+      accountId
+    });
+
+    const pendingSystemEvents = this.drainPendingSystemEvents(session);
+    const currentMessage = this.prependSystemEvents(msg.content, pendingSystemEvents);
 
     const messageTool = this.tools.get("message");
     if (messageTool instanceof MessageTool) {
@@ -308,6 +413,10 @@ export class AgentLoop {
     if (cronTool instanceof CronTool) {
       cronTool.setContext(msg.channel, msg.chatId);
     }
+    const gatewayTool = this.tools.get("gateway");
+    if (gatewayTool instanceof GatewayTool) {
+      gatewayTool.setContext({ sessionKey });
+    }
 
     const messageToolHints = this.options.resolveMessageToolHints?.({
       sessionKey,
@@ -318,8 +427,8 @@ export class AgentLoop {
 
     const messages = this.context.buildMessages({
       history: this.sessions.getHistory(session),
-      currentMessage: msg.content,
-      media: msg.media,
+      currentMessage,
+      attachments: msg.attachments,
       channel: msg.channel,
       chatId: msg.chatId,
       sessionKey,
@@ -415,6 +524,10 @@ export class AgentLoop {
     const cronTool = this.tools.get("cron");
     if (cronTool instanceof CronTool) {
       cronTool.setContext(originChannel, originChatId);
+    }
+    const gatewayTool = this.tools.get("gateway");
+    if (gatewayTool instanceof GatewayTool) {
+      gatewayTool.setContext({ sessionKey });
     }
 
     const accountId =

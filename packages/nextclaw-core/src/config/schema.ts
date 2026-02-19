@@ -43,7 +43,9 @@ export const DiscordConfigSchema = z.object({
   allowBots: z.boolean().default(false),
   allowFrom: allowFrom,
   gatewayUrl: z.string().default("wss://gateway.discord.gg/?v=10&encoding=json"),
-  intents: z.number().int().default(37377)
+  intents: z.number().int().default(37377),
+  proxy: z.string().nullable().default(null),
+  mediaMaxMb: z.number().int().default(8)
 });
 
 export const EmailConfigSchema = z.object({

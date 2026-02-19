@@ -1,5 +1,26 @@
 # nextclaw-core
 
+## 0.6.8
+
+### Patch Changes
+
+- Add OpenClaw-parity restart sentinel flow for gateway-triggered restarts:
+  - persist restart sentinel before `config.apply`, `config.patch`, and `update.run`
+  - auto-ping the last active session after restart using captured delivery context
+  - fallback to queued session system events when immediate delivery is unavailable
+  - auto-infer `sessionKey` in gateway tool context and document updated behavior
+
+## 0.6.7
+
+### Patch Changes
+
+- Align media ingress protocol with OpenClaw-style structured attachments while keeping NextClaw internals decoupled.
+  - Replace inbound `media: string[]` with structured `attachments[]` contract.
+  - Upgrade Discord attachment ingestion to local-first with remote URL fallback, typed ingress error codes, and no user-facing `download failed` noise.
+  - Add Discord config semantics: `channels.discord.mediaMaxMb` and `channels.discord.proxy`.
+  - Map multimodal content to Responses API blocks (`image_url -> input_image`, `text -> input_text`) so image context works in responses mode.
+  - Update usage docs and architecture checklist for protocol-isomorphic/kernel-heterogeneous alignment.
+
 ## 0.6.6
 
 ### Patch Changes

@@ -105,7 +105,7 @@ export class DingTalkChannel extends BaseChannel<Config["channels"]["dingtalk"]>
       senderId,
       chatId: senderId,
       content: text,
-      media: [],
+      attachments: [],
       metadata: {
         sender_name: senderName,
         platform: "dingtalk"

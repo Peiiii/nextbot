@@ -7,10 +7,16 @@ import {
   type Config,
   type GatewayController,
   type CronService,
-  type ChannelManager
+  type ChannelManager,
+  type SessionManager
 } from "@nextclaw/core";
 import { getPackageVersion } from "../utils.js";
 import { runSelfUpdate } from "../update/runner.js";
+import {
+  parseSessionKey,
+  type RestartSentinelDeliveryContext,
+  writeRestartSentinel
+} from "../restart-sentinel.js";
 
 type ConfigReloaderLike = {
   getChannels: () => ChannelManager;
@@ -20,6 +26,7 @@ type ConfigReloaderLike = {
 type ControllerDeps = {
   reloader: ConfigReloaderLike;
   cron: CronService;
+  sessionManager?: SessionManager;
   getConfigPath: () => string;
   saveConfig: (config: Config) => void;
   requestRestart?: (options?: { delayMs?: number; reason?: string }) => Promise<void> | void;
@@ -86,6 +93,87 @@ const mergeDeep = (base: Record<string, unknown>, patch: Record<string, unknown>
 
 export class GatewayControllerImpl implements GatewayController {
   constructor(private deps: ControllerDeps) {}
+
+  private normalizeOptionalString(value: unknown): string | undefined {
+    if (typeof value !== "string") {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+
+  private resolveDeliveryContext(sessionKey?: string): RestartSentinelDeliveryContext | undefined {
+    const normalizedSessionKey = this.normalizeOptionalString(sessionKey);
+    const keyTarget = parseSessionKey(normalizedSessionKey);
+    const session = normalizedSessionKey ? this.deps.sessionManager?.getIfExists(normalizedSessionKey) : null;
+    const metadata = session?.metadata ?? {};
+    const rawContext = metadata.last_delivery_context;
+    const cachedContext =
+      rawContext && typeof rawContext === "object" && !Array.isArray(rawContext)
+        ? (rawContext as Record<string, unknown>)
+        : null;
+    const cachedMetadataRaw = cachedContext?.metadata;
+    const cachedMetadata =
+      cachedMetadataRaw && typeof cachedMetadataRaw === "object" && !Array.isArray(cachedMetadataRaw)
+        ? ({ ...(cachedMetadataRaw as Record<string, unknown>) } as Record<string, unknown>)
+        : {};
+
+    const channel = this.normalizeOptionalString(cachedContext?.channel) ?? keyTarget?.channel;
+    const chatId =
+      this.normalizeOptionalString(cachedContext?.chatId) ??
+      this.normalizeOptionalString(metadata.last_to) ??
+      keyTarget?.chatId;
+    const replyTo =
+      this.normalizeOptionalString(cachedContext?.replyTo) ??
+      this.normalizeOptionalString(metadata.last_message_id);
+    const accountId =
+      this.normalizeOptionalString(cachedContext?.accountId) ??
+      this.normalizeOptionalString(metadata.last_account_id);
+
+    if (!channel || !chatId) {
+      return undefined;
+    }
+
+    if (accountId && !this.normalizeOptionalString(cachedMetadata.accountId)) {
+      cachedMetadata.accountId = accountId;
+    }
+
+    return {
+      channel,
+      chatId,
+      ...(replyTo ? { replyTo } : {}),
+      ...(accountId ? { accountId } : {}),
+      ...(Object.keys(cachedMetadata).length > 0 ? { metadata: cachedMetadata } : {})
+    };
+  }
+
+  private async writeRestartSentinelPayload(params: {
+    kind: "config.apply" | "config.patch" | "update.run" | "restart";
+    status: "ok" | "error" | "skipped";
+    sessionKey?: string;
+    note?: string;
+    reason?: string;
+      strategy?: string;
+  }): Promise<string | null> {
+    const sessionKey = this.normalizeOptionalString(params.sessionKey);
+    const deliveryContext = this.resolveDeliveryContext(sessionKey);
+    try {
+      return await writeRestartSentinel({
+        kind: params.kind,
+        status: params.status,
+        ts: Date.now(),
+        sessionKey,
+        deliveryContext,
+        message: params.note ?? null,
+        stats: {
+          reason: params.reason ?? null,
+          strategy: params.strategy ?? null
+        }
+      });
+    } catch {
+      return null;
+    }
+  }
 
   private async requestRestart(options?: { delayMs?: number; reason?: string }): Promise<void> {
     if (this.deps.requestRestart) {
@@ -165,13 +253,21 @@ export class GatewayControllerImpl implements GatewayController {
     }
     this.deps.saveConfig(validated);
     const delayMs = params.restartDelayMs ?? 0;
+    const sentinelPath = await this.writeRestartSentinelPayload({
+      kind: "config.apply",
+      status: "ok",
+      sessionKey: params.sessionKey,
+      note: params.note,
+      reason: "config.apply"
+    });
     await this.requestRestart({ delayMs, reason: "config.apply" });
     return {
       ok: true,
       note: params.note ?? null,
       path: this.deps.getConfigPath(),
       config: redactValue(validated),
-      restart: { scheduled: true, delayMs }
+      restart: { scheduled: true, delayMs },
+      sentinel: sentinelPath ? { path: sentinelPath } : null
     };
   }
 
@@ -207,13 +303,21 @@ export class GatewayControllerImpl implements GatewayController {
     }
     this.deps.saveConfig(validated);
     const delayMs = params.restartDelayMs ?? 0;
+    const sentinelPath = await this.writeRestartSentinelPayload({
+      kind: "config.patch",
+      status: "ok",
+      sessionKey: params.sessionKey,
+      note: params.note,
+      reason: "config.patch"
+    });
     await this.requestRestart({ delayMs, reason: "config.patch" });
     return {
       ok: true,
       note: params.note ?? null,
       path: this.deps.getConfigPath(),
       config: redactValue(validated),
-      restart: { scheduled: true, delayMs }
+      restart: { scheduled: true, delayMs },
+      sentinel: sentinelPath ? { path: sentinelPath } : null
     };
   }
 
@@ -229,13 +333,22 @@ export class GatewayControllerImpl implements GatewayController {
     }
 
     const delayMs = params.restartDelayMs ?? 0;
+    const sentinelPath = await this.writeRestartSentinelPayload({
+      kind: "update.run",
+      status: "ok",
+      sessionKey: params.sessionKey,
+      note: params.note,
+      reason: "update.run",
+      strategy: result.strategy
+    });
     await this.requestRestart({ delayMs, reason: "update.run" });
     return {
       ok: true,
       note: params.note ?? null,
       restart: { scheduled: true, delayMs },
       strategy: result.strategy,
-      steps: result.steps
+      steps: result.steps,
+      sentinel: sentinelPath ? { path: sentinelPath } : null
     };
   }
 }

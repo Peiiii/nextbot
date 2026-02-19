@@ -742,7 +742,7 @@ export class MochatChannel extends BaseChannel<Config["channels"]["mochat"]> {
       senderId: last.author,
       chatId: targetId,
       content: body,
-      media: [],
+      attachments: [],
       metadata: {
         message_id: last.messageId,
         timestamp: last.timestamp,

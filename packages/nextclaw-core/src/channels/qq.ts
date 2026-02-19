@@ -162,7 +162,7 @@ export class QQChannel extends BaseChannel<Config["channels"]["qq"]> {
       senderId,
       chatId,
       content: safeContent,
-      media: [],
+      attachments: [],
       metadata: {
         message_id: messageId,
         qq: qqMeta

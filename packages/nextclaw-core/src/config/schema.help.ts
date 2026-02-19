@@ -56,6 +56,8 @@ export const FIELD_HELP: Record<string, string> = {
   "channels.discord.allowBots": "Allow bot-authored messages to trigger replies (default: false).",
   "channels.discord.gatewayUrl": "Override Discord gateway URL.",
   "channels.discord.intents": "Gateway intents bitmask.",
+  "channels.discord.proxy": "Optional HTTP(S) proxy for Discord attachment downloads.",
+  "channels.discord.mediaMaxMb": "Maximum inbound Discord attachment size in MB.",
   "channels.feishu.appId": "Feishu app ID.",
   "channels.feishu.appSecret": "Feishu app secret.",
   "channels.feishu.encryptKey": "Feishu encrypt key (if enabled).",

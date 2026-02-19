@@ -7,6 +7,7 @@
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![LOC](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FPeiiii%2Fnextclaw%2Fmaster%2Fdocs%2Fmetrics%2Fcode-volume%2Flatest.json&query=%24.totals.codeLines&label=LOC&suffix=%20lines&color=7A4DFF)](docs/workflows/code-volume-monitoring.md)
 
 [Why NextClaw?](#why-nextclaw) · [Quick Start](#-quick-start) · [Features](#-features) · [Screenshots](#-screenshots) · [Commands](#-commands) · [Channels](#-channels) · [Docs](docs/USAGE.md)
 

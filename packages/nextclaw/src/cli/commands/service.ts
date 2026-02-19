@@ -58,6 +58,12 @@ import {
   toPluginConfigView
 } from "./plugins.js";
 import type { RequestRestartParams } from "../types.js";
+import {
+  consumeRestartSentinel,
+  enqueuePendingSystemEvent,
+  formatRestartSentinelMessage,
+  parseSessionKey
+} from "../restart-sentinel.js";
 
 export class ServiceCommands {
   constructor(
@@ -114,6 +120,7 @@ export class ServiceCommands {
     const gatewayController = new GatewayControllerImpl({
       reloader,
       cron,
+      sessionManager,
       getConfigPath,
       saveConfig,
       requestRestart: async (options) => {
@@ -293,10 +300,75 @@ export class ServiceCommands {
         }
       }
 
-      await Promise.allSettled([agent.run(), reloader.getChannels().startAll()]);
+      await reloader.getChannels().startAll();
+      await this.wakeFromRestartSentinel({ bus, sessionManager });
+      await agent.run();
     } finally {
       await stopPluginChannelGateways(pluginGatewayHandles);
       setPluginRuntimeBridge(null);
+    }
+  }
+
+  private normalizeOptionalString(value: unknown): string | undefined {
+    if (typeof value !== "string") {
+      return undefined;
+    }
+    const trimmed = value.trim();
+    return trimmed || undefined;
+  }
+
+  private async wakeFromRestartSentinel(params: {
+    bus: MessageBus;
+    sessionManager: SessionManager;
+  }): Promise<void> {
+    const sentinel = await consumeRestartSentinel();
+    if (!sentinel) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 750));
+
+    const payload = sentinel.payload;
+    const message = formatRestartSentinelMessage(payload);
+    const sessionKey = this.normalizeOptionalString(payload.sessionKey) ?? "cli:default";
+    const parsedSession = parseSessionKey(sessionKey);
+
+    const context = payload.deliveryContext;
+    const channel =
+      this.normalizeOptionalString(context?.channel) ??
+      parsedSession?.channel ??
+      this.normalizeOptionalString((params.sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_channel);
+    const chatId =
+      this.normalizeOptionalString(context?.chatId) ??
+      parsedSession?.chatId ??
+      this.normalizeOptionalString((params.sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_to);
+    const replyTo = this.normalizeOptionalString(context?.replyTo);
+    const accountId = this.normalizeOptionalString(context?.accountId);
+    const metadataRaw = context?.metadata;
+    const metadata =
+      metadataRaw && typeof metadataRaw === "object" && !Array.isArray(metadataRaw)
+        ? ({ ...(metadataRaw as Record<string, unknown>) } as Record<string, unknown>)
+        : {};
+    if (accountId && !this.normalizeOptionalString(metadata.accountId)) {
+      metadata.accountId = accountId;
+    }
+
+    if (!channel || !chatId) {
+      enqueuePendingSystemEvent(params.sessionManager, sessionKey, message);
+      return;
+    }
+
+    try {
+      await params.bus.publishOutbound({
+        channel,
+        chatId,
+        content: message,
+        ...(replyTo ? { replyTo } : {}),
+        media: [],
+        metadata
+      });
+    } catch {
+      enqueuePendingSystemEvent(params.sessionManager, sessionKey, message);
     }
   }
 

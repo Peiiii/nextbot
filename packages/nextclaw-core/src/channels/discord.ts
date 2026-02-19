@@ -1,6 +1,6 @@
 import { BaseChannel } from "./base.js";
 import type { MessageBus } from "../bus/queue.js";
-import type { OutboundMessage } from "../bus/events.js";
+import type { InboundAttachment, InboundAttachmentErrorCode, OutboundMessage } from "../bus/events.js";
 import type { Config } from "../config/schema.js";
 import {
   Client,
@@ -8,15 +8,25 @@ import {
   Partials,
   MessageFlags,
   type Message as DiscordMessage,
+  type Attachment,
   type TextBasedChannel,
   type TextBasedChannelFields
 } from "discord.js";
-import { fetch } from "undici";
+import { ProxyAgent, fetch } from "undici";
 import { join } from "node:path";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { getDataPath } from "../utils/helpers.js";
 
-const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024;
+const DEFAULT_MEDIA_MAX_MB = 8;
+const MEDIA_FETCH_TIMEOUT_MS = 15000;
+
+type AttachmentIssue = {
+  id?: string;
+  name?: string;
+  url?: string;
+  code: InboundAttachmentErrorCode;
+  message: string;
+};
 
 export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
   name = "discord";
@@ -100,8 +110,11 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     if (!this.isAllowed(senderId)) {
       return;
     }
+
     const contentParts: string[] = [];
-    const mediaPaths: string[] = [];
+    const attachments: InboundAttachment[] = [];
+    const attachmentIssues: AttachmentIssue[] = [];
+
     if (message.content) {
       contentParts.push(message.content);
     }
@@ -109,26 +122,25 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     if (message.attachments.size) {
       const mediaDir = join(getDataPath(), "media");
       mkdirSync(mediaDir, { recursive: true });
+      const maxBytes = Math.max(1, this.config.mediaMaxMb ?? DEFAULT_MEDIA_MAX_MB) * 1024 * 1024;
+      const proxy = this.resolveProxyAgent();
       for (const attachment of message.attachments.values()) {
-        if (attachment.size && attachment.size > MAX_ATTACHMENT_BYTES) {
-          contentParts.push(`[attachment: ${attachment.name ?? "file"} - too large]`);
-          continue;
+        const resolved = await this.resolveInboundAttachment({
+          attachment,
+          mediaDir,
+          maxBytes,
+          proxy
+        });
+        if (resolved.attachment) {
+          attachments.push(resolved.attachment);
         }
-        try {
-          const res = await fetch(attachment.url);
-          if (!res.ok) {
-            contentParts.push(`[attachment: ${attachment.name ?? "file"} - download failed]`);
-            continue;
-          }
-          const buffer = Buffer.from(await res.arrayBuffer());
-          const filename = `${attachment.id}_${(attachment.name ?? "file").replace(/\//g, "_")}`;
-          const filePath = join(mediaDir, filename);
-          writeFileSync(filePath, buffer);
-          mediaPaths.push(filePath);
-          contentParts.push(`[attachment: ${filePath}]`);
-        } catch {
-          contentParts.push(`[attachment: ${attachment.name ?? "file"} - download failed]`);
+        if (resolved.issue) {
+          attachmentIssues.push(resolved.issue);
         }
+      }
+
+      if (!message.content && attachments.length > 0) {
+        contentParts.push(buildAttachmentSummary(attachments));
       }
     }
 
@@ -139,13 +151,165 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
       senderId,
       chatId: channelId,
       content: contentParts.length ? contentParts.join("\n") : "[empty message]",
-      media: mediaPaths,
+      attachments,
       metadata: {
         message_id: message.id,
         guild_id: message.guildId,
-        reply_to: replyTo
+        reply_to: replyTo,
+        ...(attachmentIssues.length ? { attachment_issues: attachmentIssues } : {})
       }
     });
+  }
+
+  private resolveProxyAgent(): ProxyAgent | null {
+    const proxy = this.config.proxy?.trim();
+    if (!proxy) {
+      return null;
+    }
+    try {
+      return new ProxyAgent(proxy);
+    } catch {
+      return null;
+    }
+  }
+
+  private async resolveInboundAttachment(params: {
+    attachment: Attachment;
+    mediaDir: string;
+    maxBytes: number;
+    proxy: ProxyAgent | null;
+  }): Promise<{ attachment?: InboundAttachment; issue?: AttachmentIssue }> {
+    const { attachment, mediaDir, maxBytes, proxy } = params;
+    const id = attachment.id;
+    const name = attachment.name ?? "file";
+    const url = attachment.url;
+    const mimeType = attachment.contentType ?? guessMimeFromName(name) ?? undefined;
+
+    if (!url) {
+      return {
+        issue: {
+          id,
+          name,
+          code: "invalid_payload",
+          message: "attachment URL missing"
+        }
+      };
+    }
+
+    if (attachment.size && attachment.size > maxBytes) {
+      return {
+        attachment: {
+          id,
+          name,
+          url,
+          mimeType,
+          size: attachment.size,
+          source: "discord",
+          status: "remote-only",
+          errorCode: "too_large"
+        },
+        issue: {
+          id,
+          name,
+          url,
+          code: "too_large",
+          message: `attachment size ${attachment.size} exceeds ${maxBytes}`
+        }
+      };
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), MEDIA_FETCH_TIMEOUT_MS);
+
+    try {
+      const fetchInit = {
+        signal: controller.signal,
+        ...(proxy ? { dispatcher: proxy } : {})
+      };
+      const res = await fetch(url, fetchInit as RequestInit);
+      if (!res.ok) {
+        return {
+          attachment: {
+            id,
+            name,
+            url,
+            mimeType,
+            size: attachment.size,
+            source: "discord",
+            status: "remote-only",
+            errorCode: "http_error"
+          },
+          issue: {
+            id,
+            name,
+            url,
+            code: "http_error",
+            message: `HTTP ${res.status}`
+          }
+        };
+      }
+
+      const buffer = Buffer.from(await res.arrayBuffer());
+      if (buffer.length > maxBytes) {
+        return {
+          attachment: {
+            id,
+            name,
+            url,
+            mimeType,
+            size: buffer.length,
+            source: "discord",
+            status: "remote-only",
+            errorCode: "too_large"
+          },
+          issue: {
+            id,
+            name,
+            url,
+            code: "too_large",
+            message: `downloaded payload ${buffer.length} exceeds ${maxBytes}`
+          }
+        };
+      }
+
+      const filename = `${id}_${sanitizeAttachmentName(name)}`;
+      const filePath = join(mediaDir, filename);
+      writeFileSync(filePath, buffer);
+      return {
+        attachment: {
+          id,
+          name,
+          path: filePath,
+          url,
+          mimeType,
+          size: buffer.length,
+          source: "discord",
+          status: "ready"
+        }
+      };
+    } catch (err) {
+      return {
+        attachment: {
+          id,
+          name,
+          url,
+          mimeType,
+          size: attachment.size,
+          source: "discord",
+          status: "remote-only",
+          errorCode: "download_failed"
+        },
+        issue: {
+          id,
+          name,
+          url,
+          code: "download_failed",
+          message: String(err)
+        }
+      };
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   private startTyping(channelId: string): void {
@@ -171,4 +335,38 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
       this.typingTasks.delete(channelId);
     }
   }
+}
+
+function sanitizeAttachmentName(name: string): string {
+  return name.replace(/[\\/:*?"<>|]/g, "_");
+}
+
+function guessMimeFromName(name: string): string | null {
+  const lower = name.toLowerCase();
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  if (lower.endsWith(".gif")) return "image/gif";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".bmp")) return "image/bmp";
+  if (lower.endsWith(".tif") || lower.endsWith(".tiff")) return "image/tiff";
+  return null;
+}
+
+function isImageAttachment(attachment: InboundAttachment): boolean {
+  if (attachment.mimeType?.startsWith("image/")) {
+    return true;
+  }
+  return Boolean(attachment.name && guessMimeFromName(attachment.name));
+}
+
+function buildAttachmentSummary(attachments: InboundAttachment[]): string {
+  const count = attachments.length;
+  if (count === 0) {
+    return "";
+  }
+  const allImages = attachments.every((entry) => isImageAttachment(entry));
+  if (allImages) {
+    return `<media:image> (${count} ${count === 1 ? "image" : "images"})`;
+  }
+  return `<media:document> (${count} ${count === 1 ? "file" : "files"})`;
 }

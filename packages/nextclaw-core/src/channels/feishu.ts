@@ -140,7 +140,7 @@ export class FeishuChannel extends BaseChannel<Config["channels"]["feishu"]> {
       senderId: String(senderId),
       chatId: replyTo,
       content,
-      media: [],
+      attachments: [],
       metadata: {
         message_id: messageId,
         chat_type: chatType,

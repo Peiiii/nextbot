@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-19T06:53:48.203Z",
+  "generatedAt": "2026-02-19T07:02:54.132Z",
   "projectRoot": "/Users/peiwang/Projects/nextbot",
   "git": {
     "sha": "",
@@ -34,25 +34,25 @@
     ]
   },
   "totals": {
-    "files": 158,
-    "totalLines": 22696,
-    "blankLines": 2502,
+    "files": 159,
+    "totalLines": 23157,
+    "blankLines": 2544,
     "commentLines": 157,
-    "codeLines": 20037
+    "codeLines": 20456
   },
   "delta": {
-    "previousCodeLines": null,
-    "codeLines": null,
-    "percent": null
+    "previousCodeLines": 20459,
+    "codeLines": -3,
+    "percent": -0.01
   },
   "byLanguage": [
     {
       "name": "TypeScript",
-      "files": 118,
-      "totalLines": 19644,
-      "blankLines": 2159,
+      "files": 119,
+      "totalLines": 20105,
+      "blankLines": 2201,
       "commentLines": 137,
-      "codeLines": 17348
+      "codeLines": 17767
     },
     {
       "name": "TSX",
@@ -99,18 +99,18 @@
     {
       "name": "packages/nextclaw-core",
       "files": 61,
-      "totalLines": 9998,
-      "blankLines": 1063,
+      "totalLines": 10128,
+      "blankLines": 1079,
       "commentLines": 19,
-      "codeLines": 8916
+      "codeLines": 9030
     },
     {
       "name": "packages/nextclaw",
-      "files": 27,
-      "totalLines": 4768,
-      "blankLines": 561,
+      "files": 28,
+      "totalLines": 5099,
+      "blankLines": 587,
       "commentLines": 48,
-      "codeLines": 4159
+      "codeLines": 4464
     },
     {
       "name": "packages/nextclaw-openclaw-compat",

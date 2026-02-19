@@ -365,12 +365,7 @@ export class OpenAICompatibleProvider extends LLMProvider {
       }
 
       const output: Record<string, unknown> = { role };
-
-      if (Array.isArray(content) || typeof content === "string") {
-        output.content = content;
-      } else {
-        output.content = String(content ?? "");
-      }
+      output.content = this.normalizeResponsesContent(content);
 
       if (typeof msg.reasoning_content === "string" && msg.reasoning_content) {
         output.reasoning = msg.reasoning_content;
@@ -399,5 +394,47 @@ export class OpenAICompatibleProvider extends LLMProvider {
     }
 
     return input;
+  }
+
+  private normalizeResponsesContent(content: unknown): string | Array<Record<string, unknown>> {
+    if (typeof content === "string") {
+      return [{ type: "input_text", text: content }];
+    }
+    if (!Array.isArray(content)) {
+      return String(content ?? "");
+    }
+
+    const blocks: Array<Record<string, unknown>> = [];
+    for (const part of content) {
+      if (!part || typeof part !== "object") {
+        continue;
+      }
+      const partAny = part as Record<string, unknown>;
+      const type = String(partAny.type ?? "");
+      if (type === "text" || type === "output_text" || type === "input_text") {
+        const textValue = typeof partAny.text === "string" ? partAny.text : "";
+        if (textValue) {
+          blocks.push({ type: "input_text", text: textValue });
+        }
+        continue;
+      }
+      if (type === "image_url" || type === "input_image") {
+        const imageValue = partAny.image_url as string | { url?: string } | undefined;
+        const imageUrl =
+          typeof imageValue === "string"
+            ? imageValue
+            : imageValue && typeof imageValue === "object" && typeof imageValue.url === "string"
+              ? imageValue.url
+              : undefined;
+        if (imageUrl) {
+          blocks.push({ type: "input_image", image_url: imageUrl });
+        }
+      }
+    }
+
+    if (blocks.length > 0) {
+      return blocks;
+    }
+    return String(content ?? "");
   }
 }

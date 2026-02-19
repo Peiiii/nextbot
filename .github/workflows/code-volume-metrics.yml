@@ -3,11 +3,15 @@ name: Code Volume Metrics
 on:
   push:
     branches:
+      - master
       - main
   pull_request:
   schedule:
     - cron: "15 2 * * *"
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   code-volume:
@@ -32,6 +36,13 @@ jobs:
 
       - name: Generate code volume metrics
         run: pnpm metrics:loc -- --append-history --summary-file "$RUNNER_TEMP/code-volume-summary.md"
+
+      - name: Commit metrics snapshot
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore(metrics): update code volume snapshot [skip ci]"
+          file_pattern: docs/metrics/code-volume/latest.json docs/metrics/code-volume/history.jsonl
 
       - name: Append workflow summary
         run: cat "$RUNNER_TEMP/code-volume-summary.md" >> "$GITHUB_STEP_SUMMARY"

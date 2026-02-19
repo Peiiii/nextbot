@@ -70,6 +70,8 @@ export const FIELD_LABELS: Record<string, string> = {
   "channels.discord.allowFrom": "Allow From",
   "channels.discord.gatewayUrl": "Gateway URL",
   "channels.discord.intents": "Gateway Intents",
+  "channels.discord.proxy": "HTTP Proxy",
+  "channels.discord.mediaMaxMb": "Attachment Max Size (MB)",
   "channels.feishu": "Feishu",
   "channels.feishu.enabled": "Enabled",
   "channels.feishu.appId": "App ID",

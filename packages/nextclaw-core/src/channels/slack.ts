@@ -136,7 +136,7 @@ export class SlackChannel extends BaseChannel<Config["channels"]["slack"]> {
       senderId,
       chatId,
       content: cleanText,
-      media: [],
+      attachments: [],
       metadata: {
         slack: {
           event,

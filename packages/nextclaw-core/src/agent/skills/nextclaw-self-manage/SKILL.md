@@ -38,8 +38,9 @@ When user explicitly asks to update NextClaw:
 
 1. Trigger `gateway(action="update.run")` (or CLI `nextclaw update` when gateway tool is unavailable).
 2. Expect a short restart window while service relaunches.
-3. Verify recovery with `nextclaw status --json` and `nextclaw doctor --json` when needed.
-4. If channels do not resume immediately, ask user to send one retry message after a few seconds.
+3. Expect NextClaw to auto-ping the last active session after restart.
+4. Verify recovery with `nextclaw status --json` and `nextclaw doctor --json` when needed.
+5. If auto-ping fails, explain fallback and ask user to send one retry message.
 
 ## High-frequency Intents
 

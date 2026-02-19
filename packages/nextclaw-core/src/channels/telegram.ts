@@ -1,7 +1,7 @@
 import TelegramBot, { type Message, type BotCommand } from "node-telegram-bot-api";
 import { BaseChannel } from "./base.js";
 import type { MessageBus } from "../bus/queue.js";
-import type { OutboundMessage } from "../bus/events.js";
+import type { InboundAttachment, OutboundMessage } from "../bus/events.js";
 import type { Config } from "../config/schema.js";
 import type { SessionManager } from "../session/manager.js";
 import { GroqTranscriptionProvider } from "../providers/transcription.js";
@@ -149,7 +149,7 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     }
 
     const contentParts: string[] = [];
-    const mediaPaths: string[] = [];
+    const attachments: InboundAttachment[] = [];
 
     if (message.text) {
       contentParts.push(message.text);
@@ -165,7 +165,14 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       const extension = getExtension(mediaType, mimeType);
       const downloaded = await this.bot.downloadFile(fileId, mediaDir);
       const finalPath = extension && !downloaded.endsWith(extension) ? `${downloaded}${extension}` : downloaded;
-      mediaPaths.push(finalPath);
+      attachments.push({
+        id: fileId,
+        name: finalPath.split("/").pop(),
+        path: finalPath,
+        mimeType: mimeType ?? inferMediaMimeType(mediaType),
+        source: "telegram",
+        status: "ready"
+      });
 
       if (mediaType === "voice" || mediaType === "audio") {
         const transcription = await this.transcriber.transcribe(finalPath);
@@ -182,7 +189,7 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     const content = contentParts.length ? contentParts.join("\n") : "[empty message]";
     this.startTyping(chatId);
 
-    await this.dispatchToBus(senderId, chatId, content, mediaPaths, {
+    await this.dispatchToBus(senderId, chatId, content, attachments, {
       message_id: message.message_id,
       user_id: sender.id,
       username: sender.username,
@@ -197,10 +204,10 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
     senderId: string,
     chatId: string,
     content: string,
-    media: string[],
+    attachments: InboundAttachment[],
     metadata: Record<string, unknown>
   ): Promise<void> {
-    await this.handleMessage({ senderId, chatId, content, media, metadata });
+    await this.handleMessage({ senderId, chatId, content, attachments, metadata });
   }
 
   private startTyping(chatId: string): void {
@@ -287,6 +294,22 @@ function getExtension(mediaType: string, mimeType?: string | null): string {
     file: ""
   };
   return fallback[mediaType] ?? "";
+}
+
+function inferMediaMimeType(mediaType?: string): string | undefined {
+  if (!mediaType) {
+    return undefined;
+  }
+  if (mediaType === "image") {
+    return "image/jpeg";
+  }
+  if (mediaType === "voice") {
+    return "audio/ogg";
+  }
+  if (mediaType === "audio") {
+    return "audio/mpeg";
+  }
+  return undefined;
 }
 
 function markdownToTelegramHtml(text: string): string {

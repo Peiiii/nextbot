@@ -1,10 +1,24 @@
+export type InboundAttachmentErrorCode = "too_large" | "download_failed" | "http_error" | "invalid_payload";
+
+export type InboundAttachment = {
+  id?: string;
+  name?: string;
+  path?: string;
+  url?: string;
+  mimeType?: string;
+  size?: number;
+  source?: string;
+  status?: "ready" | "remote-only";
+  errorCode?: InboundAttachmentErrorCode;
+};
+
 export type InboundMessage = {
   channel: string;
   senderId: string;
   chatId: string;
   content: string;
   timestamp: Date;
-  media: string[];
+  attachments: InboundAttachment[];
   metadata: Record<string, unknown>;
 };
 

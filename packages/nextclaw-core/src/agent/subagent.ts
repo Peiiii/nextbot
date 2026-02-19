@@ -231,7 +231,7 @@ export class SubagentManager {
       chatId: `${params.origin.channel}:${params.origin.chatId}`,
       content: announceContent,
       timestamp: new Date(),
-      media: [],
+      attachments: [],
       metadata: {}
     };
 

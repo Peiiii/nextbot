@@ -38,9 +38,21 @@ export type GatewayController = {
   }) => Promise<Record<string, unknown> | string | void> | Record<string, unknown> | string | void;
 };
 
+type GatewayToolContext = {
+  sessionKey?: string;
+};
+
 export class GatewayTool extends Tool {
+  private context: GatewayToolContext = {};
+
   constructor(private controller?: GatewayController) {
     super();
+  }
+
+  setContext(context: GatewayToolContext): void {
+    this.context = {
+      sessionKey: typeof context.sessionKey === "string" ? context.sessionKey.trim() || undefined : undefined
+    };
   }
 
   get name(): string {
@@ -87,6 +99,13 @@ export class GatewayTool extends Tool {
     if (!this.controller) {
       return JSON.stringify({ ok: false, error: "gateway controller not available in this runtime" }, null, 2);
     }
+    const resolveSessionKey = (): string | undefined => {
+      if (typeof params.sessionKey === "string" && params.sessionKey.trim()) {
+        return params.sessionKey.trim();
+      }
+      return this.context.sessionKey;
+    };
+
     if (action === "config.get") {
       if (!this.controller.getConfig) {
         return JSON.stringify({ ok: false, error: "config.get not supported" }, null, 2);
@@ -122,8 +141,7 @@ export class GatewayTool extends Tool {
           }
         }
       }
-      const sessionKey =
-        typeof params.sessionKey === "string" && params.sessionKey.trim() ? params.sessionKey.trim() : undefined;
+      const sessionKey = resolveSessionKey();
       if (action === "config.apply") {
         if (!this.controller.applyConfig) {
           return JSON.stringify({ ok: false, error: "config.apply not supported" }, null, 2);
@@ -173,8 +191,7 @@ export class GatewayTool extends Tool {
         typeof params.timeoutMs === "number" && Number.isFinite(params.timeoutMs)
           ? Math.max(1, Math.floor(params.timeoutMs))
           : undefined;
-      const sessionKey =
-        typeof params.sessionKey === "string" && params.sessionKey.trim() ? params.sessionKey.trim() : undefined;
+      const sessionKey = resolveSessionKey();
       const note = typeof params.note === "string" ? params.note.trim() || undefined : undefined;
       const result = await this.controller.updateRun({ note, restartDelayMs, timeoutMs, sessionKey });
       return JSON.stringify({ ok: true, result }, null, 2);

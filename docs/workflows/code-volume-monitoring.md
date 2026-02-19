@@ -33,11 +33,18 @@ pnpm metrics:loc
 
 工作流：`.github/workflows/code-volume-metrics.yml`
 
-- 触发：`push(main)`、`pull_request`、每日定时、手动触发
+- 触发：`push(master/main)`、`pull_request`、每日定时、手动触发
 - 产物：
   - `docs/metrics/code-volume/latest.json`
   - `docs/metrics/code-volume/history.jsonl`
 - 结果展示：自动写入 GitHub Actions Job Summary
+- 自动回写：在 `master/main` 分支由 workflow 自动提交快照更新（提交信息包含 `[skip ci]`，避免循环触发）
+
+## README 实时展示
+
+- README 徽章通过 `shields.io` 的 dynamic JSON 模式读取：
+  - `docs/metrics/code-volume/latest.json` 中的 `$.totals.codeLines`
+- 因为主分支快照会被 workflow 自动回写，所以徽章会持续展示最新 LOC。
 
 ## 解释建议
 

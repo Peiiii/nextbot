@@ -100,7 +100,7 @@ export class WhatsAppChannel extends BaseChannel<Config["channels"]["whatsapp"]>
         senderId,
         chatId: sender || userId,
         content,
-        media: [],
+        attachments: [],
         metadata: {
           message_id: data.id,
           timestamp: data.timestamp,
