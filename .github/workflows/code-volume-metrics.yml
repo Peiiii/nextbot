@@ -20,19 +20,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9.15.1
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Checkout OpenClaw benchmark repo
         uses: actions/checkout@v4
@@ -43,7 +34,7 @@ jobs:
 
       - name: Generate code volume metrics
         run: |
-          pnpm metrics:loc -- \
+          node scripts/code-volume-metrics.mjs \
             --append-history \
             --summary-file "$RUNNER_TEMP/code-volume-summary.md" \
             --benchmark-name openclaw \
