@@ -1,5 +1,16 @@
 # nextclaw
 
+## 0.6.3
+
+### Patch Changes
+
+- Fix OpenAI-compatible `responses` parsing when upstream returns valid JSON followed by trailing event-stream text (for example `event: error`).
+
+  This keeps `wireApi=responses` compatible with gateways that mix JSON and SSE-style fragments in one payload.
+
+- Updated dependencies
+  - @nextclaw/core@0.6.3
+
 ## 0.6.2
 
 ### Patch Changes

@@ -147,7 +147,8 @@ export class OpenAICompatibleProvider extends LLMProvider {
       throw new Error(`Responses API failed (${response.status}): ${text.slice(0, 200)}`);
     }
 
-    const responseAny = (await response.json()) as {
+    const rawText = await response.text();
+    const responseAny = this.parseResponsesPayload(rawText) as {
       output?: Array<Record<string, unknown>>;
       usage?: Record<string, number>;
       status?: string;
@@ -214,6 +215,116 @@ export class OpenAICompatibleProvider extends LLMProvider {
       },
       reasoningContent
     };
+  }
+
+  private parseResponsesPayload(rawText: string): Record<string, unknown> {
+    const text = rawText.replace(/^\uFEFF/, "").trim();
+    if (!text) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      const leadingJson = this.extractLeadingJson(text);
+      if (leadingJson) {
+        try {
+          return JSON.parse(leadingJson) as Record<string, unknown>;
+        } catch {
+          // continue to SSE fallback
+        }
+      }
+
+      const sseJson = this.extractSseJson(text);
+      if (sseJson) {
+        return sseJson;
+      }
+
+      throw new Error(`Responses API returned non-JSON payload: ${text.slice(0, 240)}`);
+    }
+  }
+
+  private extractLeadingJson(text: string): string | null {
+    let start = -1;
+    for (let index = 0; index < text.length; index += 1) {
+      const ch = text[index];
+      if (!/\s/.test(ch)) {
+        if (ch !== "{" && ch !== "[") {
+          return null;
+        }
+        start = index;
+        break;
+      }
+    }
+
+    if (start === -1) {
+      return null;
+    }
+
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let index = start; index < text.length; index += 1) {
+      const ch = text[index];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+          continue;
+        }
+        if (ch === "\\") {
+          escaped = true;
+          continue;
+        }
+        if (ch === '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (ch === '"') {
+        inString = true;
+        continue;
+      }
+
+      if (ch === "{" || ch === "[") {
+        depth += 1;
+        continue;
+      }
+      if (ch === "}" || ch === "]") {
+        depth -= 1;
+        if (depth === 0) {
+          return text.slice(start, index + 1);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private extractSseJson(text: string): Record<string, unknown> | null {
+    const lines = text.split(/\r?\n/);
+    let latestJson: Record<string, unknown> | null = null;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) {
+        continue;
+      }
+      const payload = trimmed.slice(5).trim();
+      if (!payload || payload === "[DONE]") {
+        continue;
+      }
+      try {
+        const parsed = JSON.parse(payload) as Record<string, unknown>;
+        latestJson = parsed;
+      } catch {
+        // ignore non-json data frame
+      }
+    }
+
+    return latestJson;
   }
 
   private shouldFallbackToResponses(error: unknown): boolean {
