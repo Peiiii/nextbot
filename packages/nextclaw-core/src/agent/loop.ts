@@ -17,7 +17,7 @@ import { SubagentManager } from "./subagent.js";
 import { SessionManager } from "../session/manager.js";
 import type { CronService } from "../cron/service.js";
 import type { Config } from "../config/schema.js";
-import { SILENT_REPLY_TOKEN, isSilentReplyText } from "./tokens.js";
+import { evaluateSilentReply } from "./silent-reply-policy.js";
 import { ExtensionToolAdapter } from "../extensions/tool-adapter.js";
 import type { ExtensionToolContext, ExtensionRegistry } from "../extensions/types.js";
 
@@ -489,10 +489,15 @@ export class AgentLoop {
 
     const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, messageId);
     finalContent = cleanedContent;
-    if (!finalContent.trim() || isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
+    const finalReplyDecision = evaluateSilentReply({
+      content: finalContent,
+      media: []
+    });
+    if (finalReplyDecision.shouldDrop) {
       this.sessions.save(session);
       return null;
     }
+    finalContent = finalReplyDecision.content;
 
     this.sessions.addMessage(session, "assistant", finalContent);
     this.sessions.save(session);
@@ -611,10 +616,15 @@ export class AgentLoop {
     }
     const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, undefined);
     finalContent = cleanedContent;
-    if (!finalContent.trim() || isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
+    const finalReplyDecision = evaluateSilentReply({
+      content: finalContent,
+      media: []
+    });
+    if (finalReplyDecision.shouldDrop) {
       this.sessions.save(session);
       return null;
     }
+    finalContent = finalReplyDecision.content;
 
     this.sessions.addMessage(session, "assistant", finalContent);
     this.sessions.save(session);

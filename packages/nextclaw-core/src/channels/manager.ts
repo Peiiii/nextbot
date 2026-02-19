@@ -6,6 +6,7 @@ import type { SessionManager } from "../session/manager.js";
 import { sanitizeOutboundAssistantContent } from "../utils/reasoning-tags.js";
 import { ExtensionChannelAdapter } from "./extension_channel.js";
 import type { ExtensionChannelRegistration } from "../extensions/types.js";
+import { evaluateSilentReply } from "../agent/silent-reply-policy.js";
 
 export class ChannelManager {
   private channels: Record<string, BaseChannel<Record<string, unknown>>> = {};
@@ -93,15 +94,19 @@ export class ChannelManager {
 
   private normalizeOutbound(msg: OutboundMessage): OutboundMessage | null {
     const sanitizedContent = sanitizeOutboundAssistantContent(msg.content ?? "");
-    if (!sanitizedContent.trim() && msg.media.length === 0) {
+    const silentReplyDecision = evaluateSilentReply({
+      content: sanitizedContent,
+      media: msg.media
+    });
+    if (silentReplyDecision.shouldDrop) {
       return null;
     }
-    if (sanitizedContent === msg.content) {
+    if (silentReplyDecision.content === msg.content) {
       return msg;
     }
     return {
       ...msg,
-      content: sanitizedContent
+      content: silentReplyDecision.content
     };
   }
 

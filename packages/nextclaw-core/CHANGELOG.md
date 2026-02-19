@@ -1,5 +1,11 @@
 # nextclaw-core
 
+## 0.6.18
+
+### Patch Changes
+
+- Centralize NO_REPLY handling via a unified silent reply policy and reuse it in both agent loop and channel delivery normalization.
+
 ## 0.6.17
 
 ### Patch Changes
