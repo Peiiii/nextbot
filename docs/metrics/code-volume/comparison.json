@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-02-19T07:19:37.501Z",
+  "generatedAt": "2026-02-19T07:25:57.546Z",
   "base": {
     "name": "nextclaw",
-    "projectRoot": "/Users/peiwang/Projects/nextbot",
+    "projectRoot": "/home/runner/work/nextclaw/nextclaw",
     "scope": {
       "includeDirs": [
         "packages",
@@ -41,7 +41,7 @@
   },
   "benchmark": {
     "name": "openclaw",
-    "projectRoot": "/Users/peiwang/Projects/openclaw",
+    "projectRoot": "/home/runner/work/nextclaw/nextclaw/external/openclaw",
     "scope": {
       "includeDirs": [
         "src",
@@ -72,14 +72,14 @@
     },
     "totals": {
       "files": 3844,
-      "totalLines": 683398,
-      "blankLines": 66059,
+      "totalLines": 683338,
+      "blankLines": 66057,
       "commentLines": 17434,
-      "codeLines": 599905
+      "codeLines": 599847
     }
   },
   "comparison": {
-    "baseMinusBenchmarkLines": -579314,
+    "baseMinusBenchmarkLines": -579256,
     "basePercentOfBenchmark": 3.43,
     "benchmarkMultipleOfBase": 29.13,
     "baseIsLighterByPercent": 96.57

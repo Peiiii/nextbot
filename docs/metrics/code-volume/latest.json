@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-02-19T07:19:37.501Z",
-  "projectRoot": "/Users/peiwang/Projects/nextbot",
+  "generatedAt": "2026-02-19T07:25:57.546Z",
+  "projectRoot": "/home/runner/work/nextclaw/nextclaw",
   "git": {
-    "sha": "",
-    "ref": ""
+    "sha": "88f5d066ae21e2fec164125639e1ecda85a81cc2",
+    "ref": "master"
   },
   "scope": {
     "includeDirs": [
@@ -149,8 +149,8 @@
     }
   ],
   "delta": {
-    "previousCodeLines": 20456,
-    "codeLines": 135,
-    "percent": 0.66
+    "previousCodeLines": 20591,
+    "codeLines": 0,
+    "percent": 0
   }
 }
