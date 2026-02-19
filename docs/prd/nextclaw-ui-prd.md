@@ -92,7 +92,7 @@
 **Feishu 验证**
 - 点击“Save & Verify / Connect”
   - 先保存并强制 `enabled=true`
-  - 再调用 `POST /api/channels/feishu/probe`
+  - 再调用 `POST /api/config/actions/channels.feishu.verifyConnection/execute`
 - 成功：toast `Verified. Please finish Feishu event subscription and app publishing before using.`
 - 失败：toast `Verification failed: {error}`
 
@@ -172,7 +172,7 @@
 - `PUT /api/config/model`
 - `PUT /api/config/providers/:provider`
 - `PUT /api/config/channels/:channel`
-- `POST /api/channels/feishu/probe`
+- `POST /api/config/actions/:actionId/execute`
 
 ### WebSocket
 - `ws://127.0.0.1:18791/ws`

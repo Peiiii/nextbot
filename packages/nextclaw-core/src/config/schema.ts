@@ -4,6 +4,7 @@ import { findProviderByName, PROVIDERS } from "../providers/registry.js";
 import { DEFAULT_WORKSPACE_PATH } from "./brand.js";
 import { expandHome, getPackageVersion } from "../utils/helpers.js";
 import { applySensitiveHints, buildBaseHints, mapSensitivePaths, type ConfigUiHints } from "./schema.hints.js";
+import { buildConfigActions, type ConfigActionManifest } from "./actions.js";
 
 const allowFrom = z.array(z.string()).default([]);
 
@@ -278,6 +279,7 @@ export type ConfigSchemaJson = Record<string, unknown>;
 export type ConfigSchemaResponse = {
   schema: ConfigSchemaJson;
   uiHints: ConfigUiHints;
+  actions: ConfigActionManifest[];
   version: string;
   generatedAt: string;
 };
@@ -348,6 +350,7 @@ export function buildConfigSchema(options?: { version?: string }): ConfigSchemaR
   return {
     schema: baseSchema,
     uiHints: mergedHints,
+    actions: buildConfigActions(),
     version: options?.version ?? getPackageVersion(),
     generatedAt: new Date().toISOString()
   };

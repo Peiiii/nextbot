@@ -1,5 +1,18 @@
 # nextclaw-server
 
+## 0.4.2
+
+### Patch Changes
+
+- Introduce Action Schema v1 end-to-end:
+  - add schema-driven `actions` metadata in config schema response
+  - add unified action execute API (`POST /api/config/actions/:actionId/execute`)
+  - migrate Feishu verify flow to generic action runner in UI
+  - expose Discord/Slack `allowBots` fields in channel config form
+
+- Updated dependencies
+  - @nextclaw/core@0.6.5
+
 ## 0.4.1
 
 ### Patch Changes

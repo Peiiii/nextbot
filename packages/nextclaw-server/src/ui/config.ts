@@ -2,7 +2,11 @@ import {
   loadConfig,
   saveConfig,
   ConfigSchema,
+  probeFeishu,
   type Config,
+  type ConfigActionExecuteRequest,
+  type ConfigActionExecuteResult,
+  type ConfigActionManifest,
   type ConfigUiHint,
   type ConfigUiHints,
   type ProviderConfig,
@@ -23,6 +27,17 @@ import type {
 
 const MASK_MIN_LENGTH = 8;
 const EXTRA_SENSITIVE_PATH_PATTERNS = [/authorization/i, /cookie/i, /session/i, /bearer/i];
+
+type ExecuteActionResult =
+  | { ok: true; data: ConfigActionExecuteResult }
+  | { ok: false; code: string; message: string; details?: Record<string, unknown> };
+
+type ActionHandler = (
+  params: {
+    config: Config;
+    action: ConfigActionManifest;
+  }
+) => Promise<ConfigActionExecuteResult>;
 
 function matchesExtraSensitivePath(path: string): boolean {
   return EXTRA_SENSITIVE_PATH_PATTERNS.some((pattern) => pattern.test(path));
@@ -84,6 +99,155 @@ function sanitizePublicConfigValue<T>(value: T, prefix: string, hints?: ConfigUi
   }
   return output as T;
 }
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function deepMerge(base: unknown, patch: unknown): unknown {
+  if (!isObject(base) || !isObject(patch)) {
+    return patch;
+  }
+  const result: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    const previous = result[key];
+    result[key] = deepMerge(previous, value);
+  }
+  return result;
+}
+
+function getPathValue(source: unknown, path: string): unknown {
+  if (!source || typeof source !== "object") {
+    return undefined;
+  }
+  const segments = path.split(".");
+  let current: unknown = source;
+  for (const segment of segments) {
+    if (!current || typeof current !== "object") {
+      return undefined;
+    }
+    current = (current as Record<string, unknown>)[segment];
+  }
+  return current;
+}
+
+function setPathValue(target: Record<string, unknown>, path: string, value: unknown): void {
+  const segments = path.split(".");
+  if (segments.length === 0) {
+    return;
+  }
+  let current: Record<string, unknown> = target;
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    const segment = segments[index];
+    const next = current[segment];
+    if (!isObject(next)) {
+      current[segment] = {};
+    }
+    current = current[segment] as Record<string, unknown>;
+  }
+  current[segments[segments.length - 1]] = value;
+}
+
+function isMissingRequiredValue(value: unknown): boolean {
+  if (value === undefined || value === null) {
+    return true;
+  }
+  if (typeof value === "string") {
+    return value.trim().length === 0;
+  }
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+  return false;
+}
+
+function resolveRuntimeConfig(config: Config, draftConfig?: Record<string, unknown>): Config {
+  if (!draftConfig || Object.keys(draftConfig).length === 0) {
+    return config;
+  }
+  const merged = deepMerge(config, draftConfig);
+  return ConfigSchema.parse(merged);
+}
+
+function getActionById(config: Config, actionId: string): ConfigActionManifest | null {
+  const actions = buildConfigSchemaView(config).actions;
+  return actions.find((item) => item.id === actionId) ?? null;
+}
+
+function messageOrDefault(
+  action: ConfigActionManifest,
+  kind: "success" | "failure",
+  fallback: string
+): string {
+  const text = kind === "success" ? action.success?.message : action.failure?.message;
+  return text?.trim() ? text : fallback;
+}
+
+async function runFeishuVerifyAction(params: {
+  config: Config;
+  action: ConfigActionManifest;
+}): Promise<ConfigActionExecuteResult> {
+  const appId = String(params.config.channels.feishu.appId ?? "").trim();
+  const appSecret = String(params.config.channels.feishu.appSecret ?? "").trim();
+  if (!appId || !appSecret) {
+    return {
+      ok: false,
+      status: "failed",
+      message: messageOrDefault(params.action, "failure", "Verification failed: missing credentials"),
+      data: {
+        error: "missing credentials (appId, appSecret)"
+      },
+      nextActions: []
+    };
+  }
+
+  const result = await probeFeishu(appId, appSecret);
+  if (!result.ok) {
+    return {
+      ok: false,
+      status: "failed",
+      message: `${messageOrDefault(params.action, "failure", "Verification failed")}: ${result.error}`,
+      data: {
+        error: result.error,
+        appId: result.appId ?? appId
+      },
+      nextActions: []
+    };
+  }
+
+  const responseData: Record<string, unknown> = {
+    appId: result.appId,
+    botName: result.botName ?? null,
+    botOpenId: result.botOpenId ?? null
+  };
+
+  const patch: Record<string, unknown> = {};
+  for (const [targetPath, sourcePath] of Object.entries(params.action.resultMap ?? {})) {
+    const mappedValue = sourcePath.startsWith("response.data.")
+      ? responseData[sourcePath.slice("response.data.".length)]
+      : undefined;
+    if (mappedValue !== undefined) {
+      setPathValue(patch, targetPath, mappedValue);
+    }
+  }
+
+  return {
+    ok: true,
+    status: "success",
+    message: messageOrDefault(
+      params.action,
+      "success",
+      "Verified. Please finish Feishu event subscription and app publishing before using."
+    ),
+    data: responseData,
+    patch: Object.keys(patch).length > 0 ? patch : undefined,
+    nextActions: []
+  };
+}
+
+const ACTION_HANDLERS: Record<string, ActionHandler> = {
+  "channels.feishu.verifyConnection": runFeishuVerifyAction
+};
 
 function buildUiHints(config: Config): ConfigUiHints {
   return buildConfigSchemaView(config).uiHints;
@@ -173,6 +337,69 @@ export function buildConfigMeta(config: Config): ConfigMetaView {
 
 export function buildConfigSchemaView(_config: Config): ConfigSchemaResponse {
   return buildConfigSchema({ version: getPackageVersion() });
+}
+
+export async function executeConfigAction(
+  configPath: string,
+  actionId: string,
+  request: ConfigActionExecuteRequest
+): Promise<ExecuteActionResult> {
+  const baseConfig = loadConfigOrDefault(configPath);
+  const action = getActionById(baseConfig, actionId);
+  if (!action) {
+    return {
+      ok: false,
+      code: "ACTION_NOT_FOUND",
+      message: `unknown action: ${actionId}`
+    };
+  }
+
+  if (request.scope && request.scope !== action.scope) {
+    return {
+      ok: false,
+      code: "ACTION_SCOPE_MISMATCH",
+      message: `scope mismatch: expected ${action.scope}, got ${request.scope}`,
+      details: {
+        expectedScope: action.scope,
+        requestScope: request.scope
+      }
+    };
+  }
+
+  const runtimeConfig = resolveRuntimeConfig(baseConfig, request.draftConfig);
+
+  for (const requiredPath of action.requires ?? []) {
+    const requiredValue = getPathValue(runtimeConfig, requiredPath);
+    if (isMissingRequiredValue(requiredValue)) {
+      return {
+        ok: false,
+        code: "ACTION_PRECONDITION_FAILED",
+        message: `required field missing: ${requiredPath}`,
+        details: {
+          path: requiredPath
+        }
+      };
+    }
+  }
+
+  const handler = ACTION_HANDLERS[action.id];
+  if (!handler) {
+    return {
+      ok: false,
+      code: "ACTION_EXECUTION_FAILED",
+      message: `action handler not found for type ${action.type}`
+    };
+  }
+
+  const result = await handler({
+    config: runtimeConfig,
+    action
+  });
+
+  return {
+    ok: true,
+    data: result
+  };
 }
 
 export function loadConfigOrDefault(configPath: string): Config {

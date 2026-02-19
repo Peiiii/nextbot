@@ -154,6 +154,7 @@ nextclaw stop   # stop the service
 ## 📚 Docs
 
 - [Configuration, providers, channels, cron](docs/USAGE.md)
+- [RFC: Action Schema v1](docs/rfcs/action-schema-v1.md)
 
 ---
 

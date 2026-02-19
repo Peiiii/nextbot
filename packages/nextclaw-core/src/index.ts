@@ -5,6 +5,7 @@ export * from "./bus/queue.js";
 export * from "./channels/feishu-probe.js";
 export * from "./channels/manager.js";
 export * from "./config/brand.js";
+export * from "./config/actions.js";
 export * from "./config/loader.js";
 export * from "./config/reload.js";
 export * from "./config/redact.js";

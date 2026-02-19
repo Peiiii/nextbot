@@ -153,7 +153,7 @@ Page title “Model Configuration” and short description; then a form with:
 
 ## 8. Channel edit modal
 
-**Purpose:** Enable/disable a channel and edit its parameters (tokens, IDs, URLs, etc.). For Feishu only, offer “Save & Verify / Connect”.
+**Purpose:** Enable/disable a channel and edit its parameters (tokens, IDs, URLs, etc.). Action buttons (including Feishu verify) are driven by config schema actions.
 
 **Opened when:** User clicks a channel card or “Configure”/“Enable”. Closed on Save success or Cancel.
 
@@ -176,7 +176,7 @@ boolean → toggle/switch; password → masked input (optional “show”); text
 
 - Cancel — close without saving.  
 - Save — send `PUT /api/config/channels/:channel` with form data. Success: toast “Configuration saved and applied”; close modal. Failure: toast “Failed to save configuration: {error}”.  
-- **Feishu only:** “Save & Verify / Connect” — save with `enabled: true`, then call `POST /api/channels/feishu/probe`. Success: toast “Verified. Please finish Feishu event subscription and app publishing before using.” (optional append bot name). Failure: toast “Verification failed: {error}”.
+- **Action-driven flow:** render manual actions from `GET /api/config/schema` → `actions[]`; for Feishu verify, use action id `channels.feishu.verifyConnection` and execute via `POST /api/config/actions/:actionId/execute`.
 
 **Designer freedom:** Modal layout, grouping, and order of fields can change; **all listed fields and the Feishu verify action** must remain.
 
@@ -190,7 +190,7 @@ boolean → toggle/switch; password → masked input (optional “show”); text
 - **PUT /api/config/model** — Body: `{ model: string }`.  
 - **PUT /api/config/providers/:provider** — Body: optional apiKey, apiBase, extraHeaders, wireApi.  
 - **PUT /api/config/channels/:channel** — Body: channel-specific key-value (see section 8).  
-- **POST /api/channels/feishu/probe** — No body. Returns e.g. appId, botName, botOpenId.  
+- **POST /api/config/actions/:actionId/execute** — unified action execution endpoint. Body includes optional `scope` and `draftConfig`.
 - **WebSocket** `ws://127.0.0.1:18791/ws` — On event `config.updated`, the app should refetch config (and meta if needed) so the UI reflects server state. Other events (e.g. `connection.open`, `error`) may be used for connection state or logging; **no requirement to show connection status in the UI** in the current spec.
 
 ---

@@ -6,7 +6,8 @@ import type {
   ProviderConfigView,
   ChannelConfigUpdate,
   ProviderConfigUpdate,
-  FeishuProbeView
+  ConfigActionExecuteRequest,
+  ConfigActionExecuteResult
 } from './types';
 
 // GET /api/config
@@ -77,9 +78,15 @@ export async function updateChannel(
   return response.data;
 }
 
-// POST /api/channels/feishu/probe
-export async function probeFeishu(): Promise<FeishuProbeView> {
-  const response = await api.post<FeishuProbeView>('/api/channels/feishu/probe', {});
+// POST /api/config/actions/:id/execute
+export async function executeConfigAction(
+  actionId: string,
+  data: ConfigActionExecuteRequest
+): Promise<ConfigActionExecuteResult> {
+  const response = await api.post<ConfigActionExecuteResult>(
+    `/api/config/actions/${actionId}/execute`,
+    data
+  );
   if (!response.ok) {
     throw new Error(response.error.message);
   }

@@ -1,5 +1,6 @@
 # Logs
 
+- `docs/logs/v0.6.5-release-v0.6.5/README.md`
 - `docs/logs/v0.6.4-release-v0.6.4/README.md`
 - `docs/logs/v0.6.3-release-v0.6.3/README.md`
 - `docs/logs/v0.6.2-release-v0.6.2/README.md`

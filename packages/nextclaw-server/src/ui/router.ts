@@ -3,13 +3,13 @@ import {
   buildConfigSchemaView,
   buildConfigMeta,
   buildConfigView,
+  executeConfigAction,
   loadConfigOrDefault,
   updateChannel,
   updateModel,
   updateProvider
 } from "./config.js";
-import { probeFeishu } from "@nextclaw/core";
-import type { ProviderConfigUpdate, UiServerEvent } from "./types.js";
+import type { ConfigActionExecuteRequest, ProviderConfigUpdate, UiServerEvent } from "./types.js";
 
 type UiRouterOptions = {
   configPath: string;
@@ -93,23 +93,17 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     return c.json(ok(result));
   });
 
-  app.post("/api/channels/feishu/probe", async (c) => {
-    const config = loadConfigOrDefault(options.configPath);
-    const feishu = config.channels.feishu;
-    if (!feishu?.appId || !feishu?.appSecret) {
-      return c.json(err("MISSING_CREDENTIALS", "Feishu appId/appSecret not configured"), 400);
+  app.post("/api/config/actions/:actionId/execute", async (c) => {
+    const actionId = c.req.param("actionId");
+    const body = await readJson<ConfigActionExecuteRequest>(c.req.raw);
+    if (!body.ok) {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
-    const result = await probeFeishu(String(feishu.appId), String(feishu.appSecret));
+    const result = await executeConfigAction(options.configPath, actionId, body.data ?? {});
     if (!result.ok) {
-      return c.json(err("PROBE_FAILED", result.error), 400);
+      return c.json(err(result.code, result.message, result.details), 400);
     }
-    return c.json(
-      ok({
-        appId: result.appId,
-        botName: result.botName ?? null,
-        botOpenId: result.botOpenId ?? null
-      })
-    );
+    return c.json(ok(result.data));
   });
 
   return app;

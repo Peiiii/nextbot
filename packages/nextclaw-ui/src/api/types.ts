@@ -96,14 +96,60 @@ export type ConfigUiHints = Record<string, ConfigUiHint>;
 export type ConfigSchemaResponse = {
   schema: Record<string, unknown>;
   uiHints: ConfigUiHints;
+  actions: ConfigActionManifest[];
   version: string;
   generatedAt: string;
 };
 
-export type FeishuProbeView = {
-  appId: string;
-  botName?: string | null;
-  botOpenId?: string | null;
+export type ConfigActionType = 'httpProbe' | 'oauthStart' | 'webhookVerify' | 'openUrl' | 'copyToken';
+
+export type ConfigActionManifest = {
+  id: string;
+  version: string;
+  scope: string;
+  title: string;
+  description?: string;
+  type: ConfigActionType;
+  trigger: 'manual' | 'afterSave';
+  requires?: string[];
+  request: {
+    method: 'GET' | 'POST' | 'PUT';
+    path: string;
+    timeoutMs?: number;
+  };
+  success?: {
+    message?: string;
+  };
+  failure?: {
+    message?: string;
+  };
+  saveBeforeRun?: boolean;
+  savePatch?: Record<string, unknown>;
+  resultMap?: Record<string, string>;
+  policy?: {
+    roles?: string[];
+    rateLimitKey?: string;
+    cooldownMs?: number;
+    audit?: boolean;
+  };
+};
+
+export type ConfigActionExecuteRequest = {
+  scope?: string;
+  draftConfig?: Record<string, unknown>;
+  context?: {
+    actor?: string;
+    traceId?: string;
+  };
+};
+
+export type ConfigActionExecuteResult = {
+  ok: boolean;
+  status: 'success' | 'failed';
+  message: string;
+  data?: Record<string, unknown>;
+  patch?: Record<string, unknown>;
+  nextActions?: string[];
 };
 
 // WebSocket events

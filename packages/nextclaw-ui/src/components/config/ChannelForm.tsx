@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useConfig, useConfigSchema, useUpdateChannel } from '@/hooks/useConfig';
-import { probeFeishu } from '@/api/config';
+import { useConfig, useConfigSchema, useUpdateChannel, useExecuteConfigAction } from '@/hooks/useConfig';
 import { useUiStore } from '@/stores/ui.store';
 import {
   Dialog,
@@ -19,6 +18,7 @@ import { t } from '@/lib/i18n';
 import { hintForPath } from '@/lib/config-hints';
 import { toast } from 'sonner';
 import { MessageCircle, Settings, ToggleLeft, Hash, Mail, Globe, KeyRound } from 'lucide-react';
+import type { ConfigActionManifest } from '@/api/types';
 
 // Field icon mapping
 const getFieldIcon = (fieldName: string) => {
@@ -51,6 +51,7 @@ const CHANNEL_FIELDS: Record<string, Array<{ name: string; type: string; label: 
   discord: [
     { name: 'enabled', type: 'boolean', label: t('enabled') },
     { name: 'token', type: 'password', label: t('botToken') },
+    { name: 'allowBots', type: 'boolean', label: 'Allow Bot Messages' },
     { name: 'allowFrom', type: 'tags', label: t('allowFrom') },
     { name: 'gatewayUrl', type: 'text', label: t('gatewayUrl') },
     { name: 'intents', type: 'number', label: t('intents') }
@@ -78,6 +79,7 @@ const CHANNEL_FIELDS: Record<string, Array<{ name: string; type: string; label: 
     { name: 'enabled', type: 'boolean', label: t('enabled') },
     { name: 'mode', type: 'text', label: t('mode') },
     { name: 'webhookPath', type: 'text', label: t('webhookPath') },
+    { name: 'allowBots', type: 'boolean', label: 'Allow Bot Messages' },
     { name: 'botToken', type: 'password', label: t('botToken') },
     { name: 'appToken', type: 'password', label: t('appToken') }
   ],
@@ -120,19 +122,52 @@ const channelColors: Record<string, string> = {
   default: 'from-slate-400 to-gray-500'
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function deepMergeRecords(base: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...base };
+  for (const [key, value] of Object.entries(patch)) {
+    const prev = next[key];
+    if (isRecord(prev) && isRecord(value)) {
+      next[key] = deepMergeRecords(prev, value);
+      continue;
+    }
+    next[key] = value;
+  }
+  return next;
+}
+
+function buildScopeDraft(scope: string, value: Record<string, unknown>): Record<string, unknown> {
+  const segments = scope.split('.');
+  const output: Record<string, unknown> = {};
+  let cursor: Record<string, unknown> = output;
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    const segment = segments[index];
+    cursor[segment] = {};
+    cursor = cursor[segment] as Record<string, unknown>;
+  }
+  cursor[segments[segments.length - 1]] = value;
+  return output;
+}
+
 export function ChannelForm() {
   const { channelModal, closeChannelModal } = useUiStore();
   const { data: config } = useConfig();
   const { data: schema } = useConfigSchema();
   const updateChannel = useUpdateChannel();
+  const executeAction = useExecuteConfigAction();
 
   const [formData, setFormData] = useState<Record<string, unknown>>({});
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [runningActionId, setRunningActionId] = useState<string | null>(null);
 
   const channelName = channelModal.channel;
   const channelConfig = channelName ? config?.channels[channelName] : null;
   const fields = channelName ? CHANNEL_FIELDS[channelName] : [];
   const uiHints = schema?.uiHints;
+  const scope = channelName ? `channels.${channelName}` : null;
+  const actions = schema?.actions?.filter((action) => action.scope === scope) ?? [];
   const channelLabel = channelName
     ? hintForPath(`channels.${channelName}`, uiHints)?.label ?? channelName
     : channelName;
@@ -160,23 +195,59 @@ export function ChannelForm() {
     );
   };
 
-  const handleVerifyConnect = async () => {
-    if (!channelName || channelName !== 'feishu') return;
-    setIsConnecting(true);
+  const applyActionPatchToForm = (patch?: Record<string, unknown>) => {
+    if (!patch || !channelName) {
+      return;
+    }
+    const channelsNode = patch.channels;
+    if (!isRecord(channelsNode)) {
+      return;
+    }
+    const channelPatch = channelsNode[channelName];
+    if (!isRecord(channelPatch)) {
+      return;
+    }
+    setFormData((prev) => deepMergeRecords(prev, channelPatch));
+  };
+
+  const handleManualAction = async (action: ConfigActionManifest) => {
+    if (!channelName || !scope) {
+      return;
+    }
+
+    setRunningActionId(action.id);
     try {
-      const nextData = { ...formData, enabled: true };
-      if (!formData.enabled) {
+      let nextData = { ...formData };
+
+      if (action.saveBeforeRun) {
+        nextData = {
+          ...nextData,
+          ...(action.savePatch ?? {})
+        };
         setFormData(nextData);
+        await updateChannel.mutateAsync({ channel: channelName, data: nextData });
       }
-      await updateChannel.mutateAsync({ channel: channelName, data: nextData });
-      const probe = await probeFeishu();
-      const botLabel = probe.botName ? ` (${probe.botName})` : '';
-      toast.success(t('feishuVerifySuccess') + botLabel);
+
+      const result = await executeAction.mutateAsync({
+        actionId: action.id,
+        data: {
+          scope,
+          draftConfig: buildScopeDraft(scope, nextData)
+        }
+      });
+
+      applyActionPatchToForm(result.patch);
+
+      if (result.ok) {
+        toast.success(result.message || t('success'));
+      } else {
+        toast.error(result.message || t('error'));
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      toast.error(`${t('feishuVerifyFailed')}: ${message}`);
+      toast.error(`${t('error')}: ${message}`);
     } finally {
-      setIsConnecting(false);
+      setRunningActionId(null);
     }
   };
 
@@ -284,20 +355,23 @@ export function ChannelForm() {
               </Button>
               <Button
                 type="submit"
-                disabled={updateChannel.isPending || isConnecting}
+                disabled={updateChannel.isPending || Boolean(runningActionId)}
               >
                 {updateChannel.isPending ? 'Saving...' : t('save')}
               </Button>
-              {channelName === 'feishu' && (
+              {actions
+                .filter((action) => action.trigger === 'manual')
+                .map((action) => (
                 <Button
+                  key={action.id}
                   type="button"
-                  onClick={handleVerifyConnect}
-                  disabled={updateChannel.isPending || isConnecting}
+                  onClick={() => handleManualAction(action)}
+                  disabled={updateChannel.isPending || Boolean(runningActionId)}
                   variant="secondary"
                 >
-                  {isConnecting ? t('feishuConnecting') : t('saveVerifyConnect')}
+                  {runningActionId === action.id ? t('connecting') : action.title}
                 </Button>
-              )}
+                ))}
             </DialogFooter>
           </form>
         </div>

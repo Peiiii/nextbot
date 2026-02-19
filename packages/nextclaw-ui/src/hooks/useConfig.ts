@@ -5,7 +5,8 @@ import {
   fetchConfigSchema,
   updateModel,
   updateProvider,
-  updateChannel
+  updateChannel,
+  executeConfigAction
 } from '@/api/config';
 import { toast } from 'sonner';
 import { t } from '@/lib/i18n';
@@ -78,6 +79,16 @@ export function useUpdateChannel() {
     },
     onError: (error: Error) => {
       toast.error(t('configSaveFailed') + ': ' + error.message);
+    }
+  });
+}
+
+export function useExecuteConfigAction() {
+  return useMutation({
+    mutationFn: ({ actionId, data }: { actionId: string; data: unknown }) =>
+      executeConfigAction(actionId, data as Parameters<typeof executeConfigAction>[1]),
+    onError: (error: Error) => {
+      toast.error(t('error') + ': ' + error.message);
     }
   });
 }
