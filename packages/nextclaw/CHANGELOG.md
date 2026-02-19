@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.6.20
+
+### Patch Changes
+
+- Follow-up linkage release after @nextclaw/channel-runtime@0.1.5 so downstream installs consume the Discord outbound chunking fix consistently.
+- Updated dependencies
+  - @nextclaw/openclaw-compat@0.1.12
+
 ## 0.6.19
 
 ### Patch Changes
