@@ -1,5 +1,11 @@
 # @nextclaw/channel-runtime
 
+## 0.1.2
+
+### Patch Changes
+
+- Fix channel typing lifecycle by introducing a class-based controller and auto-stop safeguards to prevent stale typing indicators when the AI does not reply.
+
 ## 0.1.1
 
 ### Patch Changes
