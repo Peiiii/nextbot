@@ -369,13 +369,14 @@ export class AgentLoop {
       }
     }
 
-    if (!finalContent) {
-      finalContent = "I've completed processing but have no response to give.";
+    if (typeof finalContent !== "string") {
+      this.sessions.save(session);
+      return null;
     }
 
     const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, messageId);
     finalContent = cleanedContent;
-    if (isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
+    if (!finalContent.trim() || isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
       this.sessions.save(session);
       return null;
     }
@@ -483,12 +484,13 @@ export class AgentLoop {
       }
     }
 
-    if (!finalContent) {
-      finalContent = "Background task completed.";
+    if (typeof finalContent !== "string") {
+      this.sessions.save(session);
+      return null;
     }
     const { content: cleanedContent, replyTo } = parseReplyTags(finalContent, undefined);
     finalContent = cleanedContent;
-    if (isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
+    if (!finalContent.trim() || isSilentReplyText(finalContent, SILENT_REPLY_TOKEN)) {
       this.sessions.save(session);
       return null;
     }

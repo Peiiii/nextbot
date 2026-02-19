@@ -243,6 +243,12 @@ OpenClaw-compatible plugin discovery paths:
 
 Legacy OpenClaw directories are not scanned by default (`~/.openclaw/extensions`, `<workspace>/.openclaw/extensions`).
 
+Silent reply behavior:
+
+- If the model returns exactly `NO_REPLY`, NextClaw does not send any channel reply.
+- If the final normalized reply is empty/whitespace, NextClaw also keeps silent (no fallback text).
+- This matches OpenClaw's core no-reply expectation while keeping logic minimal.
+
 ---
 
 ## Self-update

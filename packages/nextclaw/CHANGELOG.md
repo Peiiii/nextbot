@@ -1,5 +1,13 @@
 # nextclaw
 
+## 0.6.7
+
+### Patch Changes
+
+- Align no-reply behavior with OpenClaw: treat `NO_REPLY` and empty final replies as silent (no outbound message), and document the behavior in USAGE templates.
+- Updated dependencies
+  - @nextclaw/core@0.6.6
+
 ## 0.6.6
 
 ### Patch Changes
