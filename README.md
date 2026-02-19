@@ -2,7 +2,7 @@
 
 # NextClaw
 
-**UI-first, lightweight personal AI assistant.**
+**Feature-rich, OpenClaw-compatible · UI-first, lightweight personal AI assistant.**
 
 [![npm](https://img.shields.io/npm/v/nextclaw)](https://www.npmjs.com/package/nextclaw)
 [![Node](https://img.shields.io/badge/node-%3E%3D18-blue)](https://nodejs.org)
@@ -17,7 +17,7 @@
 
 ---
 
-Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https://github.com/HKUDS/nanobot), **NextClaw** is a **lighter, UI-first** personal AI gateway: install once, run `nextclaw start`, then configure providers and channels in the browser. No onboarding wizard, no daemon setup — just one command and you're in.
+Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https://github.com/HKUDS/nanobot), **NextClaw** is a **feature-rich, OpenClaw-compatible** personal AI gateway: same channel plugins and plugin SDK as OpenClaw, with a lighter codebase and UI-first workflow. Install once, run `nextclaw start`, then configure providers and channels in the browser. No onboarding wizard, no daemon setup — just one command and you're in.
 
 **Best for:** quick trials, secondary machines, or anyone who wants multi-channel + multi-provider with low maintenance overhead.
 
@@ -25,6 +25,8 @@ Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https:/
 
 | Advantage | Description |
 |-----------|-------------|
+| **Feature-rich** | Multi-provider, multi-channel, cron/heartbeat, web search, exec, memory, subagents — same capabilities as OpenClaw where it matters. |
+| **OpenClaw compatible** | Uses OpenClaw plugin SDK and channel plugin format; built-in channel plugins (Telegram, Discord, WhatsApp, etc.) are OpenClaw-style and configurable the same way. |
 | **Easier to use** | No complex CLI workflows — one command (`nextclaw start`), then configure everything in the built-in UI. |
 | **Maintainable by design** | Keep runtime capabilities focused on built-ins, reducing hidden coupling and long-term maintenance cost. |
 | **Lightweight** | Evolved from [nanobot](https://github.com/HKUDS/nanobot); minimal codebase, fast to run and maintain. |
@@ -36,12 +38,13 @@ Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https:/
 
 | Feature | Description |
 |---------|-------------|
+| **OpenClaw compatible** | Same plugin SDK and channel plugin format; use OpenClaw-style plugins and config. |
 | **One-command start** | `nextclaw start` — background gateway + config UI, no extra steps |
 | **Built-in config UI** | Models, providers, and channels in one place; config in `~/.nextclaw/config.json` |
 | **Multi-provider** | OpenRouter, OpenAI, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and more (OpenAI-compatible) |
 | **Multi-channel** | Telegram, Discord, WhatsApp, Feishu, DingTalk, Slack, Email, QQ, Mochat — enable and configure from the UI |
 | **Automation** | Cron + Heartbeat for scheduled tasks |
-| **Local tools** | Web search, command execution |
+| **Local tools** | Web search, command execution, memory, subagents |
 
 ---
 
