@@ -24,6 +24,8 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
   name = "telegram";
 
   private bot: TelegramBot | null = null;
+  private botUserId: number | null = null;
+  private botUsername: string | null = null;
   private readonly typingController: ChannelTypingController;
   private transcriber: GroqTranscriptionProvider;
 
@@ -55,6 +57,14 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       options.request = { proxy: this.config.proxy } as TelegramBot.ConstructorOptions["request"];
     }
     this.bot = new TelegramBot(this.config.token, options);
+    try {
+      const me = await this.bot.getMe();
+      this.botUserId = me.id;
+      this.botUsername = me.username ?? null;
+    } catch {
+      this.botUserId = null;
+      this.botUsername = null;
+    }
 
     this.bot.onText(/^\/start$/, async (msg: Message) => {
       await this.bot?.sendMessage(
@@ -79,12 +89,43 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
         await this.bot?.sendMessage(msg.chat.id, "⚠️ Session management is not available.");
         return;
       }
-      const sessionKey = `${this.name}:${chatId}`;
-      const session = this.sessionManager.getOrCreate(sessionKey);
-      const count = session.messages.length;
-      this.sessionManager.clear(session);
-      this.sessionManager.save(session);
-      await this.bot?.sendMessage(msg.chat.id, `🔄 Conversation history cleared (${count} messages).`);
+      const accountId = this.resolveAccountId();
+      const candidates = this.sessionManager
+        .listSessions()
+        .filter((entry) => {
+          const metadata = (entry.metadata as Record<string, unknown> | undefined) ?? {};
+          const lastChannel = typeof metadata.last_channel === "string" ? metadata.last_channel : "";
+          const lastTo = typeof metadata.last_to === "string" ? metadata.last_to : "";
+          const lastAccountId =
+            typeof metadata.last_account_id === "string"
+              ? metadata.last_account_id
+              : typeof metadata.last_accountId === "string"
+                ? metadata.last_accountId
+                : "default";
+          return lastChannel === this.name && lastTo === chatId && lastAccountId === accountId;
+        })
+        .map((entry) => String(entry.key ?? ""))
+        .filter(Boolean);
+
+      let totalCleared = 0;
+      for (const key of candidates) {
+        const session = this.sessionManager.getIfExists(key);
+        if (!session) {
+          continue;
+        }
+        totalCleared += session.messages.length;
+        this.sessionManager.clear(session);
+        this.sessionManager.save(session);
+      }
+
+      if (candidates.length === 0) {
+        const legacySession = this.sessionManager.getOrCreate(`${this.name}:${chatId}`);
+        totalCleared = legacySession.messages.length;
+        this.sessionManager.clear(legacySession);
+        this.sessionManager.save(legacySession);
+      }
+
+      await this.bot?.sendMessage(msg.chat.id, `🔄 Conversation history cleared (${totalCleared} messages).`);
     });
 
     this.bot.on("message", async (msg: Message) => {
@@ -151,6 +192,14 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
       return;
     }
     const chatId = String(message.chat.id);
+    const isGroup = message.chat.type !== "private";
+    if (!this.isAllowedByPolicy({ senderId: String(sender.id), chatId, isGroup })) {
+      return;
+    }
+    const mentionState = this.resolveMentionState({ message, chatId, isGroup });
+    if (mentionState.requireMention && !mentionState.wasMentioned) {
+      return;
+    }
     let senderId = String(sender.id);
     if (sender.username) {
       senderId = `${senderId}|${sender.username}`;
@@ -205,7 +254,13 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
         first_name: sender.firstName,
         sender_type: sender.type,
         is_bot: sender.isBot,
-        is_group: message.chat.type !== "private"
+        is_group: isGroup,
+        account_id: this.resolveAccountId(),
+        accountId: this.resolveAccountId(),
+        peer_kind: isGroup ? "group" : "direct",
+        peer_id: isGroup ? chatId : String(sender.id),
+        was_mentioned: mentionState.wasMentioned,
+        require_mention: mentionState.requireMention
       });
     } finally {
       this.stopTyping(chatId);
@@ -228,6 +283,76 @@ export class TelegramChannel extends BaseChannel<Config["channels"]["telegram"]>
 
   private stopTyping(chatId: string): void {
     this.typingController.stop(chatId);
+  }
+
+  private resolveAccountId(): string {
+    const accountId = this.config.accountId?.trim();
+    return accountId || "default";
+  }
+
+  private isAllowedByPolicy(params: { senderId: string; chatId: string; isGroup: boolean }): boolean {
+    if (!params.isGroup) {
+      if (this.config.dmPolicy === "disabled") {
+        return false;
+      }
+      const allowFrom = this.config.allowFrom ?? [];
+      if (this.config.dmPolicy === "allowlist" || this.config.dmPolicy === "pairing") {
+        return this.isAllowed(params.senderId);
+      }
+      if (allowFrom.includes("*")) {
+        return true;
+      }
+      return allowFrom.length === 0 ? true : this.isAllowed(params.senderId);
+    }
+    if (this.config.groupPolicy === "disabled") {
+      return false;
+    }
+    if (this.config.groupPolicy === "allowlist") {
+      const allowFrom = this.config.groupAllowFrom ?? [];
+      return allowFrom.includes("*") || allowFrom.includes(params.chatId);
+    }
+    return true;
+  }
+
+  private resolveMentionState(params: {
+    message: Message;
+    chatId: string;
+    isGroup: boolean;
+  }): { wasMentioned: boolean; requireMention: boolean } {
+    if (!params.isGroup) {
+      return { wasMentioned: false, requireMention: false };
+    }
+    const groups = this.config.groups ?? {};
+    const groupRule = groups[params.chatId] ?? groups["*"];
+    const requireMention = groupRule?.requireMention ?? this.config.requireMention ?? false;
+    if (!requireMention) {
+      return { wasMentioned: false, requireMention: false };
+    }
+
+    const content = `${params.message.text ?? ""}\n${params.message.caption ?? ""}`.trim();
+    const patterns = [
+      ...(this.config.mentionPatterns ?? []),
+      ...(groupRule?.mentionPatterns ?? [])
+    ]
+      .map((pattern) => pattern.trim())
+      .filter(Boolean);
+    const usernameMentioned = this.botUsername ? content.includes(`@${this.botUsername}`) : false;
+    const replyToBot =
+      Boolean(this.botUserId) &&
+      Boolean(params.message.reply_to_message?.from) &&
+      params.message.reply_to_message?.from?.id === this.botUserId;
+    const patternMentioned = patterns.some((pattern) => {
+      try {
+        return new RegExp(pattern, "i").test(content);
+      } catch {
+        return content.toLowerCase().includes(pattern.toLowerCase());
+      }
+    });
+
+    return {
+      wasMentioned: usernameMentioned || replyToBot || patternMentioned,
+      requireMention
+    };
   }
 }
 

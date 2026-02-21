@@ -3,6 +3,17 @@
 > 日期：2026-02-20  
 > 范围：以你提出的多 Agent 目标能力为准，逐项对比 `nextbot` 与 `/Users/peiwang/Projects/openclaw` 当前代码实现。
 
+## 2026-02-21 对齐进展更新
+
+已完成下列 4 个“未对齐（关键）”能力：
+
+- `bindings` 路由分诊：已落地（`channel + accountId + peer -> agentId`）
+- `agents.list` 多角色常驻：已落地（网关运行池并行常驻）
+- `session.dmScope`（含 `per-account-channel-peer`）：已落地
+- `agentToAgent.maxPingPongTurns`：已落地（`sessions_send` 跨 Agent 往返限制）
+
+另：Discord/Telegram 的 `dmPolicy/groupPolicy/requireMention/mentionPatterns/groups` 也已补齐平台级策略实现。
+
 ## 结论摘要
 
 - **已对齐（2项）**：

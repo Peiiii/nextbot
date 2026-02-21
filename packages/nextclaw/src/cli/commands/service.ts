@@ -1,6 +1,5 @@
 import {
   APP_NAME,
-  AgentLoop,
   ChannelManager,
   CronService,
   getApiBase,
@@ -17,6 +16,7 @@ import {
   ProviderManager,
   saveConfig,
   SessionManager,
+  parseAgentScopedSessionKey,
   type Config
 } from "@nextclaw/core";
 import {
@@ -63,6 +63,7 @@ import {
   formatRestartSentinelMessage,
   parseSessionKey
 } from "../restart-sentinel.js";
+import { GatewayAgentRuntimePool } from "./agent-runtime-pool.js";
 
 export class ServiceCommands {
   constructor(
@@ -133,21 +134,17 @@ export class ServiceCommands {
       }
     });
 
-    const agent = new AgentLoop({
+    const runtimePool = new GatewayAgentRuntimePool({
       bus,
       providerManager,
-      workspace,
-      model: config.agents.defaults.model,
-      maxIterations: config.agents.defaults.maxToolIterations,
-      maxTokens: config.agents.defaults.maxTokens,
-      braveApiKey: config.tools.web.search.apiKey || undefined,
-      execConfig: config.tools.exec,
+      sessionManager,
+      config,
       cronService: cron,
       restrictToWorkspace: config.tools.restrictToWorkspace,
-      sessionManager,
+      braveApiKey: config.tools.web.search.apiKey || undefined,
+      execConfig: config.tools.exec,
       contextConfig: config.agents.context,
       gatewayController,
-      config,
       extensionRegistry,
       resolveMessageToolHints: ({ channel, accountId }) =>
         resolvePluginChannelMessageToolHints({
@@ -158,7 +155,7 @@ export class ServiceCommands {
         })
     });
 
-    reloader.setApplyAgentRuntimeConfig((nextConfig) => agent.applyRuntimeConfig(nextConfig));
+    reloader.setApplyAgentRuntimeConfig((nextConfig) => runtimePool.applyRuntimeConfig(nextConfig));
 
     const pluginChannelBindings = getPluginChannelBindings(pluginRegistry);
     setPluginRuntimeBridge({
@@ -180,9 +177,7 @@ export class ServiceCommands {
         }
 
         const sessionKey =
-          typeof ctx.SessionKey === "string" && ctx.SessionKey.trim().length > 0
-            ? ctx.SessionKey
-            : `plugin:${typeof ctx.OriginatingChannel === "string" ? ctx.OriginatingChannel : "channel"}:${typeof ctx.SenderId === "string" ? ctx.SenderId : "unknown"}`;
+          typeof ctx.SessionKey === "string" && ctx.SessionKey.trim().length > 0 ? ctx.SessionKey : undefined;
         const channel =
           typeof ctx.OriginatingChannel === "string" && ctx.OriginatingChannel.trim().length > 0
             ? ctx.OriginatingChannel
@@ -202,11 +197,15 @@ export class ServiceCommands {
               : undefined;
 
         try {
-          const response = await agent.processDirect({
+          const response = await runtimePool.processDirect({
             content,
             sessionKey,
             channel,
             chatId,
+            agentId:
+              typeof (ctx as { AgentId?: unknown }).AgentId === "string"
+                ? (ctx as { AgentId: string }).AgentId
+                : undefined,
             metadata: {
               ...(typeof ctx.AccountId === "string" && ctx.AccountId.trim().length > 0
                 ? { account_id: ctx.AccountId }
@@ -226,11 +225,12 @@ export class ServiceCommands {
     });
 
     cron.onJob = async (job) => {
-      const response = await agent.processDirect({
+      const response = await runtimePool.processDirect({
         content: job.payload.message,
         sessionKey: `cron:${job.id}`,
         channel: job.payload.channel ?? "cli",
-        chatId: job.payload.to ?? "direct"
+        chatId: job.payload.to ?? "direct",
+        agentId: runtimePool.primaryAgentId
       });
       if (job.payload.deliver && job.payload.to) {
         await bus.publishOutbound({
@@ -246,7 +246,8 @@ export class ServiceCommands {
 
     const heartbeat = new HeartbeatService(
       workspace,
-      async (promptText) => agent.processDirect({ content: promptText, sessionKey: "heartbeat" }),
+      async (promptText) =>
+        runtimePool.processDirect({ content: promptText, sessionKey: "heartbeat", agentId: runtimePool.primaryAgentId }),
       30 * 60,
       true
     );
@@ -300,7 +301,7 @@ export class ServiceCommands {
 
       await reloader.getChannels().startAll();
       await this.wakeFromRestartSentinel({ bus, sessionManager });
-      await agent.run();
+      await runtimePool.run();
     } finally {
       await stopPluginChannelGateways(pluginGatewayHandles);
       setPluginRuntimeBridge(null);
@@ -406,15 +407,17 @@ export class ServiceCommands {
     }
     const sessionKey = sentinelSessionKey ?? fallbackSessionKey ?? "cli:default";
     const parsedSession = parseSessionKey(sessionKey);
+    const parsedAgentSession = parseAgentScopedSessionKey(sessionKey);
+    const parsedSessionRoute = parsedSession && parsedSession.channel !== "agent" ? parsedSession : null;
 
     const context = payload.deliveryContext;
     const channel =
       this.normalizeOptionalString(context?.channel) ??
-      parsedSession?.channel ??
+      parsedSessionRoute?.channel ??
       this.normalizeOptionalString((params.sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_channel);
     const chatId =
       this.normalizeOptionalString(context?.chatId) ??
-      parsedSession?.chatId ??
+      parsedSessionRoute?.chatId ??
       this.normalizeOptionalString((params.sessionManager.getIfExists(sessionKey)?.metadata ?? {}).last_to);
     const replyTo = this.normalizeOptionalString(context?.replyTo);
     const accountId = this.normalizeOptionalString(context?.accountId);
@@ -434,7 +437,9 @@ export class ServiceCommands {
     const metadata: Record<string, unknown> = {
       source: "restart-sentinel",
       restart_summary: summary,
+      session_key_override: sessionKey,
       ...(replyTo ? { reply_to: replyTo } : {}),
+      ...(parsedAgentSession ? { target_agent_id: parsedAgentSession.agentId } : {}),
       ...(accountId ? { account_id: accountId, accountId } : {})
     };
 

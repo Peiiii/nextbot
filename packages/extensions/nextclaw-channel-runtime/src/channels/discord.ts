@@ -140,7 +140,12 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     }
     const senderId = message.author.id;
     const channelId = message.channelId;
-    if (!this.isAllowed(senderId)) {
+    const isGroup = Boolean(message.guildId);
+    if (!this.isAllowedByPolicy({ senderId, channelId, isGroup })) {
+      return;
+    }
+    const mentionState = this.resolveMentionState({ message, selfUserId, channelId, isGroup });
+    if (mentionState.requireMention && !mentionState.wasMentioned) {
       return;
     }
 
@@ -188,8 +193,16 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
         attachments,
         metadata: {
           message_id: message.id,
+          channel_id: channelId,
           guild_id: message.guildId,
           reply_to: replyTo,
+          account_id: this.resolveAccountId(),
+          accountId: this.resolveAccountId(),
+          is_group: isGroup,
+          peer_kind: isGroup ? "channel" : "direct",
+          peer_id: isGroup ? channelId : senderId,
+          was_mentioned: mentionState.wasMentioned,
+          require_mention: mentionState.requireMention,
           ...(attachmentIssues.length ? { attachment_issues: attachmentIssues } : {})
         }
       });
@@ -208,6 +221,77 @@ export class DiscordChannel extends BaseChannel<Config["channels"]["discord"]> {
     } catch {
       return null;
     }
+  }
+
+  private resolveAccountId(): string {
+    const accountId = this.config.accountId?.trim();
+    return accountId || "default";
+  }
+
+  private isAllowedByPolicy(params: { senderId: string; channelId: string; isGroup: boolean }): boolean {
+    if (!params.isGroup) {
+      if (this.config.dmPolicy === "disabled") {
+        return false;
+      }
+      const allowFrom = this.config.allowFrom ?? [];
+      if (this.config.dmPolicy === "allowlist" || this.config.dmPolicy === "pairing") {
+        return this.isAllowed(params.senderId);
+      }
+      if (allowFrom.includes("*")) {
+        return true;
+      }
+      return allowFrom.length === 0 ? true : this.isAllowed(params.senderId);
+    }
+
+    if (this.config.groupPolicy === "disabled") {
+      return false;
+    }
+    if (this.config.groupPolicy === "allowlist") {
+      const allowFrom = this.config.groupAllowFrom ?? [];
+      return allowFrom.includes("*") || allowFrom.includes(params.channelId);
+    }
+    return true;
+  }
+
+  private resolveMentionState(params: {
+    message: DiscordMessage;
+    selfUserId?: string;
+    channelId: string;
+    isGroup: boolean;
+  }): { wasMentioned: boolean; requireMention: boolean } {
+    if (!params.isGroup) {
+      return { wasMentioned: false, requireMention: false };
+    }
+    const groups = this.config.groups ?? {};
+    const groupRule = groups[params.channelId] ?? groups["*"];
+    const requireMention = groupRule?.requireMention ?? this.config.requireMention ?? false;
+    if (!requireMention) {
+      return { wasMentioned: false, requireMention: false };
+    }
+
+    const patterns = [
+      ...(this.config.mentionPatterns ?? []),
+      ...(groupRule?.mentionPatterns ?? [])
+    ]
+      .map((pattern) => pattern.trim())
+      .filter(Boolean);
+    const content = params.message.content ?? "";
+    const wasMentionedByUserRef =
+      Boolean(params.selfUserId) && params.message.mentions.users.has(params.selfUserId ?? "");
+    const wasMentionedByText =
+      Boolean(params.selfUserId) &&
+      (content.includes(`<@${params.selfUserId}>`) || content.includes(`<@!${params.selfUserId}>`));
+    const wasMentionedByPattern = patterns.some((pattern) => {
+      try {
+        return new RegExp(pattern, "i").test(content);
+      } catch {
+        return content.toLowerCase().includes(pattern.toLowerCase());
+      }
+    });
+    return {
+      wasMentioned: wasMentionedByUserRef || wasMentionedByText || wasMentionedByPattern,
+      requireMention
+    };
   }
 
   private async resolveInboundAttachment(params: {

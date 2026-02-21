@@ -59,7 +59,9 @@ export function safeFilename(value: string): string {
 }
 
 export function parseSessionKey(key: string): { channel: string; chatId: string } {
-  const [channel, chatId] = key.split(":", 2);
+  const separator = key.indexOf(":");
+  const channel = separator > 0 ? key.slice(0, separator) : "";
+  const chatId = separator > 0 ? key.slice(separator + 1) : "";
   if (!channel || !chatId) {
     throw new Error(`Invalid session key: ${key}`);
   }

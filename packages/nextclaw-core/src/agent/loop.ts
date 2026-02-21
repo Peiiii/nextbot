@@ -36,6 +36,7 @@ export class AgentLoop {
   private subagents: SubagentManager;
   private running = false;
   private currentExtensionToolContext: ExtensionToolContext = {};
+  private readonly agentId: string;
 
   constructor(
     private options: {
@@ -55,6 +56,7 @@ export class AgentLoop {
       config?: Config;
       extensionRegistry?: ExtensionRegistry;
       resolveMessageToolHints?: MessageToolHintsResolver;
+      agentId?: string;
     }
   ) {
     this.context = new ContextBuilder(options.workspace, options.contextConfig);
@@ -70,6 +72,7 @@ export class AgentLoop {
       execConfig: options.execConfig ?? { timeout: 60 },
       restrictToWorkspace: options.restrictToWorkspace ?? false
     });
+    this.agentId = normalizeAgentId(options.agentId);
 
     this.registerDefaultTools();
     this.registerExtensionTools();
@@ -154,15 +157,52 @@ export class AgentLoop {
     };
   }
 
+  private setSessionsSendToolContext(params: {
+    sessionKey: string;
+    channel: string;
+    chatId: string;
+    handoffDepth: number;
+  }): void {
+    const sessionsSendTool = this.tools.get("sessions_send");
+    if (!(sessionsSendTool instanceof SessionsSendTool)) {
+      return;
+    }
+    sessionsSendTool.setContext({
+      currentSessionKey: params.sessionKey,
+      currentAgentId: this.agentId,
+      channel: params.channel,
+      chatId: params.chatId,
+      maxPingPongTurns: this.options.config?.session?.agentToAgent?.maxPingPongTurns ?? 0,
+      currentHandoffDepth: params.handoffDepth
+    });
+  }
+
+  private resolveHandoffDepth(metadata: Record<string, unknown>): number {
+    const rawDepth = Number(metadata.agent_handoff_depth ?? 0);
+    if (!Number.isFinite(rawDepth) || rawDepth < 0) {
+      return 0;
+    }
+    return Math.trunc(rawDepth);
+  }
+
+  async handleInbound(params: {
+    message: InboundMessage;
+    sessionKey?: string;
+    publishResponse?: boolean;
+  }): Promise<OutboundMessage | null> {
+    const response = await this.processMessage(params.message, params.sessionKey);
+    if (response && (params.publishResponse ?? true)) {
+      await this.options.bus.publishOutbound(response);
+    }
+    return response;
+  }
+
   async run(): Promise<void> {
     this.running = true;
     while (this.running) {
       const msg = await this.options.bus.consumeInbound();
       try {
-        const response = await this.processMessage(msg);
-        if (response) {
-          await this.options.bus.publishOutbound(response);
-        }
+        await this.handleInbound({ message: msg });
       } catch (err) {
         await this.options.bus.publishOutbound({
           channel: msg.channel,
@@ -359,12 +399,18 @@ export class AgentLoop {
 
   private async processMessage(msg: InboundMessage, sessionKeyOverride?: string): Promise<OutboundMessage | null> {
     if (msg.channel === "system") {
-      return this.processSystemMessage(msg);
+      return this.processSystemMessage(msg, sessionKeyOverride);
     }
 
     const sessionKey = sessionKeyOverride ?? `${msg.channel}:${msg.chatId}`;
     const session = this.sessions.getOrCreate(sessionKey);
     this.setExtensionToolContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
+    this.setSessionsSendToolContext({
+      sessionKey,
+      channel: msg.channel,
+      chatId: msg.chatId,
+      handoffDepth: this.resolveHandoffDepth(msg.metadata)
+    });
     const runtimeModel = this.resolveSessionModel(session, msg.metadata);
     const messageId = msg.metadata?.message_id as string | undefined;
     if (messageId) {
@@ -514,14 +560,23 @@ export class AgentLoop {
     };
   }
 
-  private async processSystemMessage(msg: InboundMessage): Promise<OutboundMessage | null> {
-    const [originChannel, originChatId] = msg.chatId.includes(":")
-      ? msg.chatId.split(":", 2)
-      : ["cli", msg.chatId];
+  private async processSystemMessage(
+    msg: InboundMessage,
+    sessionKeyOverride?: string
+  ): Promise<OutboundMessage | null> {
+    const separator = msg.chatId.indexOf(":");
+    const originChannel = separator > 0 ? msg.chatId.slice(0, separator) : "cli";
+    const originChatId = separator > 0 ? msg.chatId.slice(separator + 1) : msg.chatId;
 
-    const sessionKey = `${originChannel}:${originChatId}`;
+    const sessionKey = sessionKeyOverride ?? `${originChannel}:${originChatId}`;
     const session = this.sessions.getOrCreate(sessionKey);
-    this.setExtensionToolContext({ sessionKey, channel: msg.channel, chatId: msg.chatId });
+    this.setExtensionToolContext({ sessionKey, channel: originChannel, chatId: originChatId });
+    this.setSessionsSendToolContext({
+      sessionKey,
+      channel: originChannel,
+      chatId: originChatId,
+      handoffDepth: this.resolveHandoffDepth(msg.metadata)
+    });
     const runtimeModel = this.resolveSessionModel(session, msg.metadata);
 
     const messageTool = this.tools.get("message");
@@ -664,4 +719,9 @@ function parseReplyTags(
     content = content.replace(replyId, "").trim();
   }
   return { content, replyTo };
+}
+
+function normalizeAgentId(value: string | undefined): string {
+  const text = (value ?? "").trim().toLowerCase();
+  return text || "main";
 }

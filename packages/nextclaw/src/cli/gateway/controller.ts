@@ -105,6 +105,7 @@ export class GatewayControllerImpl implements GatewayController {
   private resolveDeliveryContext(sessionKey?: string): RestartSentinelDeliveryContext | undefined {
     const normalizedSessionKey = this.normalizeOptionalString(sessionKey);
     const keyTarget = parseSessionKey(normalizedSessionKey);
+    const keyRoute = keyTarget && keyTarget.channel !== "agent" ? keyTarget : null;
     const session = normalizedSessionKey ? this.deps.sessionManager?.getIfExists(normalizedSessionKey) : null;
     const metadata = session?.metadata ?? {};
     const rawContext = metadata.last_delivery_context;
@@ -118,11 +119,11 @@ export class GatewayControllerImpl implements GatewayController {
         ? ({ ...(cachedMetadataRaw as Record<string, unknown>) } as Record<string, unknown>)
         : {};
 
-    const channel = this.normalizeOptionalString(cachedContext?.channel) ?? keyTarget?.channel;
+    const channel = this.normalizeOptionalString(cachedContext?.channel) ?? keyRoute?.channel;
     const chatId =
       this.normalizeOptionalString(cachedContext?.chatId) ??
       this.normalizeOptionalString(metadata.last_to) ??
-      keyTarget?.chatId;
+      keyRoute?.chatId;
     const replyTo =
       this.normalizeOptionalString(cachedContext?.replyTo) ??
       this.normalizeOptionalString(metadata.last_message_id);

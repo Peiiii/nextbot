@@ -7,6 +7,14 @@ import { applySensitiveHints, buildBaseHints, mapSensitivePaths, type ConfigUiHi
 import { buildConfigActions, type ConfigActionManifest } from "./actions.js";
 
 const allowFrom = z.array(z.string()).default([]);
+const groupPolicySchema = z.enum(["open", "allowlist", "disabled"]);
+const dmPolicySchema = z.enum(["pairing", "allowlist", "open", "disabled"]);
+const sessionDmScopeSchema = z.enum(["main", "per-peer", "per-channel-peer", "per-account-channel-peer"]);
+
+export const GroupRuleSchema = z.object({
+  requireMention: z.boolean().default(false),
+  mentionPatterns: z.array(z.string()).default([])
+});
 
 export const WhatsAppConfigSchema = z.object({
   enabled: z.boolean().default(false),
@@ -18,7 +26,14 @@ export const TelegramConfigSchema = z.object({
   enabled: z.boolean().default(false),
   token: z.string().default(""),
   allowFrom: allowFrom,
-  proxy: z.string().nullable().default(null)
+  proxy: z.string().nullable().default(null),
+  accountId: z.string().default("default"),
+  dmPolicy: dmPolicySchema.default("open"),
+  groupPolicy: groupPolicySchema.default("open"),
+  groupAllowFrom: allowFrom,
+  requireMention: z.boolean().default(false),
+  mentionPatterns: z.array(z.string()).default([]),
+  groups: z.record(GroupRuleSchema).default({})
 });
 
 export const FeishuConfigSchema = z.object({
@@ -56,7 +71,14 @@ export const DiscordConfigSchema = z.object({
   gatewayUrl: z.string().default("wss://gateway.discord.gg/?v=10&encoding=json"),
   intents: z.number().int().default(37377),
   proxy: z.string().nullable().default(null),
-  mediaMaxMb: z.number().int().default(8)
+  mediaMaxMb: z.number().int().default(8),
+  accountId: z.string().default("default"),
+  dmPolicy: dmPolicySchema.default("open"),
+  groupPolicy: groupPolicySchema.default("open"),
+  groupAllowFrom: allowFrom,
+  requireMention: z.boolean().default(false),
+  mentionPatterns: z.array(z.string()).default([]),
+  groups: z.record(GroupRuleSchema).default({})
 });
 
 export const EmailConfigSchema = z.object({
@@ -163,6 +185,40 @@ export const AgentDefaultsSchema = z.object({
   maxToolIterations: z.number().int().default(20)
 });
 
+export const AgentProfileSchema = z.object({
+  id: z.string().default("main"),
+  default: z.boolean().default(false),
+  workspace: z.string().optional(),
+  model: z.string().optional(),
+  maxTokens: z.number().int().optional(),
+  maxToolIterations: z.number().int().optional()
+});
+
+export const BindingPeerSchema = z.object({
+  kind: z.enum(["direct", "group", "channel"]),
+  id: z.string()
+});
+
+export const BindingMatchSchema = z.object({
+  channel: z.string(),
+  accountId: z.string().optional(),
+  peer: BindingPeerSchema.optional()
+});
+
+export const AgentBindingSchema = z.object({
+  agentId: z.string(),
+  match: BindingMatchSchema
+});
+
+export const SessionAgentToAgentSchema = z.object({
+  maxPingPongTurns: z.number().int().min(0).max(5).default(0)
+});
+
+export const SessionConfigSchema = z.object({
+  dmScope: sessionDmScopeSchema.default("per-channel-peer"),
+  agentToAgent: SessionAgentToAgentSchema.default({})
+});
+
 export const ContextBootstrapSchema = z.object({
   files: z
     .array(z.string())
@@ -194,7 +250,8 @@ export const ContextConfigSchema = z.object({
 
 export const AgentsConfigSchema = z.object({
   defaults: AgentDefaultsSchema.default({}),
-  context: ContextConfigSchema.default({})
+  context: ContextConfigSchema.default({}),
+  list: z.array(AgentProfileSchema).default([])
 });
 
 export const ProviderConfigSchema = z.object({
@@ -282,6 +339,8 @@ export const ConfigSchema = z.object({
   channels: ChannelsConfigSchema.default({}),
   providers: ProvidersConfigSchema.default({}),
   plugins: PluginsConfigSchema.default({}),
+  bindings: z.array(AgentBindingSchema).default([]),
+  session: SessionConfigSchema.default({}),
   gateway: GatewayConfigSchema.default({}),
   ui: UiConfigSchema.default({}),
   tools: ToolsConfigSchema.default({})

@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { Tool } from "./base.js";
 import type { SessionManager } from "../../session/manager.js";
 import type { MessageBus } from "../../bus/queue.js";
-import type { OutboundMessage } from "../../bus/events.js";
+import type { InboundMessage, OutboundMessage } from "../../bus/events.js";
 
 const DEFAULT_LIMIT = 20;
 const DEFAULT_MESSAGE_LIMIT = 0;
@@ -17,14 +17,102 @@ const toInt = (value: unknown, fallback: number): number => {
 
 const parseSessionKey = (key: string): { channel: string; chatId: string } | null => {
   const trimmed = key.trim();
-  if (!trimmed.includes(":")) {
+  const separator = trimmed.indexOf(":");
+  if (separator <= 0 || separator >= trimmed.length - 1) {
     return null;
   }
-  const [channel, chatId] = trimmed.split(":", 2);
+  const channel = trimmed.slice(0, separator);
+  const chatId = trimmed.slice(separator + 1);
   if (!channel || !chatId) {
     return null;
   }
   return { channel, chatId };
+};
+
+const parseAgentIdFromSessionKey = (key: string): string | null => {
+  const normalized = key.trim().toLowerCase();
+  if (!normalized.startsWith("agent:")) {
+    return null;
+  }
+  const parts = normalized.split(":");
+  const agentId = parts[1]?.trim();
+  return agentId || null;
+};
+
+const parseAgentSessionRoute = (key: string): { channel: string; chatId: string; accountId?: string } | null => {
+  const normalized = key.trim().toLowerCase();
+  if (!normalized.startsWith("agent:")) {
+    return null;
+  }
+  const parts = normalized.split(":");
+  if (parts.length >= 6 && ["direct", "group", "channel"].includes(parts[4])) {
+    const chatId = parts.slice(5).join(":");
+    if (!chatId) {
+      return null;
+    }
+    return {
+      channel: parts[2],
+      accountId: parts[3],
+      chatId
+    };
+  }
+  if (parts.length >= 5 && ["direct", "group", "channel"].includes(parts[3])) {
+    const chatId = parts.slice(4).join(":");
+    if (!chatId) {
+      return null;
+    }
+    return {
+      channel: parts[2],
+      chatId
+    };
+  }
+  return null;
+};
+
+const normalizeOptionalString = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || undefined;
+};
+
+const resolveDeliveryRouteFromSession = (session: { metadata: Record<string, unknown> } | null | undefined) => {
+  if (!session) {
+    return null;
+  }
+  const metadata = session.metadata ?? {};
+  const deliveryContext =
+    metadata.last_delivery_context && typeof metadata.last_delivery_context === "object"
+      ? (metadata.last_delivery_context as Record<string, unknown>)
+      : undefined;
+  const contextChannel = normalizeOptionalString(deliveryContext?.channel);
+  const contextChatId = normalizeOptionalString(deliveryContext?.chatId);
+  const fallbackChannel = normalizeOptionalString(metadata.last_channel);
+  const fallbackChatId = normalizeOptionalString(metadata.last_to);
+  const accountId =
+    normalizeOptionalString(deliveryContext?.accountId) ??
+    normalizeOptionalString(metadata.last_account_id) ??
+    normalizeOptionalString(metadata.last_accountId);
+  const channel = contextChannel ?? fallbackChannel;
+  const chatId = contextChatId ?? fallbackChatId;
+  if (!channel || !chatId) {
+    return null;
+  }
+  return {
+    channel,
+    chatId,
+    accountId
+  };
+};
+
+type SessionsSendContext = {
+  currentSessionKey?: string;
+  currentAgentId?: string;
+  channel?: string;
+  chatId?: string;
+  maxPingPongTurns?: number;
+  currentHandoffDepth?: number;
 };
 
 const classifySessionKind = (key: string): string => {
@@ -270,11 +358,20 @@ export class SessionsHistoryTool extends Tool {
 }
 
 export class SessionsSendTool extends Tool {
+  private context: SessionsSendContext = {};
+
   constructor(
     private sessions: SessionManager,
     private bus: MessageBus
   ) {
     super();
+  }
+
+  setContext(context: SessionsSendContext): void {
+    this.context = {
+      ...context,
+      currentAgentId: context.currentAgentId?.trim().toLowerCase() || undefined
+    };
   }
 
   get name(): string {
@@ -289,9 +386,12 @@ export class SessionsSendTool extends Tool {
     return {
       type: "object",
       properties: {
-        sessionKey: { type: "string", description: "Target session key in the format channel:chatId" },
+        sessionKey: {
+          type: "string",
+          description: "Target session key (channel:chatId or agent-scoped session key)"
+        },
         label: { type: "string", description: "Session label (if sessionKey not provided)" },
-        agentId: { type: "string", description: "Optional agent id (unused in local runtime)" },
+        agentId: { type: "string", description: "Optional target agent id for internal handoff" },
         message: { type: "string", description: "Message content to send" },
         timeoutSeconds: { type: "number", description: "Optional timeout in seconds" },
         content: { type: "string", description: "Alias for message" },
@@ -306,6 +406,7 @@ export class SessionsSendTool extends Tool {
     const runId = crypto.randomUUID();
     const sessionKeyParam = String(params.sessionKey ?? "").trim();
     const labelParam = String(params.label ?? "").trim();
+    const targetAgentParam = String(params.agentId ?? "").trim().toLowerCase();
     if (sessionKeyParam && labelParam) {
       return JSON.stringify(
         { runId, status: "error", error: "Provide either sessionKey or label (not both)" },
@@ -342,19 +443,105 @@ export class SessionsSendTool extends Tool {
         );
       }
     }
+
+    const session = this.sessions.getIfExists(sessionKey);
     const parsed = parseSessionKey(sessionKey);
-    if (!parsed) {
+    const routeFromSession = resolveDeliveryRouteFromSession(session);
+    const routeFromAgentSession = parseAgentSessionRoute(sessionKey);
+    const route: { channel: string; chatId: string; accountId?: string } | null =
+      routeFromSession ??
+      routeFromAgentSession ??
+      (parsed && parsed.channel !== "agent" ? { channel: parsed.channel, chatId: parsed.chatId } : null);
+    if (!route) {
       return JSON.stringify(
-        { runId, status: "error", error: "sessionKey must be in the format channel:chatId" },
+        {
+          runId,
+          status: "error",
+          error: "Cannot resolve delivery route for session. Use a routable session key or an existing session label."
+        },
         null,
         2
       );
     }
+
+    const callerAgentId = this.context.currentAgentId;
+    const targetAgentId = targetAgentParam || parseAgentIdFromSessionKey(sessionKey) || callerAgentId;
+    const isCrossAgent = Boolean(callerAgentId && targetAgentId && callerAgentId !== targetAgentId);
+    const currentHandoffDepth = toInt(this.context.currentHandoffDepth, 0);
+    const maxPingPongTurns = toInt(this.context.maxPingPongTurns, 0);
+    const nextHandoffDepth = currentHandoffDepth + 1;
+    if (isCrossAgent) {
+      if (maxPingPongTurns <= 0) {
+        return JSON.stringify(
+          {
+            runId,
+            status: "error",
+            error: "Cross-agent handoff blocked by session.agentToAgent.maxPingPongTurns=0"
+          },
+          null,
+          2
+        );
+      }
+      if (nextHandoffDepth > maxPingPongTurns) {
+        return JSON.stringify(
+          {
+            runId,
+            status: "error",
+            error: `Cross-agent handoff blocked: depth ${nextHandoffDepth} exceeds max ${maxPingPongTurns}`
+          },
+          null,
+          2
+        );
+      }
+    }
+
     const replyTo = params.replyTo ? String(params.replyTo) : undefined;
     const silent = typeof params.silent === "boolean" ? params.silent : undefined;
+
+    if (isCrossAgent && targetAgentId) {
+      const metadata: Record<string, unknown> = {
+        source: "sessions_send",
+        target_agent_id: targetAgentId,
+        session_key_override: sessionKey,
+        agent_handoff_depth: nextHandoffDepth,
+        ...(callerAgentId ? { agent_handoff_from: callerAgentId } : {}),
+        ...(route.accountId ? { account_id: route.accountId, accountId: route.accountId } : {})
+      };
+      const inbound: InboundMessage = {
+        channel: route.channel,
+        chatId: route.chatId,
+        senderId: callerAgentId ? `agent:${callerAgentId}` : "agent:unknown",
+        content: message,
+        timestamp: new Date(),
+        attachments: [],
+        metadata
+      };
+      await this.bus.publishInbound(inbound);
+
+      const targetSession = this.sessions.getOrCreate(sessionKey);
+      this.sessions.addMessage(targetSession, "user", message, {
+        via: "sessions_send",
+        from_agent: callerAgentId ?? "unknown"
+      });
+      this.sessions.save(targetSession);
+
+      return JSON.stringify(
+        {
+          runId,
+          status: "ok",
+          sessionKey,
+          dispatched: "inbound",
+          targetAgentId,
+          handoffDepth: nextHandoffDepth
+        },
+        null,
+        2
+      );
+    }
+
     const outbound: OutboundMessage = {
-      channel: parsed.channel,
-      chatId: parsed.chatId,
+      channel: route.channel,
+      chatId: route.chatId,
       content: message,
       replyTo,
       media: [],
@@ -362,12 +549,17 @@ export class SessionsSendTool extends Tool {
     };
     await this.bus.publishOutbound(outbound);
 
-    const session = this.sessions.getOrCreate(sessionKey);
-    this.sessions.addMessage(session, "assistant", message, { via: "sessions_send" });
-    this.sessions.save(session);
+    const targetSession = this.sessions.getOrCreate(sessionKey);
+    this.sessions.addMessage(targetSession, "assistant", message, { via: "sessions_send" });
+    this.sessions.save(targetSession);
 
     return JSON.stringify(
-      { runId, status: "ok", sessionKey: `${parsed.channel}:${parsed.chatId}` },
+      {
+        runId,
+        status: "ok",
+        sessionKey,
+        route: `${route.channel}:${route.chatId}`
+      },
       null,
       2
     );

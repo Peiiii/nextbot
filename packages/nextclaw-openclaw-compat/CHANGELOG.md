@@ -1,5 +1,20 @@
 # @nextclaw/openclaw-compat
 
+## 0.1.15
+
+### Patch Changes
+
+- Align multi-agent gateway capabilities with OpenClaw:
+  - add bindings-based route resolver and agent runtime pool
+  - add agents.list multi-runtime support in gateway service
+  - add session.dmScope based session key isolation (including per-account-channel-peer)
+  - add agentToAgent.maxPingPongTurns enforcement in sessions_send
+  - complete Discord and Telegram policy parity (dmPolicy/groupPolicy/mention gates/account metadata)
+
+- Updated dependencies
+  - @nextclaw/core@0.6.22
+  - @nextclaw/channel-runtime@0.1.8
+
 ## 0.1.14
 
 ### Patch Changes
