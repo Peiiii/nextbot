@@ -6,9 +6,9 @@
 
 ## 1. 产品定位
 
-- **一句话**：Feature-rich、OpenClaw-compatible、UI-first、轻量化个人 AI 网关。
+- **一句话**：Feature-rich、OpenClaw-compatible、UI-first、轻量化个人 AI 助理。
 - **核心体验**：`nextclaw start` 后，在浏览器中配置 Provider 与渠道，无需复杂 CLI 流程。
-- **适用场景**：快速试玩、备用机、多渠道 + 多模型且希望低维护成本的用户。
+- **适用场景**：快速试玩、备用机、多渠道 + 多模型且希望低维护成本的个人助理用户。
 
 ---
 
@@ -32,12 +32,12 @@
 
 | 命令 | 说明 |
 |------|------|
-| `nextclaw start` | 后台启动网关 + UI（默认 0.0.0.0，端口 18791） |
+| `nextclaw start` | 后台启动助理服务 + UI（默认 0.0.0.0，端口 18791） |
 | `nextclaw restart` | 重启后台服务（可带 start 参数） |
 | `nextclaw stop` | 停止后台服务 |
-| `nextclaw serve` | 前台运行网关 + UI |
-| `nextclaw ui` | 前台运行 UI + 网关 |
-| `nextclaw gateway` | 仅启动网关（供渠道连接） |
+| `nextclaw serve` | 前台运行助理服务 + UI |
+| `nextclaw ui` | 前台运行 UI + 助理服务 |
+| `nextclaw gateway` | 仅启动通道服务（供渠道连接） |
 
 ### 3.2 对话与工作区
 
@@ -187,7 +187,7 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 ## 8. 自动化
 
 - **Cron**：一次性（`--at`）、cron 表达式（`-c`）、固定间隔秒（`-e`）；可选 `--deliver --to --channel` 将回复投递到渠道。
-- **Heartbeat**：网关运行期间周期读取工作区 `HEARTBEAT.md`（如约 30 分钟），若有可执行任务则交给 Agent 执行。
+- **Heartbeat**：助理服务运行期间周期读取工作区 `HEARTBEAT.md`（如约 30 分钟），若有可执行任务则交给 Agent 执行。
 
 ---
 
@@ -216,7 +216,7 @@ Agent 主循环中注册的默认工具（`nextclaw-core` `agent/loop.ts` + `age
 - **Web UI**：默认 `http://127.0.0.1:18791`，可配 `ui.host`/`ui.port`/`ui.open`；start 时默认绑定 0.0.0.0。
 - **能力**：模型与默认 Agent、Provider、Channel、路由与运行时（agents.list、bindings、session）的配置与展示。
 - **API**：配置读写、模型/Provider/Channel 更新、WebSocket 推送配置变更。
-- **Gateway 端口**：默认 18790（渠道回调与内部通信）。
+- **通道服务端口**：默认 18790（渠道回调与内部通信）。
 
 ---
 
