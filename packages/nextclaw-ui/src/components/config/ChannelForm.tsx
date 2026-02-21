@@ -75,6 +75,16 @@ const CHANNEL_FIELDS: Record<string, Array<{ name: string; type: string; label: 
     { name: 'clientSecret', type: 'password', label: t('clientSecret') },
     { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
   ],
+  wecom: [
+    { name: 'enabled', type: 'boolean', label: t('enabled') },
+    { name: 'corpId', type: 'text', label: t('corpId') },
+    { name: 'agentId', type: 'text', label: t('agentId') },
+    { name: 'secret', type: 'password', label: t('secret') },
+    { name: 'token', type: 'password', label: t('token') },
+    { name: 'callbackPort', type: 'number', label: t('callbackPort') },
+    { name: 'callbackPath', type: 'text', label: t('callbackPath') },
+    { name: 'allowFrom', type: 'tags', label: t('allowFrom') }
+  ],
   slack: [
     { name: 'enabled', type: 'boolean', label: t('enabled') },
     { name: 'mode', type: 'text', label: t('mode') },

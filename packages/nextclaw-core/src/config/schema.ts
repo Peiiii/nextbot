@@ -37,6 +37,17 @@ export const DingTalkConfigSchema = z.object({
   allowFrom: allowFrom
 });
 
+export const WeComConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  corpId: z.string().default(""),
+  agentId: z.string().default(""),
+  secret: z.string().default(""),
+  token: z.string().default(""),
+  callbackPort: z.number().int().default(18890),
+  callbackPath: z.string().default("/wecom/callback"),
+  allowFrom: allowFrom
+});
+
 export const DiscordConfigSchema = z.object({
   enabled: z.boolean().default(false),
   token: z.string().default(""),
@@ -139,6 +150,7 @@ export const ChannelsConfigSchema = z.object({
   feishu: FeishuConfigSchema.default({}),
   mochat: MochatConfigSchema.default({}),
   dingtalk: DingTalkConfigSchema.default({}),
+  wecom: WeComConfigSchema.default({}),
   email: EmailConfigSchema.default({}),
   slack: SlackConfigSchema.default({}),
   qq: QQConfigSchema.default({})

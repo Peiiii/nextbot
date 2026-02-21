@@ -7,6 +7,7 @@ import { MochatChannel } from "./channels/mochat.js";
 import { QQChannel } from "./channels/qq.js";
 import { SlackChannel } from "./channels/slack.js";
 import { TelegramChannel } from "./channels/telegram.js";
+import { WeComChannel } from "./channels/wecom.js";
 import { WhatsAppChannel } from "./channels/whatsapp.js";
 
 type BuiltinChannelCreateContext = {
@@ -63,6 +64,12 @@ const BUILTIN_CHANNEL_RUNTIMES = {
     createChannel: (context: BuiltinChannelCreateContext) =>
       new DingTalkChannel(context.config.channels.dingtalk, context.bus),
   },
+  wecom: {
+    id: "wecom",
+    isEnabled: (config: Config) => config.channels.wecom.enabled,
+    createChannel: (context: BuiltinChannelCreateContext) =>
+      new WeComChannel(context.config.channels.wecom, context.bus),
+  },
   email: {
     id: "email",
     isEnabled: (config: Config) => config.channels.email.enabled,
@@ -115,5 +122,6 @@ export {
   QQChannel,
   SlackChannel,
   TelegramChannel,
+  WeComChannel,
   WhatsAppChannel,
 };

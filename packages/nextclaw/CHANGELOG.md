@@ -1,5 +1,19 @@
 # nextclaw
 
+## 0.6.22
+
+### Patch Changes
+
+- release: add WeCom channel support and harden dev runner port fallback.
+  - add built-in WeCom channel runtime, plugin package, schema, UI fields and docs
+  - add robust dev-runner port fallback to avoid API misrouting under port conflicts
+  - publish linked package updates for runtime/plugin compatibility alignment
+
+- Updated dependencies
+  - @nextclaw/core@0.6.21
+  - @nextclaw/openclaw-compat@0.1.14
+  - @nextclaw/server@0.4.6
+
 ## 0.6.21
 
 ### Patch Changes

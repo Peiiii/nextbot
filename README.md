@@ -42,7 +42,7 @@ Inspired by [OpenClaw](https://github.com/openclaw/openclaw) & [nanobot](https:/
 | **One-command start** | `nextclaw start` — background gateway + config UI, no extra steps |
 | **Built-in config UI** | Models, providers, and channels in one place; config in `~/.nextclaw/config.json` |
 | **Multi-provider** | OpenRouter, OpenAI, MiniMax, Moonshot, Gemini, DeepSeek, DashScope, Zhipu, Groq, vLLM, and more (OpenAI-compatible) |
-| **Multi-channel** | Telegram, Discord, WhatsApp, Feishu, DingTalk, Slack, Email, QQ, Mochat — enable and configure from the UI |
+| **Multi-channel** | Telegram, Discord, WhatsApp, Feishu, DingTalk, WeCom, Slack, Email, QQ, Mochat — enable and configure from the UI |
 | **Automation** | Cron + Heartbeat for scheduled tasks |
 | **Local tools** | Web search, command execution, memory, subagents |
 
@@ -152,6 +152,7 @@ nextclaw stop   # stop the service
 | Feishu | Medium (app credentials) |
 | Mochat | Medium (claw token + websocket) |
 | DingTalk | Medium (app credentials) |
+| WeCom | Medium (corp app + callback endpoint) |
 | Slack | Medium (bot + app tokens) |
 | Email | Medium (IMAP/SMTP) |
 | QQ | Easy (app credentials) |
@@ -161,6 +162,7 @@ nextclaw stop   # stop the service
 ## 📚 Docs
 
 - [Configuration, providers, channels, cron](docs/USAGE.md)
+- [Multi-agent architecture: single Gateway, bindings, session isolation](docs/guides/multi-agent-architecture.md)
 - [RFC: Action Schema v1](docs/rfcs/action-schema-v1.md)
 - [Code volume monitoring workflow](docs/workflows/code-volume-monitoring.md)
 

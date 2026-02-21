@@ -384,6 +384,34 @@ Create an app in the [DingTalk open platform](https://open.dingtalk.com/) and ge
 }
 ```
 
+### WeCom (Enterprise WeChat)
+
+Create an internal app in the [WeCom admin console](https://work.weixin.qq.com/), then collect:
+
+- `corpId` (Enterprise ID)
+- `agentId` (application Agent ID)
+- `secret` (application secret)
+- `token` (callback token)
+
+Set the callback URL to `http://<your-host>:<callbackPort><callbackPath>` and keep callback mode in plaintext (the runtime currently skips encrypted callback payloads).
+
+```json
+{
+  "channels": {
+    "wecom": {
+      "enabled": true,
+      "corpId": "YOUR_CORP_ID",
+      "agentId": "1000002",
+      "secret": "YOUR_APP_SECRET",
+      "token": "YOUR_CALLBACK_TOKEN",
+      "callbackPort": 18890,
+      "callbackPath": "/wecom/callback",
+      "allowFrom": []
+    }
+  }
+}
+```
+
 ### WhatsApp
 
 WhatsApp typically requires a bridge (e.g. a companion service). Configure the bridge URL and optional allowlist:

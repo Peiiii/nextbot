@@ -1,5 +1,28 @@
 # @nextclaw/openclaw-compat
 
+## 0.1.14
+
+### Patch Changes
+
+- release: add WeCom channel support and harden dev runner port fallback.
+  - add built-in WeCom channel runtime, plugin package, schema, UI fields and docs
+  - add robust dev-runner port fallback to avoid API misrouting under port conflicts
+  - publish linked package updates for runtime/plugin compatibility alignment
+
+- Updated dependencies
+  - @nextclaw/core@0.6.21
+  - @nextclaw/channel-runtime@0.1.7
+  - @nextclaw/channel-plugin-telegram@0.1.2
+  - @nextclaw/channel-plugin-whatsapp@0.1.2
+  - @nextclaw/channel-plugin-discord@0.1.2
+  - @nextclaw/channel-plugin-feishu@0.1.2
+  - @nextclaw/channel-plugin-mochat@0.1.2
+  - @nextclaw/channel-plugin-dingtalk@0.1.2
+  - @nextclaw/channel-plugin-email@0.1.2
+  - @nextclaw/channel-plugin-slack@0.1.2
+  - @nextclaw/channel-plugin-qq@0.1.2
+  - @nextclaw/channel-plugin-wecom@0.1.2
+
 ## 0.1.13
 
 ### Patch Changes

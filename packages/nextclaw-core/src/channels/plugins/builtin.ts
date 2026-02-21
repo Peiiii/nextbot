@@ -7,6 +7,7 @@ export const BUILTIN_CHANNEL_PLUGIN_IDS = [
   "feishu",
   "mochat",
   "dingtalk",
+  "wecom",
   "email",
   "slack",
   "qq",
