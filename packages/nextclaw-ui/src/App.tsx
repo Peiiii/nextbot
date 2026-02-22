@@ -5,6 +5,7 @@ import { ModelConfig } from '@/components/config/ModelConfig';
 import { ProvidersList } from '@/components/config/ProvidersList';
 import { ChannelsList } from '@/components/config/ChannelsList';
 import { RuntimeConfig } from '@/components/config/RuntimeConfig';
+import { SessionsConfig } from '@/components/config/SessionsConfig';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { Toaster } from 'sonner';
 
@@ -31,6 +32,8 @@ function AppContent() {
         return <ChannelsList />;
       case 'runtime':
         return <RuntimeConfig />;
+      case 'sessions':
+        return <SessionsConfig />;
       default:
         return <ModelConfig />;
     }

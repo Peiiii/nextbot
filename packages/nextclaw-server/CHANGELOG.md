@@ -1,5 +1,15 @@
 # nextclaw-server
 
+## 0.4.12
+
+### Patch Changes
+
+- Add full session management in NextClaw UI with OpenClaw-aligned capabilities.
+  - add Sessions tab with filtering, history inspection, metadata patching, clear, and delete
+  - add UI API endpoints for sessions list/history/patch/delete
+  - sync frontend/server types and hooks for session operations
+  - update usage guide for session management UI
+
 ## 0.4.11
 
 ### Patch Changes

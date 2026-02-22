@@ -4,7 +4,7 @@ type ConnectionStatus = 'connected' | 'disconnected' | 'connecting';
 
 interface UiState {
   // Active configuration tab
-  activeTab: 'model' | 'providers' | 'channels' | 'runtime';
+  activeTab: 'model' | 'providers' | 'channels' | 'runtime' | 'sessions';
   setActiveTab: (tab: UiState['activeTab']) => void;
 
   // Connection status

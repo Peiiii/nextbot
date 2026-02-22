@@ -8,7 +8,10 @@ import type {
   ProviderConfigUpdate,
   RuntimeConfigUpdate,
   ConfigActionExecuteRequest,
-  ConfigActionExecuteResult
+  ConfigActionExecuteResult,
+  SessionsListView,
+  SessionHistoryView,
+  SessionPatchUpdate
 } from './types';
 
 // GET /api/config
@@ -102,6 +105,57 @@ export async function executeConfigAction(
     `/api/config/actions/${actionId}/execute`,
     data
   );
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+
+// GET /api/sessions
+export async function fetchSessions(params?: { q?: string; limit?: number; activeMinutes?: number }): Promise<SessionsListView> {
+  const query = new URLSearchParams();
+  if (params?.q?.trim()) {
+    query.set('q', params.q.trim());
+  }
+  if (typeof params?.limit === 'number' && Number.isFinite(params.limit)) {
+    query.set('limit', String(Math.max(0, Math.trunc(params.limit))));
+  }
+  if (typeof params?.activeMinutes === 'number' && Number.isFinite(params.activeMinutes)) {
+    query.set('activeMinutes', String(Math.max(0, Math.trunc(params.activeMinutes))));
+  }
+  const suffix = query.toString();
+  const response = await api.get<SessionsListView>(suffix ? '/api/sessions?' + suffix : '/api/sessions');
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// GET /api/sessions/:key/history
+export async function fetchSessionHistory(key: string, limit = 200): Promise<SessionHistoryView> {
+  const response = await api.get<SessionHistoryView>(`/api/sessions/${encodeURIComponent(key)}/history?limit=${Math.max(1, Math.trunc(limit))}`);
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// PUT /api/sessions/:key
+export async function updateSession(
+  key: string,
+  data: SessionPatchUpdate
+): Promise<SessionHistoryView> {
+  const response = await api.put<SessionHistoryView>(`/api/sessions/${encodeURIComponent(key)}`, data);
+  if (!response.ok) {
+    throw new Error(response.error.message);
+  }
+  return response.data;
+}
+
+// DELETE /api/sessions/:key
+export async function deleteSession(key: string): Promise<{ deleted: boolean }> {
+  const response = await api.delete<{ deleted: boolean }>(`/api/sessions/${encodeURIComponent(key)}`);
   if (!response.ok) {
     throw new Error(response.error.message);
   }

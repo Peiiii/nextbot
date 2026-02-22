@@ -8,12 +8,17 @@ import {
   updateChannel,
   updateModel,
   updateProvider,
-  updateRuntime
+  updateRuntime,
+  listSessions,
+  getSessionHistory,
+  patchSession,
+  deleteSession
 } from "./config.js";
 import type {
   ConfigActionExecuteRequest,
   ProviderConfigUpdate,
   RuntimeConfigUpdate,
+  SessionPatchUpdate,
   UiServerEvent
 } from "./types.js";
 
@@ -97,6 +102,55 @@ export function createUiRouter(options: UiRouterOptions): Hono {
     }
     options.publish({ type: "config.updated", payload: { path: `channels.${channel}` } });
     return c.json(ok(result));
+  });
+
+  app.get("/api/sessions", (c) => {
+    const query = c.req.query();
+    const q = typeof query.q === "string" ? query.q : undefined;
+    const limit = typeof query.limit === "string" ? Number.parseInt(query.limit, 10) : undefined;
+    const activeMinutes =
+      typeof query.activeMinutes === "string" ? Number.parseInt(query.activeMinutes, 10) : undefined;
+    const data = listSessions(options.configPath, {
+      q,
+      limit: Number.isFinite(limit) ? limit : undefined,
+      activeMinutes: Number.isFinite(activeMinutes) ? activeMinutes : undefined
+    });
+    return c.json(ok(data));
+  });
+
+  app.get("/api/sessions/:key/history", (c) => {
+    const key = decodeURIComponent(c.req.param("key"));
+    const query = c.req.query();
+    const limit = typeof query.limit === "string" ? Number.parseInt(query.limit, 10) : undefined;
+    const data = getSessionHistory(options.configPath, key, Number.isFinite(limit) ? limit : undefined);
+    if (!data) {
+      return c.json(err("NOT_FOUND", `session not found: ${key}`), 404);
+    }
+    return c.json(ok(data));
+  });
+
+  app.put("/api/sessions/:key", async (c) => {
+    const key = decodeURIComponent(c.req.param("key"));
+    const body = await readJson<Record<string, unknown>>(c.req.raw);
+    if (!body.ok || !body.data || typeof body.data !== "object") {
+      return c.json(err("INVALID_BODY", "invalid json body"), 400);
+    }
+    const data = patchSession(options.configPath, key, body.data as SessionPatchUpdate);
+    if (!data) {
+      return c.json(err("NOT_FOUND", `session not found: ${key}`), 404);
+    }
+    options.publish({ type: "config.updated", payload: { path: "session" } });
+    return c.json(ok(data));
+  });
+
+  app.delete("/api/sessions/:key", (c) => {
+    const key = decodeURIComponent(c.req.param("key"));
+    const deleted = deleteSession(options.configPath, key);
+    if (!deleted) {
+      return c.json(err("NOT_FOUND", `session not found: ${key}`), 404);
+    }
+    options.publish({ type: "config.updated", payload: { path: "session" } });
+    return c.json(ok({ deleted: true }));
   });
 
   app.put("/api/config/runtime", async (c) => {

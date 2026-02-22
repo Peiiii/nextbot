@@ -15,7 +15,9 @@ import {
   findProviderByName,
   getPackageVersion,
   isSensitiveConfigPath,
-  type ProviderSpec
+  type ProviderSpec,
+  SessionManager,
+  getWorkspacePathFromConfig
 } from "@nextclaw/core";
 import type {
   ConfigMetaView,
@@ -23,7 +25,10 @@ import type {
   ConfigSchemaResponse,
   ConfigView,
   ProviderConfigUpdate,
-  ProviderConfigView
+  ProviderConfigView,
+  SessionsListView,
+  SessionHistoryView,
+  SessionPatchUpdate
 } from "./types.js";
 
 const MASK_MIN_LENGTH = 8;
@@ -469,6 +474,159 @@ export function updateChannel(
     `channels.${channelName}`,
     uiHints
   );
+}
+
+function normalizeSessionKey(value: string): string {
+  return value.trim();
+}
+
+function createSessionManager(config: Config): SessionManager {
+  return new SessionManager(getWorkspacePathFromConfig(config));
+}
+
+export function listSessions(
+  configPath: string,
+  query?: { q?: string; limit?: number; activeMinutes?: number }
+): SessionsListView {
+  const config = loadConfigOrDefault(configPath);
+  const sessionManager = createSessionManager(config);
+  const now = Date.now();
+  const activeMinutes = typeof query?.activeMinutes === "number" ? Math.max(0, Math.trunc(query.activeMinutes)) : 0;
+  const q = (query?.q ?? "").trim().toLowerCase();
+  const limit = typeof query?.limit === "number" ? Math.max(0, Math.trunc(query.limit)) : 0;
+
+  const entries = sessionManager
+    .listSessions()
+    .map((item) => {
+      const key = typeof item.key === "string" ? normalizeSessionKey(item.key) : "";
+      if (!key) {
+        return null;
+      }
+      const session = sessionManager.getIfExists(key);
+      const messages = session?.messages ?? [];
+      const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+      const metadata = item.metadata && typeof item.metadata === "object" ? (item.metadata as Record<string, unknown>) : {};
+      const label = typeof metadata.label === "string" ? metadata.label.trim() : "";
+      const preferredModel =
+        typeof metadata.preferred_model === "string" ? metadata.preferred_model.trim() : "";
+      const createdAt = typeof item.created_at === "string" ? item.created_at : new Date(0).toISOString();
+      const updatedAt = typeof item.updated_at === "string" ? item.updated_at : createdAt;
+      return {
+        key,
+        createdAt,
+        updatedAt,
+        label: label || undefined,
+        preferredModel: preferredModel || undefined,
+        messageCount: messages.length,
+        lastRole: typeof lastMessage?.role === "string" ? lastMessage.role : undefined,
+        lastTimestamp: typeof lastMessage?.timestamp === "string" ? lastMessage.timestamp : undefined
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+  const filtered = entries.filter((entry) => {
+    if (activeMinutes > 0) {
+      const ageMs = now - new Date(entry.updatedAt).getTime();
+      if (!Number.isFinite(ageMs) || ageMs > activeMinutes * 60_000) {
+        return false;
+      }
+    }
+    if (!q) {
+      return true;
+    }
+    return entry.key.toLowerCase().includes(q) || (entry.label ?? "").toLowerCase().includes(q);
+  });
+
+  filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+  const total = filtered.length;
+  const sessions = limit > 0 ? filtered.slice(0, limit) : filtered;
+  return { sessions, total };
+}
+
+export function getSessionHistory(configPath: string, key: string, limit?: number): SessionHistoryView | null {
+  const normalizedKey = normalizeSessionKey(key);
+  if (!normalizedKey) {
+    return null;
+  }
+  const config = loadConfigOrDefault(configPath);
+  const sessionManager = createSessionManager(config);
+  const session = sessionManager.getIfExists(normalizedKey);
+  if (!session) {
+    return null;
+  }
+
+  const safeLimit = typeof limit === "number" ? Math.min(500, Math.max(1, Math.trunc(limit))) : 200;
+  const allMessages = session.messages;
+  const messages = allMessages.length > safeLimit ? allMessages.slice(-safeLimit) : allMessages;
+  return {
+    key: normalizedKey,
+    totalMessages: allMessages.length,
+    metadata: session.metadata,
+    messages: messages.map((message) => {
+      const entry: Record<string, unknown> = {
+        role: message.role,
+        content: message.content,
+        timestamp: message.timestamp
+      };
+      if (typeof message.name === "string") {
+        entry.name = message.name;
+      }
+      if (typeof message.tool_call_id === "string") {
+        entry.tool_call_id = message.tool_call_id;
+      }
+      return entry as SessionHistoryView["messages"][number];
+    })
+  };
+}
+
+export function patchSession(configPath: string, key: string, patch: SessionPatchUpdate): SessionHistoryView | null {
+  const normalizedKey = normalizeSessionKey(key);
+  if (!normalizedKey) {
+    return null;
+  }
+  const config = loadConfigOrDefault(configPath);
+  const sessionManager = createSessionManager(config);
+  const session = sessionManager.getIfExists(normalizedKey);
+  if (!session) {
+    return null;
+  }
+
+  if (patch.clearHistory) {
+    sessionManager.clear(session);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "label")) {
+    const label = typeof patch.label === "string" ? patch.label.trim() : "";
+    if (label) {
+      session.metadata.label = label;
+    } else {
+      delete session.metadata.label;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, "preferredModel")) {
+    const preferredModel = typeof patch.preferredModel === "string" ? patch.preferredModel.trim() : "";
+    if (preferredModel) {
+      session.metadata.preferred_model = preferredModel;
+    } else {
+      delete session.metadata.preferred_model;
+    }
+  }
+
+  session.updatedAt = new Date();
+  sessionManager.save(session);
+  return getSessionHistory(configPath, normalizedKey, 200);
+}
+
+export function deleteSession(configPath: string, key: string): boolean {
+  const normalizedKey = normalizeSessionKey(key);
+  if (!normalizedKey) {
+    return false;
+  }
+  const config = loadConfigOrDefault(configPath);
+  const sessionManager = createSessionManager(config);
+  return sessionManager.delete(normalizedKey);
 }
 
 export function updateRuntime(

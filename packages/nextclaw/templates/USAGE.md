@@ -25,6 +25,7 @@ When NextClaw AI needs to operate the product itself (status/doctor/channels/con
 - [Configuration](#configuration)
 - [Input context budget](#input-context-budget)
 - [Multi-agent routing & session isolation](#multi-agent-routing--session-isolation-openclaw-aligned)
+- [Session management (UI)](#session-management-ui)
 - [Workspace](#workspace)
 - [Commands](#commands)
 - [Channels](#channels)
@@ -324,6 +325,20 @@ For internal AI operations (same as other built-in capabilities):
 - Yes, the runtime registers the `gateway` tool (`config.get` / `config.schema` / `config.apply` / `config.patch`).
 - The AI can use it to manage the same config surface when you explicitly ask.
 - As with all config mutations, it follows the explicit-request rule (no silent self-mutation).
+
+---
+
+## Session management (UI)
+
+NextClaw UI now provides an OpenClaw-aligned session operations panel (**Sessions** tab) with additional runtime controls:
+
+- list sessions with search + active window filters
+- inspect session history (latest window)
+- patch per-session metadata (`label`, `preferredModel`)
+- clear one session history
+- delete one session
+
+This is useful when running multi-agent routing and channel operations long term, because you can clean or retarget problematic sessions without hand-editing files.
 
 ---
 

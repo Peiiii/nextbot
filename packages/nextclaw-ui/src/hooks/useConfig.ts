@@ -7,7 +7,11 @@ import {
   updateProvider,
   updateChannel,
   updateRuntime,
-  executeConfigAction
+  executeConfigAction,
+  fetchSessions,
+  fetchSessionHistory,
+  updateSession,
+  deleteSession
 } from '@/api/config';
 import { toast } from 'sonner';
 import { t } from '@/lib/i18n';
@@ -106,6 +110,57 @@ export function useExecuteConfigAction() {
       executeConfigAction(actionId, data as Parameters<typeof executeConfigAction>[1]),
     onError: (error: Error) => {
       toast.error(t('error') + ': ' + error.message);
+    }
+  });
+}
+
+
+export function useSessions(params: { q?: string; limit?: number; activeMinutes?: number }) {
+  return useQuery({
+    queryKey: ['sessions', params],
+    queryFn: () => fetchSessions(params),
+    staleTime: 10_000
+  });
+}
+
+export function useSessionHistory(key: string | null, limit = 200) {
+  return useQuery({
+    queryKey: ['session-history', key, limit],
+    queryFn: () => fetchSessionHistory(key as string, limit),
+    enabled: Boolean(key),
+    staleTime: 5_000
+  });
+}
+
+export function useUpdateSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ key, data }: { key: string; data: Parameters<typeof updateSession>[1] }) =>
+      updateSession(key, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history', variables.key] });
+      toast.success(t('configSavedApplied'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('configSaveFailed') + ': ' + error.message);
+    }
+  });
+}
+
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ key }: { key: string }) => deleteSession(key),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['session-history'] });
+      toast.success(t('configSavedApplied'));
+    },
+    onError: (error: Error) => {
+      toast.error(t('configSaveFailed') + ': ' + error.message);
     }
   });
 }

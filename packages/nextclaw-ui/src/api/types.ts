@@ -55,6 +55,43 @@ export type SessionConfigView = {
   };
 };
 
+export type SessionEntryView = {
+  key: string;
+  createdAt: string;
+  updatedAt: string;
+  label?: string;
+  preferredModel?: string;
+  messageCount: number;
+  lastRole?: string;
+  lastTimestamp?: string;
+};
+
+export type SessionsListView = {
+  sessions: SessionEntryView[];
+  total: number;
+};
+
+export type SessionMessageView = {
+  role: string;
+  content: string;
+  timestamp: string;
+  name?: string;
+  tool_call_id?: string;
+};
+
+export type SessionHistoryView = {
+  key: string;
+  totalMessages: number;
+  metadata: Record<string, unknown>;
+  messages: SessionMessageView[];
+};
+
+export type SessionPatchUpdate = {
+  label?: string | null;
+  preferredModel?: string | null;
+  clearHistory?: boolean;
+};
+
 export type RuntimeConfigUpdate = {
   agents?: {
     defaults?: {
