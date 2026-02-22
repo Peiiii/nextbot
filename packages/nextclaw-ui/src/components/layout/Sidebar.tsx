@@ -1,38 +1,36 @@
-import { useUiStore } from '@/stores/ui.store';
 import { cn } from '@/lib/utils';
 import { Cpu, GitBranch, History, MessageSquare, Sparkles } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 
 const navItems = [
   {
-    id: 'model' as const,
+    target: '/model',
     label: 'Models',
     icon: Cpu,
   },
   {
-    id: 'providers' as const,
+    target: '/providers',
     label: 'Providers',
     icon: Sparkles,
   },
   {
-    id: 'channels' as const,
+    target: '/channels',
     label: 'Channels',
     icon: MessageSquare,
   },
   {
-    id: 'runtime' as const,
+    target: '/runtime',
     label: 'Routing & Runtime',
     icon: GitBranch,
   },
   {
-    id: 'sessions' as const,
+    target: '/sessions',
     label: 'Sessions',
     icon: History,
   }
 ];
 
 export function Sidebar() {
-  const { activeTab, setActiveTab } = useUiStore();
-
   return (
     <aside className="w-[240px] bg-transparent flex flex-col h-full py-6 px-4">
       {/* Logo Area */}
@@ -50,25 +48,28 @@ export function Sidebar() {
         <ul className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
 
             return (
-              <li key={item.id}>
-                <button
-                  onClick={() => setActiveTab(item.id)}
-                  className={cn(
+              <li key={item.target}>
+                <NavLink
+                  to={item.target}
+                  className={({ isActive }) => cn(
                     'group w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-fast',
                     isActive
                       ? 'bg-primary-100 text-primary-700'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
                   )}
                 >
-                  <Icon className={cn(
-                    'h-4 w-4 transition-transform duration-fast group-hover:scale-110',
-                    isActive ? 'text-primary' : 'text-gray-500'
-                  )} />
-                  <span className="flex-1 text-left">{item.label}</span>
-                </button>
+                  {({ isActive }) => (
+                    <>
+                      <Icon className={cn(
+                        'h-4 w-4 transition-transform duration-fast group-hover:scale-110',
+                        isActive ? 'text-primary' : 'text-gray-500'
+                      )} />
+                      <span className="flex-1 text-left">{item.label}</span>
+                    </>
+                  )}
+                </NavLink>
               </li>
             );
           })}

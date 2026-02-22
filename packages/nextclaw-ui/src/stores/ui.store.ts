@@ -3,10 +3,6 @@ import { create } from 'zustand';
 type ConnectionStatus = 'connected' | 'disconnected' | 'connecting';
 
 interface UiState {
-  // Active configuration tab
-  activeTab: 'model' | 'providers' | 'channels' | 'runtime' | 'sessions';
-  setActiveTab: (tab: UiState['activeTab']) => void;
-
   // Connection status
   connectionStatus: ConnectionStatus;
   setConnectionStatus: (status: ConnectionStatus) => void;
@@ -23,9 +19,6 @@ interface UiState {
 }
 
 export const useUiStore = create<UiState>((set) => ({
-  activeTab: 'model',
-  setActiveTab: (tab) => set({ activeTab: tab }),
-
   connectionStatus: 'disconnected',
   setConnectionStatus: (status) => set({ connectionStatus: status }),
 
