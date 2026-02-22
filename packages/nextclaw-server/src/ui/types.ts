@@ -29,6 +29,7 @@ export type AgentProfileView = {
   workspace?: string;
   model?: string;
   maxTokens?: number;
+  contextTokens?: number;
   maxToolIterations?: number;
 };
 
@@ -55,6 +56,9 @@ export type SessionConfigView = {
 
 export type RuntimeConfigUpdate = {
   agents?: {
+    defaults?: {
+      contextTokens?: number;
+    };
     list?: AgentProfileView[];
   };
   bindings?: AgentBindingView[];
@@ -67,6 +71,7 @@ export type ConfigView = {
       model: string;
       workspace?: string;
       maxTokens?: number;
+      contextTokens?: number;
       maxToolIterations?: number;
     };
     list?: AgentProfileView[];

@@ -313,6 +313,10 @@ nextclaw config set agents.defaults.contextTokens 200000 --json
 nextclaw config set agents.list '[{"id":"engineer","contextTokens":160000}]' --json
 ```
 
+UI path:
+
+- `Routing & Runtime` page can edit both default `contextTokens` and per-agent `contextTokens` overrides.
+
 For internal AI operations (same as other built-in capabilities):
 
 - Yes, the runtime registers the `gateway` tool (`config.get` / `config.schema` / `config.apply` / `config.patch`).

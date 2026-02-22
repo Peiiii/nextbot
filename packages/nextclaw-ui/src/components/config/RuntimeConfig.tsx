@@ -26,6 +26,7 @@ function createEmptyAgent(): AgentProfileView {
     workspace: '',
     model: '',
     maxTokens: undefined,
+    contextTokens: undefined,
     maxToolIterations: undefined
   };
 }
@@ -58,6 +59,7 @@ export function RuntimeConfig() {
   const [bindings, setBindings] = useState<AgentBindingView[]>([]);
   const [dmScope, setDmScope] = useState<DmScope>('per-channel-peer');
   const [maxPingPongTurns, setMaxPingPongTurns] = useState(0);
+  const [defaultContextTokens, setDefaultContextTokens] = useState(200000);
 
   useEffect(() => {
     if (!config) {
@@ -70,6 +72,7 @@ export function RuntimeConfig() {
         workspace: agent.workspace ?? '',
         model: agent.model ?? '',
         maxTokens: agent.maxTokens,
+        contextTokens: agent.contextTokens,
         maxToolIterations: agent.maxToolIterations
       }))
     );
@@ -90,11 +93,14 @@ export function RuntimeConfig() {
     );
     setDmScope((config.session?.dmScope as DmScope) ?? 'per-channel-peer');
     setMaxPingPongTurns(config.session?.agentToAgent?.maxPingPongTurns ?? 0);
+    setDefaultContextTokens(config.agents.defaults.contextTokens ?? 200000);
   }, [config]);
 
   const uiHints = schema?.uiHints;
   const dmScopeHint = hintForPath('session.dmScope', uiHints);
   const maxPingHint = hintForPath('session.agentToAgent.maxPingPongTurns', uiHints);
+  const defaultContextTokensHint = hintForPath('agents.defaults.contextTokens', uiHints);
+  const agentContextTokensHint = hintForPath('agents.list.*.contextTokens', uiHints);
   const agentsHint = hintForPath('agents.list', uiHints);
   const bindingsHint = hintForPath('bindings', uiHints);
 
@@ -136,6 +142,9 @@ export function RuntimeConfig() {
         }
         if (typeof agent.maxTokens === 'number') {
           normalized.maxTokens = agent.maxTokens;
+        }
+        if (typeof agent.contextTokens === 'number') {
+          normalized.contextTokens = Math.max(1000, agent.contextTokens);
         }
         if (typeof agent.maxToolIterations === 'number') {
           normalized.maxToolIterations = agent.maxToolIterations;
@@ -194,7 +203,12 @@ export function RuntimeConfig() {
 
       updateRuntime.mutate({
         data: {
-          agents: { list: normalizedAgents },
+          agents: {
+            defaults: {
+              contextTokens: Math.max(1000, defaultContextTokens)
+            },
+            list: normalizedAgents
+          },
           bindings: normalizedBindings,
           session: {
             dmScope,
@@ -229,6 +243,21 @@ export function RuntimeConfig() {
           <CardDescription>{dmScopeHint?.help ?? 'Control how direct-message sessions are isolated.'}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-800">
+              {defaultContextTokensHint?.label ?? 'Default Context Tokens'}
+            </label>
+            <Input
+              type="number"
+              min={1000}
+              step={1000}
+              value={defaultContextTokens}
+              onChange={(event) => setDefaultContextTokens(Math.max(1000, Number.parseInt(event.target.value, 10) || 1000))}
+            />
+            <p className="text-xs text-gray-500">
+              {defaultContextTokensHint?.help ?? 'Input context budget for agents when no per-agent override is set.'}
+            </p>
+          </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-800">{dmScopeHint?.label ?? 'DM Scope'}</label>
             <select
@@ -285,7 +314,7 @@ export function RuntimeConfig() {
                   onChange={(event) => updateAgent(index, { model: event.target.value })}
                   placeholder="Model override (optional)"
                 />
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                   <Input
                     type="number"
                     min={1}
@@ -296,6 +325,18 @@ export function RuntimeConfig() {
                       })
                     }
                     placeholder="Max tokens"
+                  />
+                  <Input
+                    type="number"
+                    min={1000}
+                    step={1000}
+                    value={agent.contextTokens ?? ''}
+                    onChange={(event) =>
+                      updateAgent(index, {
+                        contextTokens: parseOptionalInt(event.target.value)
+                      })
+                    }
+                    placeholder={agentContextTokensHint?.label ?? 'Context tokens'}
                   />
                   <Input
                     type="number"

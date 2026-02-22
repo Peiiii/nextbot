@@ -105,6 +105,9 @@ export function createUiRouter(options: UiRouterOptions): Hono {
       return c.json(err("INVALID_BODY", "invalid json body"), 400);
     }
     const result = updateRuntime(options.configPath, body.data);
+    if (body.data.agents?.defaults && Object.prototype.hasOwnProperty.call(body.data.agents.defaults, "contextTokens")) {
+      options.publish({ type: "config.updated", payload: { path: "agents.defaults.contextTokens" } });
+    }
     options.publish({ type: "config.updated", payload: { path: "agents.list" } });
     options.publish({ type: "config.updated", payload: { path: "bindings" } });
     options.publish({ type: "config.updated", payload: { path: "session" } });

@@ -477,6 +477,13 @@ export function updateRuntime(
 ): Pick<ConfigView, "agents" | "bindings" | "session"> {
   const config = loadConfigOrDefault(configPath);
 
+  if (patch.agents?.defaults && Object.prototype.hasOwnProperty.call(patch.agents.defaults, "contextTokens")) {
+    const nextContextTokens = patch.agents.defaults.contextTokens;
+    if (typeof nextContextTokens === "number" && Number.isFinite(nextContextTokens)) {
+      config.agents.defaults.contextTokens = Math.max(1000, Math.trunc(nextContextTokens));
+    }
+  }
+
   if (patch.agents && Object.prototype.hasOwnProperty.call(patch.agents, "list")) {
     config.agents.list = (patch.agents.list ?? []).map((entry) => ({
       ...entry,
